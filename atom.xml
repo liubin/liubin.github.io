@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[自言自语]]></title>
+  <link href="https://liubin.github.io/atom.xml" rel="self"/>
+  <link href="https://liubin.github.io/"/>
+  <updated>2015-12-30T19:29:55+08:00</updated>
+  <id>https://liubin.github.io/</id>
+  <author>
+    <name><![CDATA[bin liu]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[开始新Blog]]></title>
+    <link href="https://liubin.github.io/blog/2015/12/30/start-new-blog/"/>
+    <updated>2015-12-30T18:47:07+08:00</updated>
+    <id>https://liubin.github.io/blog/2015/12/30/start-new-blog</id>
+    <content type="html"><![CDATA[<h1>哈和</h1>
+
+<h2>阿打算发</h2>
+
+<p>asdf
+asdf</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">put</span> <span class="s2">&quot;s&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span>
+</span><span class='line'>  <span class="nb">puts</span> <span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">b</span> <span class="o">==</span><span class="mi">2</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+]]></content>
+  </entry>
+  
+</feed>
