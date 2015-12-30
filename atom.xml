@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2015-12-30T21:50:34+08:00</updated>
+  <updated>2015-12-30T21:52:36+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -260,7 +260,7 @@
 <span class='line-number'>3</span>
 </pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>git add .
 </span><span class='line'><span class="nv">$ </span>git commit -am <span class="s2">&quot;add new post&quot;</span>
-</span><span class='line'><span class="nv">$ </span>git push
+</span><span class='line'><span class="nv">$ </span>git push origin <span class="nb">source</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
