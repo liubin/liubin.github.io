@@ -198,7 +198,7 @@ $ rake deploy
 ```
 $ git add .
 $ git commit -am "add new post" 
-$ git push
+$ git push origin source
 ```
 
 到这里，安装配置一个GitHub博客，并且发表文章的一个大致过程就简要介绍完毕了。
