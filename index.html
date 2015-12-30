@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh-CN">
   <head>
     <!-- include head -->
     
@@ -9,7 +9,7 @@
 <title>自言自语</title>
 <meta name="author" content="bin liu">
 <meta name="description"
-      content=" 最新文章 开始新Blog （） &laquo; 过去文章 最近文章 开始新Blog ">
+      content=" 最新文章 开始新Blog （2015-12-30 18:47） &laquo; 过去文章 最近文章 开始新Blog Git 仓库 &mdash; GitHub 加载中 ... @liubin on Github ">
 
 
 <!-- http://t.co/dKP3o1e -->
@@ -17,7 +17,7 @@
 <meta name="MobileOptimized" content="320">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link rel="canonical" href="https://liubin.github.io">
+<link rel="canonical" href="http://liubin.github.io">
 <link href="/favicon.png" rel="icon">
 <link href="/stylesheets/screen.css"
       media="screen, projection"
@@ -53,13 +53,32 @@
 <hgroup>
   <h1><a href="/">自言自语</a></h1>
   
-  <h2>一个软件工程师的</h2>
+  <h2>一个软件工程师的自言自语</h2>
   
 </hgroup>
 
 	<!-- /include -->
         <!-- include social_service_links -->
 	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.github.io/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
 
         <!-- /include -->
       </header>
@@ -77,7 +96,7 @@
       <li>
         <article>
           <a rel="full-article" href="/blog/2015/12/30/start-new-blog/">开始新Blog</a>
-          （<time datetime="2015-12-30 18:47:07 +0800" pubdate></time>）
+          （<time datetime="2015-12-30 18:47:07 +0800" pubdate><time class='entry-date' datetime='2015-12-30T18:47:07+08:00'><span class='date'>2015-12-30</span> <span class='time'>18:47</span></time></time>）
         </article>
       </li>
     
@@ -101,6 +120,42 @@
   </ul>
 </section>
 
+
+<section>
+  <h2>
+    Git 仓库
+    &mdash;
+    <a href="https://github.com/liubin">GitHub</a>
+  </h2>
+  <ul id="gh_repos">
+    <li class="loading">加载中 ...</li>
+  </ul>
+  
+  <a href="https://github.com/liubin">@liubin</a> on Github
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'liubin',
+            count: 0,
+            skip_forks: true,
+            type: '',
+            sort: '',
+            direction: '',
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
 
 
 
@@ -132,6 +187,15 @@
       
 
 
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
 
 
 
