@@ -68,9 +68,15 @@ social_service_links: true
 
 # Github repositories
 github_user: liubin
-github_repo_count: 0
+github_repo_count: 5
 github_show_profile_link: true
 github_skip_forks: true
+
+# github api v3 params
+# see http://developer.github.com/v3/repos/#list-user-repositories
+github_type: all
+github_sort: updated
+github_direction: desc
 
 # Twitter
 twitter_user: OurColorfulDays
