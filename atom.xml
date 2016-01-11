@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-01-04T10:33:41+08:00</updated>
+  <updated>2016-01-11T20:06:12+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,45 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[这个程序员得有多无聊啊？]]></title>
+    <link href="http://liubin.github.io/blog/2016/01/11/spaces-and-tabs/"/>
+    <updated>2016-01-11T19:38:27+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/01/11/spaces-and-tabs</id>
+    <content type="html"><![CDATA[<p>这是两个比较流行的编辑器的界面。</p>
+
+<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/sublime.png" title="'这是sublime的'" ></p>
+
+<p><em>这是sublime的。</em></p>
+
+<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/eclipse.png" title="'这是eclipse的'" ></p>
+
+<p><em>这是eclipse的。</em></p>
+
+<p>如果你的编辑器也做了这样的设置，那么你可以继续往下看看。</p>
+
+<p>如果在本地，我们可以通过设置编辑器，来决定如何显示空格、tab键等，带我们程序员都爱GitHub啊，怎么办？</p>
+
+<p>这时候工作不饱满、闲得无聊、空格癖、嫌tab党的同学，决定小小的hack一下浏览器。</p>
+
+<p>要做的东西其实很简单，就是一个Chrome插件，把GitHub里面的代码稍微格式化一下啦。</p>
+
+<p>这就是格式化后的效果，主要会对空格和tab进行特殊处理，此外，还加入了回车的显示，不过貌似在GitHub上，回车不是问题。</p>
+
+<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/editor-space-cover.png" title="'格式化后的效果'" ></p>
+
+<p><em>格式化后的效果</em></p>
+
+<p>当然，这个小插件还支持自定义特殊字符，即设置自己喜欢的tab、空格和回车，还能自定义颜色。</p>
+
+<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/config.png" title="'配置选项'" ></p>
+
+<p><em>配置选项</em></p>
+
+<p>有兴趣的同学可以在GitHub上查看到<a href="https://github.com/liubin/github-source-view-plugin">很挫的源代码</a>。。。。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[读书记录 - 社交红利2.0、孵化Twitter、解忧杂货店]]></title>
