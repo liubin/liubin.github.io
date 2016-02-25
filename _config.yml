@@ -104,7 +104,7 @@ disqus_short_name:
 disqus_show_comment_count: false
 
 # Google Analytics
-google_analytics_tracking_id:
+google_analytics_tracking_id: UA-5658682
 
 # Baidu tongji
 baidu_tongji_tracking_id: 3ff1a0a2cfe6655d0058381167b966a9

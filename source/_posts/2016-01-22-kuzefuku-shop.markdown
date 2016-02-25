@@ -6,16 +6,16 @@ comments: true
 categories: 
 ---
 
-![](/images/20160122-kuzefuku-shop/kuzefuku_logo.png)
+![](/images/2016/01/kuzefuku-shop/kuzefuku_logo.png)
 
 知道这个商店，也是通过一家日本设计公司的博客。打开的一瞬间，被其怀旧且温暖的风格所吸引。
 
-{% img /images/20160122-kuzefuku-shop/kuzefuku_1.jpg 800px  %}
+{% img /images/2016/01/kuzefuku-shop/kuzefuku_1.jpg 800px  %}
 
 
 不过如果只是如此，我们只需要看看图片就可以了。久世福商店主页的第一大段文字，讲的是其经商心得（对商业的理解）：
 
-![](/images/20160122-kuzefuku-shop/kuzefuku_kokoroe.png)
+![](/images/2016/01/kuzefuku-shop/kuzefuku_kokoroe.png)
 
 
 翻译为中文如下：
@@ -91,6 +91,6 @@ categories:
 
 以史为镜，以彼为镜。反观我们现在企业的经营现状，欺骗客户、股东，压榨员工，破坏环境，恶意竞争，是不是有很多的东西需要反思一下？
 
-{% img /images/20160122-kuzefuku-shop/kuzefuku_2.jpg 800px  %}
+{% img /images/2016/01/kuzefuku-shop/kuzefuku_2.jpg 800px  %}
 
 

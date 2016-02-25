@@ -8,12 +8,12 @@ categories:
 
 这是两个比较流行的编辑器的界面。
 
-{% img center-image /images/20160111-spaces-and-tabs/sublime.png  '这是sublime的' %}
+{% img center-image /images/2016/01/spaces-and-tabs/sublime.png  '这是sublime的' %}
 
 *这是sublime的。*
 
 
-{% img center-image /images/20160111-spaces-and-tabs/eclipse.png  '这是eclipse的' %}
+{% img center-image /images/2016/01/spaces-and-tabs/eclipse.png  '这是eclipse的' %}
 
 *这是eclipse的。*
 
@@ -27,13 +27,13 @@ categories:
 
 这就是格式化后的效果，主要会对空格和tab进行特殊处理，此外，还加入了回车的显示，不过貌似在GitHub上，回车不是问题。
 
-{% img center-image /images/20160111-spaces-and-tabs/editor-space-cover.png '格式化后的效果' %}
+{% img center-image /images/2016/01/spaces-and-tabs/editor-space-cover.png '格式化后的效果' %}
 
 *格式化后的效果*
 
 当然，这个小插件还支持自定义特殊字符，即设置自己喜欢的tab、空格和回车，还能自定义颜色。
 
-{% img center-image /images/20160111-spaces-and-tabs/config.png '配置选项' %}
+{% img center-image /images/2016/01/spaces-and-tabs/config.png '配置选项' %}
 
 *配置选项*
 
