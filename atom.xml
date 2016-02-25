@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-02-18T10:45:55+08:00</updated>
+  <updated>2016-02-25T19:56:15+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -14,15 +14,678 @@
 
   
   <entry>
+    <title type="html"><![CDATA[时序列数据库武斗大会之TSDB名录 Part 1]]></title>
+    <link href="http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1/"/>
+    <updated>2016-02-25T22:20:21+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1</id>
+    <content type="html"><![CDATA[<p>通过上一章<a href="http://liubin.github.io/blog/2016/02/18/tsdb-intro/">《时序列数据库武斗大会之什么是TSDB》</a>的介绍，相信大家已经知道了什么是时序列数据库，以及它能干什么，有什么特点等有了一定的了解。</p>
+
+<p>那么在这一篇文章中，我们将介绍一下目前都有哪些TSDB，以及它们的特点，并基于个人观点，给出一定的（喜好）评判。</p>
+
+<p>由于个人能力所限，有些地方调查可能不到位，再加上一定的个人主观因素，所以跟其他人的结论可能不一样，不过这应该也正常。没有调查就没有发言权，只有真正的深度用户的发言，才具有说服务力，你可以权当这里就当是我抛砖了。</p>
+
+<p>另外，如何去选择一个TSDB，本文也列出了一些考虑因素，相信应该对各位都有一定的参考价值。</p>
+
+<p>虽然也有人用ElasticSearch或者MongoDB来存储时序列数据，作为更适合分类为NOSQL的这两个数据库软件，我们这里就不对它们做介绍了。</p>
+
+<h2>DB-Engines中时序列数据库排名</h2>
+
+<p>我们先来看一下DB-Engines中关于时<a href="http://db-engines.com/en/ranking/time+series+dbms">序列数据库的排名</a></p>
+
+<p>这是当前（2016年2月的）排名情况：</p>
+
+<p><img src="http://liubin.github.io/images/2016/02/tsdb-series/tsdb-ranking.png" alt="" /></p>
+
+<p>下面，我们就按照这个排名的顺序，简单介绍一下这些时序列数据库中的一些。下面要介绍的TSDB以开源的为主，如果是商业或者SaaS服务，也简单介绍一下其特点，让大家能对其他领域的事物也有所了解。</p>
+
+<p>这里有一个例外，就是Pinot并不在这个排名里，但是我们也把它列在了这里。</p>
+
+<h2>1. InfluxDB</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="https://influxdata.com/">https://influxdata.com/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Golang </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> MIT </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2013 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> v0.10.1 </td>
+<td> 2016/2/18 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>InfluxDB由Golang语言编写，也是由Golang编写的软件中比较著名的一个，在很多Golang的沙龙或者文章中可能都会把InfluxDB当标杆来介绍，这也间接帮助InfluxDB提高了知名度。</p>
+
+<p>InfluxDB的主要特点包括下面这些：</p>
+
+<ul>
+<li>schemaless(无结构)，可以是任意数量的列</li>
+<li>可扩展（集群）</li>
+<li>方便、强大的查询语言</li>
+<li>Native HTTP API</li>
+<li>集成了数据采集、存储、可视化功能</li>
+<li>实时数据Downsampling</li>
+<li>高效存储，使用高压缩比算法，支持retention polices</li>
+</ul>
+
+
+<p>InfluxDB是TSDB中为数不多的进行了用户和角色方面实现的，提供了Cluster Admin、Database Admin和Database User三种角色。</p>
+
+<p>InfluxDB的数据采集系统也支持多种协议和插件：
+- 行文本
+- UDP
+- Graphite
+- CollectD
+- OpenTSDB</p>
+
+<p>不过InfluxDB每次变动都较大，尤其是在存储和集群方面，追求平平安过日子，不想瞎折腾的可以考虑下。</p>
+
+<p><strong>注意：</strong></p>
+
+<p>由于InfluxDB开发太活跃了，很可能你在网上搜到的资料都是老的，会害到你，所以你需要<strong>以官方文档为主</strong>。</p>
+
+<h2>2. RRDtool</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://oss.oetiker.ch/rrdtool/index.en.html">http://oss.oetiker.ch/rrdtool/index.en.html</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> C语言 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> GNU GPL V2 </td>
+<td>  or later </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 16-Jul-1999 </td>
+<td> rrdtool-1.0.0 </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> rrdtool-1.5.5 </td>
+<td> 10-Nov-2015 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>RRDtool全称为<strong>Round Robin Database Tool</strong>，也就是用于操作RRD的工具，简单明了的软件名。</p>
+
+<p>什么是RRD呢？简单来说它就是一个循环使用的固定大小的数据库文件（其实也不太像典型的数据库）。</p>
+
+<p>大体来说，RRDtool提供的主要工具如下：</p>
+
+<ul>
+<li>创建RRD（rrdtool create）</li>
+<li>更新RRD（rrdtool update）</li>
+<li>画图（rrdtool graph）</li>
+</ul>
+
+
+<p>这其中，画图功能是最复杂也是最强大的，甚至支持下面这些图形，这是其他TSDB中少见的：</p>
+
+<ul>
+<li>指标比较，对两个指标值进行计算，描画出满足条件的区域</li>
+<li>移动平均线</li>
+<li>和历史数据进行对比</li>
+<li>基于最小二乘法的线性预测</li>
+<li>曲线预测</li>
+</ul>
+
+
+<p>总之，它的画图功能太丰富了。</p>
+
+<h2>3. Graphite</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://graphite.readthedocs.org/en/latest/">http://graphite.readthedocs.org/en/latest/</a> </td>
+<td> </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Python </td>
+<td> </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache 2.0</td>
+<td> </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2006年 </td>
+<td> </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 0.9.10</td>
+<td> 2012/5/31 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Graphite由Orbitz, LLC 的 Chris Davis创立于2006年，它主要有两个功能：
+* 存储数值型时序列数据
+* 根据请求对数据进行可视化（画图）</p>
+
+<p>相应的，它的特点为：</p>
+
+<ul>
+<li>分布式时序列数据存储，容易扩展</li>
+<li>功能强大的画图Web API，提供了大量的函数和输出方式</li>
+</ul>
+
+
+<p>Graphite本身不带数据采集功能，但是你可以选择很多第三方插件，比如适用于collectd、Ganglia或Sensu的插件等。同时，Graphite也支持Plaintext、Pickle和AMQP这些数据输入方式。</p>
+
+<p>Graphite主要由三个模块组成：</p>
+
+<ul>
+<li>whisper：创建、更新RRD文件</li>
+<li>carbon：以守护进程的形式运行，接收数据写入请求
+
+<ul>
+<li>carbon-cache：数据存储</li>
+<li>carbon-relay：分区和复制，位于carbon-cache之前，类似carbon-cache的负载均衡</li>
+<li>carbon-aggregator：数据集计，用于减轻carbon-cache的负载</li>
+</ul>
+</li>
+<li>graphite-web：用于读取、展示数据的Web应用</li>
+</ul>
+
+
+<p>whisper使用了类似RRDtool的RRD文件格式，它也不像C/S结构的软件一样，没有服务进程，只是作为Python library使用，提供对数据的create/update/fetch操作。</p>
+
+<p>如果你对它的性能比较在意，这里有一份<a href="https://answers.launchpad.net/graphite/+question/178969">老的数据</a>可供参考。</p>
+
+<p>Google、<a href="https://codeascraft.com/2010/12/08/track-every-release/">Etsy</a>、GitHub、豆瓣、Instagram、<a href="http://blog.evernote.com/tech/2013/07/29/graphite-at-evernote/">Evernote</a>和Uber等很多知名公司都是Graphite的<a href="https://graphite.readthedocs.org/en/latest/who-is-using.html">用户</a>。有此背景，其可信度又加一层，而且网上的资料也相当的多，值得评估一下。</p>
+
+<h2>4. OpenTSDB</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://opentsdb.net/">http://opentsdb.net/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Java </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> LGPLv2.1+ GPLv3+ </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2010 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 2.2 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>OpenTSDB是一个分布式、可伸缩的时间序列数据库。它支持豪秒级数据采集所有metrics，支持永久存储（不需要downsampling），和InfluxDB类似，它也是无模式，以tag来实现维度的概念。</p>
+
+<p>比如，这就是它的一个metric例子：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>mysql.bytes_received 1287333217 66666666 schema=foo host=db1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>OpenTSDB的节点称为TSD（Time Series Daemon (TSD)），它没有主、从之分，消除了单点隐患，非常容易扩展。它主要以HBase作为存储系统，现在也增加了对Cassandra和Bigtable（非云端）。</p>
+
+<p>OpenTSDB以数据存储和查询为主，附带了一个简单地图形界面（依赖Gnuplot），共开发、调试使用。</p>
+
+<h2>5. KDB+</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://kx.com/">http://kx.com/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> 商业 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>所有TSDB中，估计就数这个最酷了，我说的是域名，只有两个字母，猥琐地想一下，域名就值很多钱 ：-）。</p>
+
+<p><code>kdb+</code>是一个面向列的时序列数据看，以及专门为其设计的查询语言<code>q</code>（和他们的域名一样简短）。Kdb+混合使用了流、内存和实时分析，速度很快，支持分析10亿级别的记录以及快速访问TB级别的历史数据。</p>
+
+<p>不过这是一个商业产品，但是也提供了免费版本（貌似还限制在32位）。</p>
+
+<h2>6. KairosDB</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://kairosdb.github.io/">http://kairosdb.github.io/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Java </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2013 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 1.1.1 </td>
+<td> 2015/12/08 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>KairosDB是一个OpenTSDB的fork，不过是基于Cassandra存储的。由于Cassandra的行比HBase宽，所以KairosDB的Cassandra的默认行大小为3星期，而OpenTSDB的HBase则为1小时。</p>
+
+<p>KairosDB支持通过Telnet、Rest、Graphite等协议写入数据，你也可以通过编写插件自己实现数据写入。</p>
+
+<p>KairosDB也提供了基于Web API的查询接口，支持数据聚合、持过滤和分组等功能。</p>
+
+<p>同时KairosDB提供了一个供开发用的Web UI，图形绘制引擎使用了 <a href="http://www.flotcharts.org/">Flot</a>。</p>
+
+<p>和OpenTSDB类似，KairosDB 也提供了插件机制，你可以使用插件完成如下工作：</p>
+
+<ul>
+<li>添加数据点（data point）监听器</li>
+<li>添加新的数据存储服务</li>
+<li>添加新的协议处理程序</li>
+<li>添加自定义系统监视服务</li>
+</ul>
+
+
+<h2>7. Druid</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://druid.io/">http://druid.io/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Java </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2011 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> Druid 0.9.0-RC2 </td>
+<td> 2016/02/23 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Druid是一个快速、近实时的海量数据OLAP系统，并且是开源的。Druid诞生于Metamarkets，后来一些核心人员创立了IMPLY公司，进行Druid相关的产品开发。</p>
+
+<p>Druid会按时间来进行分区（segment），并且是面向列存储的。它的主要特性如下：</p>
+
+<ul>
+<li>支持嵌套数据的列式存储</li>
+<li>层级查询</li>
+<li>二级索引</li>
+<li>实时数据摄取</li>
+<li>分布式容错架构</li>
+</ul>
+
+
+<p>根据去年底druid.io的白皮书，现在生产环境下最大的集群规模如下：</p>
+
+<ul>
+<li>>3M EVENTS / SECOND SUSTAINED (200B+ EVENTS/DAY)</li>
+<li>10 – 100K EVENTS / SECOND / CORE</li>
+<li>>500TB OF SEGMENTS (>50 TRILLION RAW EVENTS)</li>
+<li>>5000 CORES (>400 NODES, >100TB RAM)</li>
+<li>QUERY LATENCY (500MS AVERAGE)</li>
+<li>90% &lt; 1S 95% &lt; 2S 99% &lt; 10S</li>
+<li>3+ trillion events/month</li>
+<li>3M+ events/sec through Druid&rsquo;s real-time ingestion</li>
+<li>100+ PB of raw data</li>
+<li>50+ trillion events</li>
+</ul>
+
+
+<p> Druid企业用户比较多，比如<a href="http://www.oneapm.com/">OneAPM</a>、Netflix和Paypal等。具体可以参考 <a href="http://druid.io/druid-powered.html">http://druid.io/druid-powered.html</a> 。</p>
+
+<p>Druid架构比较复杂，因此对部署和运维也有一定的负担，比如需要的机器多、机器配置要高（尤其是内存）。</p>
+
+<h2>8. Prometheus</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://prometheus.io/">http://prometheus.io/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Golang </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2012 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 0.17.0rc2 </td>
+<td> 2016-02-05 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Prometheus是一个开源的服务监控系统和时序列数据库，由社交音乐平台SoundCloud在2012年开发，最近也变得很流行，最新版本为0.17.0rc2。</p>
+
+<p>Prometheus从各种输入源采集metric，进行计算后显示结果，或者根据指定条件出发报警。</p>
+
+<p>和其他监控系统相比，Prometheus的特点包括：</p>
+
+<ul>
+<li>多维数据模型（时序列数据由metric名和一组key/value组成）</li>
+<li>灵活的查询语言</li>
+<li>不依赖分布式存储，单台服务器即可工作</li>
+<li>通过基于HTTP的pull方式采集是序列数据</li>
+<li>可以通过中间网关进行时序列数据推送</li>
+<li>多种可视化和仪表盘支持</li>
+</ul>
+
+
+<p>由于Prometheus采用了类似OpenTSDB 和 InfluxDB的key/value维度机制，所以如果你对任一种TSDB有了解的话，学习起来会简单些。</p>
+
+<h2>9. Pinot</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> 备注 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="https://github.com/linkedin/pinot/wiki">https://github.com/linkedin/pinot/wiki</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Java </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2014/08 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 0.016 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Pinot是一个开源的实时、分布式OLAP数据存储方案。它来自Linkedin，虽然Linkedin最近估价表现很差，但是他们创建的各种软件、中间件实在太多了。这一点我们做软件的都应该向Linkedin表示感谢。</p>
+
+<p>Pinot就像是一个Druid的copy，不过两者的灵感都来源于SenseiDB（Sensei在日语里为老师的意思，写成汉字为“先生”）。</p>
+
+<p>Pinot也像Druid一样，能加载offline数据（Hadoop文件）和实时数据（Kafka）。Pinot从设计上就面向水平扩展。</p>
+
+<p>Pinot主要特点：</p>
+
+<ul>
+<li>面向列</li>
+<li>插拔式索引引擎：排序索引、位图索引和反向索引</li>
+<li>根据查询语句和segment信息对查询/执行计划进行优化</li>
+<li>从Kafka实时数据摄取（ingestion）</li>
+<li>从Hadoop进行批量摄取</li>
+<li>类似SQL的查询语言，支持聚合、过滤、分组、排序和唯一处理。</li>
+<li>支持多值字段</li>
+<li>水平扩展和容错</li>
+</ul>
+
+
+<p>Pinot的特点和Druid很像，两者可互为参考。</p>
+
+<h2>小结</h2>
+
+<p>这里我们为大家介绍了几种常见TSDB，如不出意外，你可能会在这里选择某一种来使用。</p>
+
+<p>尽管如此，我们还是会为大家介绍跟多一些的项目，让大家能更多的了解一些不同的TSDB及其特点，也能帮助读者深入了解TSDB的各种场景，开阔思路。</p>
+
+<p>在下一篇文章中，我们将会为各位再介绍几种时序列数据库。</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[时序列数据库武斗大会之什么是TSDB]]></title>
     <link href="http://liubin.github.io/blog/2016/02/18/tsdb-intro/"/>
     <updated>2016-02-18T00:48:27+08:00</updated>
     <id>http://liubin.github.io/blog/2016/02/18/tsdb-intro</id>
-    <content type="html"><![CDATA[<p>由于工作上的关系，最近看了一些关于<a href="https://en.wikipedia.org/wiki/Time_series_database">时序列数据库</a>的东西，当然，看的也都是基于开源的方案。</p>
+    <content type="html"><![CDATA[<p>由于工作上的关系，最近看了一些关于<a href="https://en.wikipedia.org/wiki/Time_series_database">时序列数据库</a>的东西，当然，我所看的也都是以开源方案为主。</p>
 
 <p>趁着这股热劲还没退，希望能整理一些资料出来。如果正好你也有这方面的需求，那么希望这一系列的介绍能够帮助到你。</p>
 
-<h2>1. 什么是是序列数据库（Time series database）？</h2>
+<h2>1. 什么是时序列数据库（Time series database）？</h2>
 
 <p>一听到时序列数据库，如果只是稍有耳闻的人，可能立刻会联想到运维和监控系统。</p>
 
@@ -254,6 +917,15 @@
 <li><a href="http://db-engines.com/en/ranking/time+series+dbms">DB-Engines Ranking of Time Series DBMS(January 2016)</a></li>
 </ul>
 
+
+<h2>5. 相关阅读</h2>
+
+<p>这是本系列文章的其他部分：</p>
+
+<ul>
+<li><a href="http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1/">时序列数据库武斗大会之TSDB名录 Part 1</a></li>
+</ul>
+
 ]]></content>
   </entry>
   
@@ -361,15 +1033,15 @@
     <link href="http://liubin.github.io/blog/2016/01/22/kuzefuku-shop/"/>
     <updated>2016-01-22T17:52:49+08:00</updated>
     <id>http://liubin.github.io/blog/2016/01/22/kuzefuku-shop</id>
-    <content type="html"><![CDATA[<p><img src="http://liubin.github.io/images/20160122-kuzefuku-shop/kuzefuku_logo.png" alt="" /></p>
+    <content type="html"><![CDATA[<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_logo.png" alt="" /></p>
 
 <p>知道这个商店，也是通过一家日本设计公司的博客。打开的一瞬间，被其怀旧且温暖的风格所吸引。</p>
 
-<p><img src="http://liubin.github.io/images/20160122-kuzefuku-shop/kuzefuku_1.jpg" width="800"></p>
+<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_1.jpg" width="800"></p>
 
 <p>不过如果只是如此，我们只需要看看图片就可以了。久世福商店主页的第一大段文字，讲的是其经商心得（对商业的理解）：</p>
 
-<p><img src="http://liubin.github.io/images/20160122-kuzefuku-shop/kuzefuku_kokoroe.png" alt="" /></p>
+<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_kokoroe.png" alt="" /></p>
 
 <p>翻译为中文如下：</p>
 
@@ -474,7 +1146,7 @@
 
 <p>以史为镜，以彼为镜。反观我们现在企业的经营现状，欺骗客户、股东，压榨员工，破坏环境，恶意竞争，是不是有很多的东西需要反思一下？</p>
 
-<p><img src="http://liubin.github.io/images/20160122-kuzefuku-shop/kuzefuku_2.jpg" width="800"></p>
+<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_2.jpg" width="800"></p>
 ]]></content>
   </entry>
   
@@ -485,11 +1157,11 @@
     <id>http://liubin.github.io/blog/2016/01/11/spaces-and-tabs</id>
     <content type="html"><![CDATA[<p>这是两个比较流行的编辑器的界面。</p>
 
-<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/sublime.png" title="'这是sublime的'" ></p>
+<p><img class="center-image" src="http://liubin.github.io/images/2016/01/spaces-and-tabs/sublime.png" title="'这是sublime的'" ></p>
 
 <p><em>这是sublime的。</em></p>
 
-<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/eclipse.png" title="'这是eclipse的'" ></p>
+<p><img class="center-image" src="http://liubin.github.io/images/2016/01/spaces-and-tabs/eclipse.png" title="'这是eclipse的'" ></p>
 
 <p><em>这是eclipse的。</em></p>
 
@@ -503,13 +1175,13 @@
 
 <p>这就是格式化后的效果，主要会对空格和tab进行特殊处理，此外，还加入了回车的显示，不过貌似在GitHub上，回车不是问题。</p>
 
-<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/editor-space-cover.png" title="'格式化后的效果'" ></p>
+<p><img class="center-image" src="http://liubin.github.io/images/2016/01/spaces-and-tabs/editor-space-cover.png" title="'格式化后的效果'" ></p>
 
 <p><em>格式化后的效果</em></p>
 
 <p>当然，这个小插件还支持自定义特殊字符，即设置自己喜欢的tab、空格和回车，还能自定义颜色。</p>
 
-<p><img class="center-image" src="http://liubin.github.io/images/20160111-spaces-and-tabs/config.png" title="'配置选项'" ></p>
+<p><img class="center-image" src="http://liubin.github.io/images/2016/01/spaces-and-tabs/config.png" title="'配置选项'" ></p>
 
 <p><em>配置选项</em></p>
 
