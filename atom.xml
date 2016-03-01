@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-03-01T20:24:05+08:00</updated>
+  <updated>2016-03-01T20:44:38+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -570,7 +570,10 @@
 
 <p>用户可以创建分析流（custom analytics streams）来查洞悉IoT数据实时状态，自动将数据存储到DataIQ。并可以创建报警来持续监控分析流，当有超预期的改名或者达到致命条件时进行实时报警。</p>
 
-<p>ViewIQ</p>
+<ul>
+<li>ViewIQ</li>
+</ul>
+
 
 <p>用户使用ViewIQ可以创建实时的IoT仪表盘、应用和可视化组件，而不需要编码工作。</p>
 
