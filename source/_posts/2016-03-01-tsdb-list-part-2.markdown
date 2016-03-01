@@ -262,7 +262,7 @@ TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可�
 
 用户可以创建分析流（custom analytics streams）来查洞悉IoT数据实时状态，自动将数据存储到DataIQ。并可以创建报警来持续监控分析流，当有超预期的改名或者达到致命条件时进行实时报警。
 
-ViewIQ
+* ViewIQ
 
 用户使用ViewIQ可以创建实时的IoT仪表盘、应用和可视化组件，而不需要编码工作。
 
