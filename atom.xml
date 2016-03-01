@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-03-01T20:09:07+08:00</updated>
+  <updated>2016-03-01T20:24:05+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -862,8 +862,6 @@
 <p>那么在这一篇文章中，我们将介绍一下目前都有哪些TSDB，以及它们的特点，并基于个人观点，给出一定的（喜好）评判。</p>
 
 <p>由于个人能力所限，有些地方调查可能不到位，再加上一定的个人主观因素，所以跟其他人的结论可能不一样，不过这应该也正常。没有调查就没有发言权，只有真正的深度用户的发言，才具有说服务力，你可以权当这里就当是我抛砖了。</p>
-
-<p>另外，如何去选择一个TSDB，本文也列出了一些考虑因素，相信应该对各位都有一定的参考价值。</p>
 
 <p>虽然也有人用ElasticSearch或者MongoDB来存储时序列数据，作为更适合分类为NOSQL的这两个数据库软件，我们这里就不对它们做介绍了。</p>
 
