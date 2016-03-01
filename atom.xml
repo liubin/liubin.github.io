@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-02-26T22:58:50+08:00</updated>
+  <updated>2016-03-01T20:09:07+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,724 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[时序列数据库武斗大会之TSDB名录 Part 2]]></title>
+    <link href="http://liubin.github.io/blog/2016/03/01/tsdb-list-part-2/"/>
+    <updated>2016-03-01T20:56:37+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/03/01/tsdb-list-part-2</id>
+    <content type="html"><![CDATA[<p>在前面<a href="http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1/">《时序列数据库武斗大会之TSDB名录 Part 1》</a>我们已经介绍了一些常见的TSDB，这里我们再对剩余的一些TSDB做些简单介绍。</p>
+
+<h2>10. Geras</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://1248.io/geras.php">http://1248.io/geras.php</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> 商业 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Geras是一个专注于IoT领域（当然不仅限于传感器采集到的数据）可扩展的、分布式的时序列数据库，用于帮助用户进行快速分析。Geras是一个SaaS服务，但是你也可以购买软件自己部署、托管。Geras提供了免费版，它不对数据存储的时间和数据量做任何限制，只是不提供SLA而已。不过他们的<a href="http://geras.1248.io/">SaaS主页</a>我却一直没打开过，貌似该DNS记录已经不存在了，官方相关资料也不多，真怀疑这个项目已经废弃了，该产品已经演化为新产品。</p>
+
+<p>Geras速度非常快，它支持对任何时间精度进行Rollup，也支持保存原始数据的精度。它专门为写操作进行了优化，可以接收海量设备的数据输入。</p>
+
+<p>Geras运行在容错、分布式数据存储之上，支持水平扩展，可以在不停止服务的前提下对系统容量进行调整。</p>
+
+<p>Geras也提供了一套可视化界面，方便的对设备、传感器等进行管理，对metric进行图表的可视化等。</p>
+
+<p>Geras支持多种技术来进行数据存储、查询和展示，比如HTTPS、JSON、RESTful、SenML、MQTT、HyperCat，设备数据可以通过HTTP POST或者轻量MQTT发布。</p>
+
+<h2>11. Akumuli</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="https://github.com/Akumuli/akumuli">https://github.com/Akumuli/akumuli</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> C++ </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License, Version 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2014/12 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> pre-release </td>
+<td> 2015/10/18 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 简单 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Akumuli名称来自accumulate，是一个数值型时间序列数据库，可以实时存储、处理时序列数据。</p>
+
+<p>它的特点如下：</p>
+
+<ul>
+<li>基于日志结构的存储</li>
+<li>支持无序数据</li>
+<li>实时压缩</li>
+<li>基于HTTP的JSON查询支持</li>
+<li>支持面向行和面向列的存储</li>
+<li>将最新数据放入内存存储</li>
+<li>通过metric和tag组织时序列数据，并且可以通过tag进行join操作。</li>
+<li>Resampling (PAA transform), sliding window</li>
+<li>通过基于TCP或UDP的协议接收数据（支持百万数据点每秒）</li>
+<li>Continuous queries (streaming)</li>
+</ul>
+
+
+<p>Akumuli由两部分组成：存储引擎和服务程序。目前只有存储引擎被实现了，而且存储引擎可以在没有服务程序的情况下作为嵌入式数据库单独使用（类似sqlite），也就是说，你得通过自己编写程序使用它的API来实现数据读写。</p>
+
+<p>Akumuli的数据协议基于Redis，它的数据格式也和前面看到的不太一样，比如：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>+balancers.memusage host=machine1 unit=Gb
+</span><span class='line'>+20141210T074343.999999999
+</span><span class='line'>:31</span></code></pre></td></tr></table></div></figure>
+
+
+<p>每条数据由三部分组成，第一部分称为ID，可以是数值型（以“：”开始），或者是字符串（以“+”开始），比如这个例子中，<code>cpu host=machine1 region= europe</code>就是ID，它由两部分组成，<code>cpu</code>是metric，<code>host</code>和<code>region</code>则被称为key。</p>
+
+<p>数据的第二部分可以是时间戳（:1418224205），这里的格式为ISO 8601（+20141210T074343.999999）</p>
+
+<p>第三部分为值部分。</p>
+
+<p>类似上面的数据结构，它的query也比较容易理解：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>{
+</span><span class='line'>    "where": {
+</span><span class='line'>        "region": [ "europe", "us-east" ]
+</span><span class='line'>    },
+</span><span class='line'>    "metric": "cpu",
+</span><span class='line'>    "range": {
+</span><span class='line'>        "from": "20160102T123000.000000",
+</span><span class='line'>        "to":   "20160102T123010.000000" }
+</span><span class='line'>}
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Akumuli目前还处于开发状态，不适合在生产环境下使用。</p>
+
+<h2>12. Atlas</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="https://github.com/Netflix/atlas">https://github.com/Netflix/atlas</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Scala </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License Version 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2014/11 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> v1.5.0-rc.4 </td>
+<td> 2016/02 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td> 来自于Netflix </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>这个和波士顿动力的机器人Atlas，以及其他很多知名软件（HashiCorp、O'reilly）都重名了。</p>
+
+<p>Atlas用于存储带维度信息的时序列数据库，由Netflix开发，用于实时分析。Atlas使用了基于内存的存储，速度非常快。在2011年的时候，Netflix使用自己开发的Epic工具来管理时序列数据，这是一个采用perl、RRDTool和MySQL构建的系统，但是随着数据量的增大（2M->1.2B），所以他们创建了这个新项目。</p>
+
+<p>如果说商业智能（business intelligence）是从数据基于时间分析出趋势的话，那么Atlas可以说是一种运维智能（operational intelligence），能给用户描述出当前系统所发生的所有情况。</p>
+
+<p>Atlas的设计目标主要有3点：</p>
+
+<ul>
+<li>通用API</li>
+<li>可扩展</li>
+<li>维度支持</li>
+</ul>
+
+
+<p>Atlas具备和OpenTSDB以及InfluxDB类似的metric/datapoint/tag的概念，同时它也有自己独自的特性，比如增加了步长（step-size）的概念。</p>
+
+<p>Atlas采用了类似RRDtool的查询语法，它们都通过一种对URL有好的语法来支持复杂的数据查询。</p>
+
+<p>一句话点评：背靠大树好乘凉，可以试试。</p>
+
+<h2>13. Blueflood</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://blueflood.io/">http://blueflood.io/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Java </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License, Version 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2013 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 1.0.2123 </td>
+<td> 2016/01/02 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td> 来自Rackspace </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 比较详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Blueflood由Rackspace的Cloud Monitoring团队创建，用于管理Cloud Monitoring系统产生的metric数据。如果你不属性Rackspace可以去网上了解一下，它也是比较大的云计算公司。</p>
+
+<p>除了自己使用，Rackspace还提供了免费的Blueflood-as-a-Service，此外还有一些大公司也在准备使用Blueflood。</p>
+
+<p>Blueflood特点如下：</p>
+
+<ul>
+<li>built on top of Cassandra</li>
+<li>基于HTTP API/JSON的数据采集（ingest）和读取</li>
+<li>支持数值、布尔和字符串metric data</li>
+<li>多租户</li>
+<li>水平扩展</li>
+</ul>
+
+
+<p>Blueflood主要由以下模块构成：</p>
+
+<ul>
+<li>Ingest - 采集/写入数据</li>
+<li>Rollup - 聚合计算</li>
+<li>Query - 处理用户查询</li>
+</ul>
+
+
+<p>不过遗憾的是Blueflood现在没有一个类似tag的多维度方案。</p>
+
+<p>一句话点评：背靠大树好乘凉，可以试试。</p>
+
+<h2>14. Gnocchi</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://docs.openstack.org/developer/gnocchi/">http://docs.openstack.org/developer/gnocchi/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Python </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td>  Apache License Version 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2014 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 2.0.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td> 来自OpenStack </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 一般丰富 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Gnocchi是OpenStack项目的一部分，但它也能独立工作。</p>
+
+<p>Gnocchi是一个多租户的时间序列、metric和资源（resource）数据库。它提供了一组HTTP REST API来创建和管理数据。</p>
+
+<p>Gnocchi以在云就算环境中存储大量metric信息为设计出发点，为用户提供metric和资源展示功能，同时它也很容易扩展。</p>
+
+<p>Gnocchi特点如下：</p>
+
+<ul>
+<li>HTTP RES接口</li>
+<li>水平扩展</li>
+<li>Metri聚合</li>
+<li>支持批处理</li>
+<li>支持归档功能</li>
+<li>按metric值查找（这个在TSDB很少见）</li>
+<li>多租户支持</li>
+<li>对Grafan的支持</li>
+<li>支持Statsd协议</li>
+</ul>
+
+
+<p>Gnocchi后端存储支持一下4种方式：</p>
+
+<ul>
+<li>File</li>
+<li>Swift</li>
+<li>Ceph (推荐方式)</li>
+<li>InfluxDB (实验功能)</li>
+</ul>
+
+
+<p>前三种方式基于一个名为Carbonara的库，这个库负责对是序列数据的管理，因为这三种存储方案本身并不关心数据的特点。InfluxDB前面已经说过，本身就是一个TSDB。</p>
+
+<h2>15. Newts</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="https://github.com/OpenNMS/newts">https://github.com/OpenNMS/newts</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Java </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> Apache License Version 2.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2014 </td>
+<td> 1.0 release </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 1.3.3 </td>
+<td> 2016/01 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 一般 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 一般 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Newts是基于Cassandra的时序列数据库。正如其名所示，它是一个“New-fangled Timeseries Data Store”。它的开发者是OpenNMS，这也是一个知名的开源网络监控和管理平台。</p>
+
+<p>Newts基于Cassandra，对写优化、完全分布式，吞吐量非常高；通过将类似的metric分组存储、让写和读更高效。</p>
+
+<h2>16. SiteWhere</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://www.sitewhere.org/">http://www.sitewhere.org/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Java </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> CPAL 1.0 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 1.6.1 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>SiteWhere是一个开源的IoT开放平台，帮助用户快速将IoT应用推向市场。SiteWhere提供了一套完整的设备管理解决方案，通过MQTT、AMQP、Stomp和其他协议连接设备，支持自注册、REST和批处理方式注册设备。</p>
+
+<p>SiteWhere也提供了可扩展的大数据解决方案，底层采用经优化的MongoDB和HBase，为存储设备时间提供了时序列数据库，且经过Hortonworks和Cloudera的测试。</p>
+
+<p>SiteWhere还内嵌了Siddhi用于Complex Event Processing （CEP），和Azure EventHub、Apache Solr以及Twilio的集成，提供了Android和Arduino平台开发用的SDK。</p>
+
+<p>SiteWhere的部署方式也很灵活，支持公有云、私有机房，Ubuntu Juju和Docker的部署方式。</p>
+
+<p>SiteWhere也支持多租户，不同的租户数据分开存储，还能为不同的租户提供不同的处理引擎，租户的启动、停止互不影响。</p>
+
+<p>SiteWhere的service provider interfaces（SPIs）提供了平台的核心对象模型，第三方可以对平台进行扩展。</p>
+
+<p>一句话点评：开源、功能强大、一体化方案。作为IoT平台，SiteWhere算是这几个中不错的。</p>
+
+<p>建议你接着看一下它的 <a href="http://documentation.sitewhere.org/overview.html">System Overview</a> 和 <a href="http://documentation.sitewhere.org/architecture.html">System Architecture</a> 以对这个系统有更深入的了解。</p>
+
+<h2>17. TempoIQ</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="https://www.tempoiq.com/">https://www.tempoiq.com/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> 商业 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>TempoIQ也是一个IoT平台服务，它能帮助用户快速、灵活的的创建IoT应用，提供了实时的数据分析、报警、仪表盘、报告功能。2014年7月从TempoDB改名为TempoIQ，它的很多组件都有IQ结尾，代表智商很好？</p>
+
+<p>TempoIQ主要由以下几个部分组成：</p>
+
+<ul>
+<li>CloudIQ</li>
+</ul>
+
+
+<p>TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可以不必关系复杂的基础设施就可以部署IoT应用。</p>
+
+<ul>
+<li>ConnectIQ</li>
+</ul>
+
+
+<p>基于数据事件的API，用于连接任何设备，支持灵活的事件数据模型：REST API、HTTPs和MQTT。它不关心设备来源，可以及时进行数据流处理，不需要提前安装和配置。</p>
+
+<ul>
+<li>DataIQ</li>
+</ul>
+
+
+<p>对所有IoT数据和分析报告进行安全、持久的存储，并提供报告下载功能。</p>
+
+<ul>
+<li>AnalyzeIQ</li>
+</ul>
+
+
+<p>用户可以创建分析流（custom analytics streams）来查洞悉IoT数据实时状态，自动将数据存储到DataIQ。并可以创建报警来持续监控分析流，当有超预期的改名或者达到致命条件时进行实时报警。</p>
+
+<p>ViewIQ</p>
+
+<p>用户使用ViewIQ可以创建实时的IoT仪表盘、应用和可视化组件，而不需要编码工作。</p>
+
+<h2>18. Riak TS</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://basho.com/products/riak-ts/">http://basho.com/products/riak-ts/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Erlang </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> 商业 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> 1.1.0 </td>
+<td> 2016/01/14 </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td>  </td>
+<td> 商业支持 </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Riak作为NoSQL和K/V存储可能更有名，而Riak TS是一个为时序列和IoT数据进行了优化的NoSQL数据库软件。在官方主页上写道：“Riak TS is engineered to be faster than Cassandra”。</p>
+
+<p>由于其非开源性，网上（包括官网）详细资料都不是特别多。</p>
+
+<h2>19. Cyanite</h2>
+
+<table>
+<thead>
+<tr>
+<th> - </th>
+<th> - </th>
+<th> - </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 主页 </td>
+<td> <a href="http://cyanite.io/">http://cyanite.io/</a> </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 编写语言 </td>
+<td> Clojure </td>
+<td>  </td>
+</tr>
+<tr>
+<td> License </td>
+<td> MIT </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 项目创建时间 </td>
+<td> 2013年 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 最新版 </td>
+<td> </td>
+<td> 还没有正式release </td>
+</tr>
+<tr>
+<td> 活跃度 </td>
+<td> 活跃 </td>
+<td>  </td>
+</tr>
+<tr>
+<td> 文档 </td>
+<td> 详细 </td>
+<td>  </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Cyanite是一个用于接收和存储是序列数据的守护进程，它的设计目标是兼容Graphite生态系统。</p>
+
+<p>Cyanite默认使用Apache Cassandra来存储是序列数据，它的特点如下：</p>
+
+<ul>
+<li>可扩展性</li>
+</ul>
+
+
+<p>基于Cassandra，Cyanite可以实现高可用、具有弹性，以及低延迟的存储。</p>
+
+<ul>
+<li>兼容性</li>
+</ul>
+
+
+<p>由于Graphite已经成为事实上管理时序列数据的标准，不管是使用graphite-web还是Grafana。Cyanite将会尽可能的沿用与这些生态系统的兼容以提供简单地交互模式。</p>
+
+<p>Cyanite是一个典型的流式处理模型，它接收数据，对数据进行标准化，然后进行输出。它的交互图如下所示：</p>
+
+<p><img src="http://liubin.github.io/images/2016/02/tsdb-series/cyanite_architecture.png" alt="" /></p>
+
+<p>它的工作流程如下：</p>
+
+<ul>
+<li>每条输入都会产生规范化的metrics，并添加到消息队列</li>
+<li>核心引擎从队列取出数据并处理。</li>
+<li>通过存储和索引组件进行时序列数据的存储和metric名的所索引</li>
+<li>API组件用于引擎和其他查询、存储模块的交互)</li>
+</ul>
+
+
+<p>Cyanite的输入模块支持Carbon（Graphite组件），而Kafka,和Pickle则还在计划中。</p>
+
+<p>索引（Index）模块则用于对metric名进行索引和查询。这一模块有两个实现方式：</p>
+
+<ul>
+<li>memory用于在内存中存储反向索引</li>
+<li>elasticsearch用于在elasticsearch中存储metric名（path-names）</li>
+</ul>
+
+
+<p>一句话总结：新生事物、值得关注。</p>
+
+<h2>20. 总结</h2>
+
+<p>这里只是简单的罗列了一些项目，以及他们的简单说明。</p>
+
+<p>在后续的文章中，我们还会选择一些常见的TSDB进行实例讲解。</p>
+
+<h2>相关阅读</h2>
+
+<p>这是本系列文章的其他部分：</p>
+
+<ul>
+<li><a href="http://liubin.github.io/blog/2016/02/18/tsdb-intro/">时序列数据库武斗大会之什么是TSDB</a></li>
+<li><a href="http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1/">时序列数据库武斗大会之TSDB名录 Part 1</a></li>
+<li>时序列数据库武斗大会之TSDB名录 Part 2</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[2016年2月读书记录]]></title>
@@ -241,6 +959,8 @@
 
 <p>由于InfluxDB开发太活跃了，很可能你在网上搜到的资料都是老的，会害到你，所以你需要<strong>以官方文档为主</strong>。</p>
 
+<p>一句话总结：欣欣向荣、值得一试。</p>
+
 <h2>2. RRDtool</h2>
 
 <table>
@@ -316,6 +1036,8 @@
 
 
 <p>总之，它的画图功能太丰富了。</p>
+
+<p>一句话总结：老牌经典、艺多不压身。</p>
 
 <h2>3. Graphite</h2>
 
@@ -403,6 +1125,8 @@
 
 <p>Google、<a href="https://codeascraft.com/2010/12/08/track-every-release/">Etsy</a>、GitHub、豆瓣、Instagram、<a href="http://blog.evernote.com/tech/2013/07/29/graphite-at-evernote/">Evernote</a>和Uber等很多知名公司都是Graphite的<a href="https://graphite.readthedocs.org/en/latest/who-is-using.html">用户</a>。有此背景，其可信度又加一层，而且网上的资料也相当的多，值得评估一下。</p>
 
+<p>一句话总结：群众基础好、可以参考。</p>
+
 <h2>4. OpenTSDB</h2>
 
 <table>
@@ -464,6 +1188,8 @@
 <p>OpenTSDB的节点称为TSD（Time Series Daemon (TSD)），它没有主、从之分，消除了单点隐患，非常容易扩展。它主要以HBase作为存储系统，现在也增加了对Cassandra和Bigtable（非云端）。</p>
 
 <p>OpenTSDB以数据存储和查询为主，附带了一个简单地图形界面（依赖Gnuplot），共开发、调试使用。</p>
+
+<p>一句话总结：好用，我们在用。</p>
 
 <h2>5. KDB+</h2>
 
@@ -647,6 +1373,8 @@
 
 <p>Druid架构比较复杂，因此对部署和运维也有一定的负担，比如需要的机器多、机器配置要高（尤其是内存）。</p>
 
+<p>一句话总结：好用，我们在用。</p>
+
 <h2>8. Prometheus</h2>
 
 <table>
@@ -714,6 +1442,8 @@
 
 
 <p>由于Prometheus采用了类似OpenTSDB 和 InfluxDB的key/value维度机制，所以如果你对任一种TSDB有了解的话，学习起来会简单些。</p>
+
+<p>一句话总结：貌似比较火，何不试一试？</p>
 
 <h2>9. Pinot</h2>
 
@@ -787,6 +1517,8 @@
 
 <p>Pinot的特点和Druid很像，两者可互为参考。</p>
 
+<p>一句话总结：背靠大树好乘凉。</p>
+
 <h2>小结</h2>
 
 <p>这里我们为大家介绍了几种常见TSDB，如不出意外，你可能会在这里选择某一种来使用。</p>
@@ -794,6 +1526,17 @@
 <p>尽管如此，我们还是会为大家介绍跟多一些的项目，让大家能更多的了解一些不同的TSDB及其特点，也能帮助读者深入了解TSDB的各种场景，开阔思路。</p>
 
 <p>在下一篇文章中，我们将会为各位再介绍几种时序列数据库。</p>
+
+<h2>相关阅读</h2>
+
+<p>这是本系列文章的其他部分：</p>
+
+<ul>
+<li><a href="http://liubin.github.io/blog/2016/02/18/tsdb-intro/">时序列数据库武斗大会之什么是TSDB</a></li>
+<li>时序列数据库武斗大会之TSDB名录 Part 1</li>
+<li><a href="http://liubin.github.io/blog/2016/02/25/tsdb-list-part-2/">时序列数据库武斗大会之TSDB名录 Part 2</a></li>
+</ul>
+
 ]]></content>
   </entry>
   
@@ -1044,7 +1787,9 @@
 <p>这是本系列文章的其他部分：</p>
 
 <ul>
+<li>时序列数据库武斗大会之什么是TSDB</li>
 <li><a href="http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1/">时序列数据库武斗大会之TSDB名录 Part 1</a></li>
+<li><a href="http://liubin.github.io/blog/2016/03/01/tsdb-list-part-2/">时序列数据库武斗大会之TSDB名录 Part 2</a></li>
 </ul>
 
 ]]></content>
