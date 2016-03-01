@@ -13,8 +13,6 @@ styles: [data-table]
 
 由于个人能力所限，有些地方调查可能不到位，再加上一定的个人主观因素，所以跟其他人的结论可能不一样，不过这应该也正常。没有调查就没有发言权，只有真正的深度用户的发言，才具有说服务力，你可以权当这里就当是我抛砖了。
 
-另外，如何去选择一个TSDB，本文也列出了一些考虑因素，相信应该对各位都有一定的参考价值。
-
 虽然也有人用ElasticSearch或者MongoDB来存储时序列数据，作为更适合分类为NOSQL的这两个数据库软件，我们这里就不对它们做介绍了。
 
 ## DB-Engines中时序列数据库排名
@@ -69,6 +67,8 @@ InfluxDB的数据采集系统也支持多种协议和插件：
 
 由于InfluxDB开发太活跃了，很可能你在网上搜到的资料都是老的，会害到你，所以你需要**以官方文档为主**。
 
+一句话总结：欣欣向荣、值得一试。
+
 ## 2. RRDtool
 
 | - | - | 备注 |
@@ -102,6 +102,8 @@ RRDtool全称为**Round Robin Database Tool**，也就是用于操作RRD的工�
 * 曲线预测
 
 总之，它的画图功能太丰富了。
+
+一句话总结：老牌经典、艺多不压身。
 
 ## 3. Graphite
 
@@ -141,6 +143,8 @@ whisper使用了类似RRDtool的RRD文件格式，它也不像C/S结构的软件
 
 Google、[Etsy](https://codeascraft.com/2010/12/08/track-every-release/)、GitHub、豆瓣、Instagram、[Evernote](http://blog.evernote.com/tech/2013/07/29/graphite-at-evernote/)和Uber等很多知名公司都是Graphite的[用户](https://graphite.readthedocs.org/en/latest/who-is-using.html)。有此背景，其可信度又加一层，而且网上的资料也相当的多，值得评估一下。
 
+一句话总结：群众基础好、可以参考。
+
 ## 4. OpenTSDB
 
 | - | - | 备注 |
@@ -164,6 +168,8 @@ mysql.bytes_received 1287333217 66666666 schema=foo host=db1
 OpenTSDB的节点称为TSD（Time Series Daemon (TSD)），它没有主、从之分，消除了单点隐患，非常容易扩展。它主要以HBase作为存储系统，现在也增加了对Cassandra和Bigtable（非云端）。
 
 OpenTSDB以数据存储和查询为主，附带了一个简单地图形界面（依赖Gnuplot），共开发、调试使用。
+
+一句话总结：好用，我们在用。
 
 
 ## 5. KDB+
@@ -248,6 +254,8 @@ Druid会按时间来进行分区（segment），并且是面向列存储的。�
 
 Druid架构比较复杂，因此对部署和运维也有一定的负担，比如需要的机器多、机器配置要高（尤其是内存）。
 
+一句话总结：好用，我们在用。
+
 ## 8. Prometheus
 
 | - | - | 备注 |
@@ -275,6 +283,7 @@ Prometheus从各种输入源采集metric，进行计算后显示结果，或者�
 
 由于Prometheus采用了类似OpenTSDB 和 InfluxDB的key/value维度机制，所以如果你对任一种TSDB有了解的话，学习起来会简单些。
 
+一句话总结：貌似比较火，何不试一试？
 
 ## 9. Pinot
 
@@ -308,6 +317,7 @@ Pinot主要特点：
 
 Pinot的特点和Druid很像，两者可互为参考。
 
+一句话总结：背靠大树好乘凉。
 
 ## 小结
 
@@ -316,3 +326,11 @@ Pinot的特点和Druid很像，两者可互为参考。
 尽管如此，我们还是会为大家介绍跟多一些的项目，让大家能更多的了解一些不同的TSDB及其特点，也能帮助读者深入了解TSDB的各种场景，开阔思路。
 
 在下一篇文章中，我们将会为各位再介绍几种时序列数据库。
+
+## 相关阅读
+
+这是本系列文章的其他部分：
+
+* [时序列数据库武斗大会之什么是TSDB](/blog/2016/02/18/tsdb-intro/)
+* 时序列数据库武斗大会之TSDB名录 Part 1
+* [时序列数据库武斗大会之TSDB名录 Part 2](/blog/2016/02/25/tsdb-list-part-2/)
