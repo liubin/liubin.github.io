@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-03-01T20:44:38+08:00</updated>
+  <updated>2016-03-02T19:40:19+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -105,7 +105,7 @@
 </table>
 
 
-<p>Akumuli名称来自accumulate，是一个数值型时间序列数据库，可以实时存储、处理时序列数据。</p>
+<p>Akumuli名称来自accumulate，是一个数值型时间序列数据库，可以存储、处理时序列数据。</p>
 
 <p>它的特点如下：</p>
 
@@ -117,7 +117,7 @@
 <li>支持面向行和面向列的存储</li>
 <li>将最新数据放入内存存储</li>
 <li>通过metric和tag组织时序列数据，并且可以通过tag进行join操作。</li>
-<li>Resampling (PAA transform), sliding window</li>
+<li>Resampling (PAA transform)，滑动窗口</li>
 <li>通过基于TCP或UDP的协议接收数据（支持百万数据点每秒）</li>
 <li>Continuous queries (streaming)</li>
 </ul>
@@ -218,7 +218,7 @@
 
 <p>这个和波士顿动力的机器人Atlas，以及其他很多知名软件（HashiCorp、O'reilly）都重名了。</p>
 
-<p>Atlas用于存储带维度信息的时序列数据库，由Netflix开发，用于实时分析。Atlas使用了基于内存的存储，速度非常快。在2011年的时候，Netflix使用自己开发的Epic工具来管理时序列数据，这是一个采用perl、RRDTool和MySQL构建的系统，但是随着数据量的增大（2M->1.2B），所以他们创建了这个新项目。</p>
+<p>Atlas用于存储带维度信息的时序列数据，由Netflix开发，用于实时分析。Atlas使用了基于内存的存储，速度非常快。在2011年的时候，Netflix使用自己开发的Epic工具来管理时序列数据，这是一个采用perl、RRDTool和MySQL构建的系统，但是随着数据量的增大（2M->1.2B），他们创建了这个新项目。</p>
 
 <p>如果说商业智能（business intelligence）是从数据基于时间分析出趋势的话，那么Atlas可以说是一种运维智能（operational intelligence），能给用户描述出当前系统所发生的所有情况。</p>
 
@@ -287,7 +287,7 @@
 </table>
 
 
-<p>Blueflood由Rackspace的Cloud Monitoring团队创建，用于管理Cloud Monitoring系统产生的metric数据。如果你不属性Rackspace可以去网上了解一下，它也是比较大的云计算公司。</p>
+<p>Blueflood由Rackspace的Cloud Monitoring团队创建，用于管理Cloud Monitoring系统产生的metric数据。如果你还不熟悉Rackspace这个公司的话，可以去网上了解一下，它也是比较大的云计算公司。</p>
 
 <p>除了自己使用，Rackspace还提供了免费的Blueflood-as-a-Service，此外还有一些大公司也在准备使用Blueflood。</p>
 
@@ -396,7 +396,7 @@
 </ul>
 
 
-<p>前三种方式基于一个名为Carbonara的库，这个库负责对是序列数据的管理，因为这三种存储方案本身并不关心数据的特点。InfluxDB前面已经说过，本身就是一个TSDB。</p>
+<p>前三种方式基于一个名为Carbonara的库，这个库负责对时间序列数据的管理，因为这三种存储方案本身并不关心数据的特点。InfluxDB前面已经说过，本身就是一个TSDB。</p>
 
 <h2>15. Newts</h2>
 
@@ -450,7 +450,7 @@
 
 <p>Newts是基于Cassandra的时序列数据库。正如其名所示，它是一个“New-fangled Timeseries Data Store”。它的开发者是OpenNMS，这也是一个知名的开源网络监控和管理平台。</p>
 
-<p>Newts基于Cassandra，对写优化、完全分布式，吞吐量非常高；通过将类似的metric分组存储、让写和读更高效。</p>
+<p>Newts基于Cassandra，对写优化、完全分布式，吞吐量非常高；通过将类似的metric分组存储，让写和读更高效。</p>
 
 <h2>16. SiteWhere</h2>
 
@@ -499,9 +499,9 @@
 
 <p>SiteWhere是一个开源的IoT开放平台，帮助用户快速将IoT应用推向市场。SiteWhere提供了一套完整的设备管理解决方案，通过MQTT、AMQP、Stomp和其他协议连接设备，支持自注册、REST和批处理方式注册设备。</p>
 
-<p>SiteWhere也提供了可扩展的大数据解决方案，底层采用经优化的MongoDB和HBase，为存储设备时间提供了时序列数据库，且经过Hortonworks和Cloudera的测试。</p>
+<p>SiteWhere也提供了可扩展的大数据解决方案，底层采用经优化的MongoDB和HBase，为存储设备事件提供了时序列数据库，且经过Hortonworks和Cloudera的测试。</p>
 
-<p>SiteWhere还内嵌了Siddhi用于Complex Event Processing （CEP），和Azure EventHub、Apache Solr以及Twilio的集成，提供了Android和Arduino平台开发用的SDK。</p>
+<p>SiteWhere还内嵌了Siddhi用于Complex Event Processing （CEP），提供了Azure EventHub、Apache Solr以及Twilio的集成，以及Android和Arduino平台开发用的SDK。</p>
 
 <p>SiteWhere的部署方式也很灵活，支持公有云、私有机房，Ubuntu Juju和Docker的部署方式。</p>
 
@@ -538,7 +538,7 @@
 </table>
 
 
-<p>TempoIQ也是一个IoT平台服务，它能帮助用户快速、灵活的的创建IoT应用，提供了实时的数据分析、报警、仪表盘、报告功能。2014年7月从TempoDB改名为TempoIQ，它的很多组件都有IQ结尾，代表智商很好？</p>
+<p>TempoIQ也是一个IoT平台服务，它能帮助用户快速、灵活的的创建IoT应用，提供了实时的数据分析、报警、仪表盘、报告功能。2014年7月从TempoDB改名为TempoIQ，它的很多组件都有IQ结尾，代表智商很高？</p>
 
 <p>TempoIQ主要由以下几个部分组成：</p>
 
@@ -547,7 +547,7 @@
 </ul>
 
 
-<p>TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可以不必关系复杂的基础设施就可以部署IoT应用。</p>
+<p>TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可以不必心系复杂的基础设施就可以部署IoT应用。</p>
 
 <ul>
 <li>ConnectIQ</li>
@@ -568,14 +568,14 @@
 </ul>
 
 
-<p>用户可以创建分析流（custom analytics streams）来查洞悉IoT数据实时状态，自动将数据存储到DataIQ。并可以创建报警来持续监控分析流，当有超预期的改名或者达到致命条件时进行实时报警。</p>
+<p>用户可以创建分析流（custom analytics streams）来洞悉IoT数据实时状态，自动将数据存储到DataIQ。并可以创建报警来持续监控分析流，当有超预期的变动或者达到致命条件时进行实时报警。</p>
 
 <ul>
 <li>ViewIQ</li>
 </ul>
 
 
-<p>用户使用ViewIQ可以创建实时的IoT仪表盘、应用和可视化组件，而不需要编码工作。</p>
+<p>用户使用ViewIQ可以创建实时的IoT仪表盘、应用和可视化组件，而且不需要任何编码工作。</p>
 
 <h2>18. Riak TS</h2>
 
@@ -617,7 +617,9 @@
 </table>
 
 
-<p>Riak作为NoSQL和K/V存储可能更有名，而Riak TS是一个为时序列和IoT数据进行了优化的NoSQL数据库软件。在官方主页上写道：“Riak TS is engineered to be faster than Cassandra”。</p>
+<p>Riak作为NoSQL和K/V存储可能更有名，而Riak TS是一个为时序列和为存储IoT数据进行了优化的NoSQL数据库软件。</p>
+
+<p>在官方主页上写道：“Riak TS is engineered to be faster than Cassandra”。</p>
 
 <p>由于其非开源性，网上（包括官网）详细资料都不是特别多。</p>
 
@@ -671,9 +673,9 @@
 </table>
 
 
-<p>Cyanite是一个用于接收和存储是序列数据的守护进程，它的设计目标是兼容Graphite生态系统。</p>
+<p>Cyanite是一个用于接收和存储时序列数据的守护进程，它的设计目标是兼容Graphite生态系统。</p>
 
-<p>Cyanite默认使用Apache Cassandra来存储是序列数据，它的特点如下：</p>
+<p>Cyanite默认使用Apache Cassandra来存储时序列数据，它的特点如下：</p>
 
 <ul>
 <li>可扩展性</li>
@@ -687,7 +689,7 @@
 </ul>
 
 
-<p>由于Graphite已经成为事实上管理时序列数据的标准，不管是使用graphite-web还是Grafana。Cyanite将会尽可能的沿用与这些生态系统的兼容以提供简单地交互模式。</p>
+<p>由于Graphite已经成为事实上管理时序列数据的标准，不管是使用graphite-web还是Grafana。Cyanite将会尽可能的保持与这些生态系统的兼容以提供简单地交互模式。</p>
 
 <p>Cyanite是一个典型的流式处理模型，它接收数据，对数据进行标准化，然后进行输出。它的交互图如下所示：</p>
 
@@ -698,14 +700,14 @@
 <ul>
 <li>每条输入都会产生规范化的metrics，并添加到消息队列</li>
 <li>核心引擎从队列取出数据并处理。</li>
-<li>通过存储和索引组件进行时序列数据的存储和metric名的所索引</li>
-<li>API组件用于引擎和其他查询、存储模块的交互)</li>
+<li>通过存储和索引组件进行时序列数据的存储和metric名的索引</li>
+<li>API组件用于处理引擎和其他查询、存储模块的交互</li>
 </ul>
 
 
 <p>Cyanite的输入模块支持Carbon（Graphite组件），而Kafka,和Pickle则还在计划中。</p>
 
-<p>索引（Index）模块则用于对metric名进行索引和查询。这一模块有两个实现方式：</p>
+<p>索引（Index）模块则用于对metric名进行索引和查询。这一模块有两种实现方式：</p>
 
 <ul>
 <li>memory用于在内存中存储反向索引</li>
@@ -717,7 +719,7 @@
 
 <h2>20. 总结</h2>
 
-<p>这里只是简单的罗列了一些项目，以及他们的简单说明。</p>
+<p>这里只是简单的罗列了一些项目，及其简单说明。</p>
 
 <p>在后续的文章中，我们还会选择一些常见的TSDB进行实例讲解。</p>
 
@@ -858,7 +860,7 @@
   <entry>
     <title type="html"><![CDATA[时序列数据库武斗大会之TSDB名录 Part 1]]></title>
     <link href="http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1/"/>
-    <updated>2016-02-25T22:20:21+08:00</updated>
+    <updated>2016-02-25T22:21:21+08:00</updated>
     <id>http://liubin.github.io/blog/2016/02/25/tsdb-list-part-1</id>
     <content type="html"><![CDATA[<p>通过上一章<a href="http://liubin.github.io/blog/2016/02/18/tsdb-intro/">《时序列数据库武斗大会之什么是TSDB》</a>的介绍，相信大家已经知道了什么是时序列数据库，以及它能干什么，有什么特点等有了一定的了解。</p>
 
@@ -1524,7 +1526,7 @@
 
 <p>这里我们为大家介绍了几种常见TSDB，如不出意外，你可能会在这里选择某一种来使用。</p>
 
-<p>尽管如此，我们还是会为大家介绍跟多一些的项目，让大家能更多的了解一些不同的TSDB及其特点，也能帮助读者深入了解TSDB的各种场景，开阔思路。</p>
+<p>尽管如此，我们还是会为大家介绍更多一些的项目，让大家能更多的了解一些不同的TSDB及其特点，也能帮助读者深入了解TSDB的各种场景，开阔思路。</p>
 
 <p>在下一篇文章中，我们将会为各位再介绍几种时序列数据库。</p>
 
@@ -1544,7 +1546,7 @@
   <entry>
     <title type="html"><![CDATA[时序列数据库武斗大会之什么是TSDB]]></title>
     <link href="http://liubin.github.io/blog/2016/02/18/tsdb-intro/"/>
-    <updated>2016-02-18T00:48:27+08:00</updated>
+    <updated>2016-02-18T00:49:27+08:00</updated>
     <id>http://liubin.github.io/blog/2016/02/18/tsdb-intro</id>
     <content type="html"><![CDATA[<p>由于工作上的关系，最近看了一些关于<a href="https://en.wikipedia.org/wiki/Time_series_database">时序列数据库</a>的东西，当然，我所看的也都是以开源方案为主。</p>
 
