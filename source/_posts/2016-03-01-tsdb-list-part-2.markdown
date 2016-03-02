@@ -39,7 +39,7 @@ Geras支持多种技术来进行数据存储、查询和展示，比如HTTPS、J
 | 活跃度 | 活跃 |  |
 | 文档 | 简单 |  |
 
-Akumuli名称来自accumulate，是一个数值型时间序列数据库，可以实时存储、处理时序列数据。
+Akumuli名称来自accumulate，是一个数值型时间序列数据库，可以存储、处理时序列数据。
 
 它的特点如下：
 
@@ -50,7 +50,7 @@ Akumuli名称来自accumulate，是一个数值型时间序列数据库，可以
 * 支持面向行和面向列的存储
 * 将最新数据放入内存存储
 * 通过metric和tag组织时序列数据，并且可以通过tag进行join操作。
-* Resampling (PAA transform), sliding window 
+* Resampling (PAA transform)，滑动窗口
 * 通过基于TCP或UDP的协议接收数据（支持百万数据点每秒）
 * Continuous queries (streaming)
 
@@ -101,7 +101,7 @@ Akumuli目前还处于开发状态，不适合在生产环境下使用。
 
 这个和波士顿动力的机器人Atlas，以及其他很多知名软件（HashiCorp、O'reilly）都重名了。
 
-Atlas用于存储带维度信息的时序列数据库，由Netflix开发，用于实时分析。Atlas使用了基于内存的存储，速度非常快。在2011年的时候，Netflix使用自己开发的Epic工具来管理时序列数据，这是一个采用perl、RRDTool和MySQL构建的系统，但是随着数据量的增大（2M->1.2B），所以他们创建了这个新项目。
+Atlas用于存储带维度信息的时序列数据，由Netflix开发，用于实时分析。Atlas使用了基于内存的存储，速度非常快。在2011年的时候，Netflix使用自己开发的Epic工具来管理时序列数据，这是一个采用perl、RRDTool和MySQL构建的系统，但是随着数据量的增大（2M->1.2B），他们创建了这个新项目。
 
 如果说商业智能（business intelligence）是从数据基于时间分析出趋势的话，那么Atlas可以说是一种运维智能（operational intelligence），能给用户描述出当前系统所发生的所有情况。
 
@@ -129,7 +129,7 @@ Atlas采用了类似RRDtool的查询语法，它们都通过一种对URL有好�
 | 活跃度 | 活跃 | 来自Rackspace |
 | 文档 | 比较详细 |  |
 
-Blueflood由Rackspace的Cloud Monitoring团队创建，用于管理Cloud Monitoring系统产生的metric数据。如果你不属性Rackspace可以去网上了解一下，它也是比较大的云计算公司。
+Blueflood由Rackspace的Cloud Monitoring团队创建，用于管理Cloud Monitoring系统产生的metric数据。如果你还不熟悉Rackspace这个公司的话，可以去网上了解一下，它也是比较大的云计算公司。
 
 除了自己使用，Rackspace还提供了免费的Blueflood-as-a-Service，此外还有一些大公司也在准备使用Blueflood。
 
@@ -188,7 +188,7 @@ Gnocchi后端存储支持一下4种方式：
 * Ceph (推荐方式)
 * InfluxDB (实验功能)
 
-前三种方式基于一个名为Carbonara的库，这个库负责对是序列数据的管理，因为这三种存储方案本身并不关心数据的特点。InfluxDB前面已经说过，本身就是一个TSDB。
+前三种方式基于一个名为Carbonara的库，这个库负责对时间序列数据的管理，因为这三种存储方案本身并不关心数据的特点。InfluxDB前面已经说过，本身就是一个TSDB。
 
 
 ## 15. Newts
@@ -205,7 +205,7 @@ Gnocchi后端存储支持一下4种方式：
 
 Newts是基于Cassandra的时序列数据库。正如其名所示，它是一个“New-fangled Timeseries Data Store”。它的开发者是OpenNMS，这也是一个知名的开源网络监控和管理平台。
 
-Newts基于Cassandra，对写优化、完全分布式，吞吐量非常高；通过将类似的metric分组存储、让写和读更高效。
+Newts基于Cassandra，对写优化、完全分布式，吞吐量非常高；通过将类似的metric分组存储，让写和读更高效。
 
 ## 16. SiteWhere
 
@@ -221,9 +221,9 @@ Newts基于Cassandra，对写优化、完全分布式，吞吐量非常高；通
 
 SiteWhere是一个开源的IoT开放平台，帮助用户快速将IoT应用推向市场。SiteWhere提供了一套完整的设备管理解决方案，通过MQTT、AMQP、Stomp和其他协议连接设备，支持自注册、REST和批处理方式注册设备。
 
-SiteWhere也提供了可扩展的大数据解决方案，底层采用经优化的MongoDB和HBase，为存储设备时间提供了时序列数据库，且经过Hortonworks和Cloudera的测试。
+SiteWhere也提供了可扩展的大数据解决方案，底层采用经优化的MongoDB和HBase，为存储设备事件提供了时序列数据库，且经过Hortonworks和Cloudera的测试。
 
-SiteWhere还内嵌了Siddhi用于Complex Event Processing （CEP），和Azure EventHub、Apache Solr以及Twilio的集成，提供了Android和Arduino平台开发用的SDK。
+SiteWhere还内嵌了Siddhi用于Complex Event Processing （CEP），提供了Azure EventHub、Apache Solr以及Twilio的集成，以及Android和Arduino平台开发用的SDK。
 
 SiteWhere的部署方式也很灵活，支持公有云、私有机房，Ubuntu Juju和Docker的部署方式。
 
@@ -242,13 +242,13 @@ SiteWhere的service provider interfaces（SPIs）提供了平台的核心对象�
 | 主页 | https://www.tempoiq.com/ |  |
 | License | 商业 |  |
 
-TempoIQ也是一个IoT平台服务，它能帮助用户快速、灵活的的创建IoT应用，提供了实时的数据分析、报警、仪表盘、报告功能。2014年7月从TempoDB改名为TempoIQ，它的很多组件都有IQ结尾，代表智商很好？
+TempoIQ也是一个IoT平台服务，它能帮助用户快速、灵活的的创建IoT应用，提供了实时的数据分析、报警、仪表盘、报告功能。2014年7月从TempoDB改名为TempoIQ，它的很多组件都有IQ结尾，代表智商很高？
 
 TempoIQ主要由以下几个部分组成：
 
 * CloudIQ
 
-TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可以不必关系复杂的基础设施就可以部署IoT应用。
+TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可以不必心系复杂的基础设施就可以部署IoT应用。
 
 * ConnectIQ
 
@@ -260,11 +260,11 @@ TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可�
 
 * AnalyzeIQ
 
-用户可以创建分析流（custom analytics streams）来查洞悉IoT数据实时状态，自动将数据存储到DataIQ。并可以创建报警来持续监控分析流，当有超预期的改名或者达到致命条件时进行实时报警。
+用户可以创建分析流（custom analytics streams）来洞悉IoT数据实时状态，自动将数据存储到DataIQ。并可以创建报警来持续监控分析流，当有超预期的变动或者达到致命条件时进行实时报警。
 
 * ViewIQ
 
-用户使用ViewIQ可以创建实时的IoT仪表盘、应用和可视化组件，而不需要编码工作。
+用户使用ViewIQ可以创建实时的IoT仪表盘、应用和可视化组件，而且不需要任何编码工作。
 
 ## 18. Riak TS
 
@@ -277,7 +277,9 @@ TempoIQ采用第四代CoDA（Context Delivery Architecture）架构，用户可�
 | 活跃度 |  | 商业支持 |
 
 
-Riak作为NoSQL和K/V存储可能更有名，而Riak TS是一个为时序列和IoT数据进行了优化的NoSQL数据库软件。在官方主页上写道：“Riak TS is engineered to be faster than Cassandra”。
+Riak作为NoSQL和K/V存储可能更有名，而Riak TS是一个为时序列和为存储IoT数据进行了优化的NoSQL数据库软件。
+
+在官方主页上写道：“Riak TS is engineered to be faster than Cassandra”。
 
 由于其非开源性，网上（包括官网）详细资料都不是特别多。
 
@@ -294,9 +296,9 @@ Riak作为NoSQL和K/V存储可能更有名，而Riak TS是一个为时序列和I
 | 文档 | 详细 |  |
 
 
-Cyanite是一个用于接收和存储是序列数据的守护进程，它的设计目标是兼容Graphite生态系统。
+Cyanite是一个用于接收和存储时序列数据的守护进程，它的设计目标是兼容Graphite生态系统。
 
-Cyanite默认使用Apache Cassandra来存储是序列数据，它的特点如下：
+Cyanite默认使用Apache Cassandra来存储时序列数据，它的特点如下：
 
 * 可扩展性
 
@@ -304,7 +306,7 @@ Cyanite默认使用Apache Cassandra来存储是序列数据，它的特点如下
 
 * 兼容性
 
-由于Graphite已经成为事实上管理时序列数据的标准，不管是使用graphite-web还是Grafana。Cyanite将会尽可能的沿用与这些生态系统的兼容以提供简单地交互模式。
+由于Graphite已经成为事实上管理时序列数据的标准，不管是使用graphite-web还是Grafana。Cyanite将会尽可能的保持与这些生态系统的兼容以提供简单地交互模式。
 
 Cyanite是一个典型的流式处理模型，它接收数据，对数据进行标准化，然后进行输出。它的交互图如下所示：
 
@@ -314,12 +316,12 @@ Cyanite是一个典型的流式处理模型，它接收数据，对数据进行�
 
 * 每条输入都会产生规范化的metrics，并添加到消息队列
 * 核心引擎从队列取出数据并处理。
-* 通过存储和索引组件进行时序列数据的存储和metric名的所索引
-* API组件用于引擎和其他查询、存储模块的交互)
+* 通过存储和索引组件进行时序列数据的存储和metric名的索引
+* API组件用于处理引擎和其他查询、存储模块的交互
 
 Cyanite的输入模块支持Carbon（Graphite组件），而Kafka,和Pickle则还在计划中。
 
-索引（Index）模块则用于对metric名进行索引和查询。这一模块有两个实现方式：
+索引（Index）模块则用于对metric名进行索引和查询。这一模块有两种实现方式：
 
 * memory用于在内存中存储反向索引
 * elasticsearch用于在elasticsearch中存储metric名（path-names）
@@ -328,7 +330,7 @@ Cyanite的输入模块支持Carbon（Graphite组件），而Kafka,和Pickle则�
 
 ## 20. 总结
 
-这里只是简单的罗列了一些项目，以及他们的简单说明。
+这里只是简单的罗列了一些项目，及其简单说明。
 
 在后续的文章中，我们还会选择一些常见的TSDB进行实例讲解。
 
