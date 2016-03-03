@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-03-02T19:40:19+08:00</updated>
+  <updated>2016-03-03T08:12:07+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,590 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[时序列数据库武斗大会之OpenTSDB篇]]></title>
+    <link href="http://liubin.github.io/blog/2016/03/03/tsdb-opentsdb/"/>
+    <updated>2016-03-03T00:25:30+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/03/03/tsdb-opentsdb</id>
+    <content type="html"><![CDATA[<h2>什么是 OpenTSDB</h2>
+
+<p>OpenTSDB ，可以认为是一个时系列数据（库），它基于HBase存储数据，充分发挥了HBase的分布式列存储特性，支持数百万每秒的读写，它的特点就是容易扩展，灵活的tag机制。</p>
+
+<h2>架构简介</h2>
+
+<p>这里我们简单看一下它的架构，如下图所示。</p>
+
+<p><img src="http://77gaj2.com1.z0.glb.clouddn.com/2015/07/09/opentsdb/opentsdb_dataflow.jpg/zoom1" alt="" /></p>
+
+<p>其最主要的部件就是TSD了，这是接收数据并存储到HBase处理的核心所在。而带有C（collector）标志的Server，则是数据采集源，将数据发给 TSD服务。</p>
+
+<h2>安装 OpenTSDB</h2>
+
+<p>为了安装 OpenTSDB ，都需要以下条件和软件：</p>
+
+<ul>
+<li>Linux操作系统</li>
+<li>JRE 1.6 or later</li>
+<li>HBase 0.92 or later</li>
+</ul>
+
+
+<h3>安装GnuPlot</h3>
+
+<p>如果你还想使用自带的界面，则需要安装GnuPlot 4.2及以后版本，以及gd和gd-devel等。这里我们选择了GnuPlot 5.0.1的版本。</p>
+
+<p>根据情况执行（没有就装），安装所需软件</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ sudo yum install -y gd gd-devel libpng libpng-devel</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后安装GnuPlot：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ tar zxvf gnuplot-5.0.1.tar.gz
+</span><span class='line'>$ cd gnuplot-5.0.1
+</span><span class='line'>$ ./configure
+</span><span class='line'>$ make
+</span><span class='line'>$ sudo make install</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>安装HBase</h3>
+
+<p>首先，确保设置了JAVA_HOME：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ echo $JAVA_HOME
+</span><span class='line'>/usr</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个不多说了，非常简单，只需要按照 <a href="https://hbase.apache.org/book.html#quickstart">https://hbase.apache.org/book.html#quickstart</a> 这里所说，下载、解压、修改配置文件、启动即可。</p>
+
+<p>这时候，再设置HBASE_HOME：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ echo $HBASE_HOME
+</span><span class='line'>/opt/hbase-1.0.1.1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后便可启动hbase：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ /opt/hbase-1.0.1.1/bin/start-hbase.sh
+</span><span class='line'>starting master, logging to /opt/hbase-1.0.1.1/logs/hbase-vagrant-master-localhost.localdomain.out</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>安装 OpenTSDB</h3>
+
+<p>这个也很简单，如果build失败，那肯定是缺少Make或者Autotools等东西，用包管理器安装即可。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ git clone git://github.com/OpenTSDB/opentsdb.git
+</span><span class='line'>$ cd opentsdb
+</span><span class='line'>$ ./build.sh</span></code></pre></td></tr></table></div></figure>
+
+
+<p>创建表OpenTSDB所需要的表结构：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ env COMPRESSION=NONE ./src/create_table.sh
+</span><span class='line'>2016-01-08 06:17:58,045 WARN [main] util.NativeCodeLoader: Unable to load native-hadoop library for your platform… using builtin-java classes where applicable
+</span><span class='line'>HBase Shell; enter ‘help‘ for list of supported commands.
+</span><span class='line'>Type “exit” to leave the HBase Shell
+</span><span class='line'>Version 1.0.1.1, re1dbf4df30d214fca14908df71d038081577ea46, Sun May 17 12:34:26 PDT 2015
+</span><span class='line'>
+</span><span class='line'>create ‘tsdb-uid’,
+</span><span class='line'>{NAME =&gt; ‘id’, COMPRESSION =&gt; ‘NONE’, BLOOMFILTER =&gt; ‘ROW’},
+</span><span class='line'>{NAME =&gt; ‘name’, COMPRESSION =&gt; ‘NONE’, BLOOMFILTER =&gt; ‘ROW’}
+</span><span class='line'>0 row(s) in 1.3180 seconds
+</span><span class='line'>
+</span><span class='line'>Hbase::Table – tsdb-uid
+</span><span class='line'>
+</span><span class='line'>create ‘tsdb’,
+</span><span class='line'>{NAME =&gt; ‘t’, VERSIONS =&gt; 1, COMPRESSION =&gt; ‘NONE’, BLOOMFILTER =&gt; ‘ROW’}
+</span><span class='line'>0 row(s) in 0.2400 seconds
+</span><span class='line'>
+</span><span class='line'>Hbase::Table – tsdb
+</span><span class='line'>
+</span><span class='line'>create ‘tsdb-tree’,
+</span><span class='line'>{NAME =&gt; ‘t’, VERSIONS =&gt; 1, COMPRESSION =&gt; ‘NONE’, BLOOMFILTER =&gt; ‘ROW’}
+</span><span class='line'>0 row(s) in 0.2160 seconds
+</span><span class='line'>
+</span><span class='line'>Hbase::Table – tsdb-tree
+</span><span class='line'>
+</span><span class='line'>create ‘tsdb-meta’,
+</span><span class='line'>{NAME =&gt; ‘name’, COMPRESSION =&gt; ‘NONE’, BLOOMFILTER =&gt; ‘ROW’}
+</span><span class='line'>0 row(s) in 0.4480 seconds
+</span><span class='line'>
+</span><span class='line'>Hbase::Table – tsdb-meta</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在habse shell里，可以看到表已经创建成功。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&gt; list
+</span><span class='line'>TABLE
+</span><span class='line'>tsdb
+</span><span class='line'>tsdb-meta
+</span><span class='line'>tsdb-tree
+</span><span class='line'>tsdb-uid
+</span><span class='line'>4 row(s) in 0.0160 seconds</span></code></pre></td></tr></table></div></figure>
+
+
+<p>表创建之后，即可启动tsd服务，只需要运行如下命令：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ build/tsdb tsd</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果看到输出：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2016-01-09 05:51:10,875 INFO [main] TSDMain: Ready to serve on /0.0.0.0:4242</span></code></pre></td></tr></table></div></figure>
+
+
+<p>即可认为启动成功。</p>
+
+<h2>保存数据到OpenTSDB</h2>
+
+<p>在安装并启动所有服务之后，我们就来尝试发送1条数据吧。</p>
+
+<p>最简单的保存数据方式就是使用telnet。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ telnet localhost 4242
+</span><span class='line'>
+</span><span class='line'>put sys.cpu.user 1436333416 23 host=web01 user=10001</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这时，从kibana的界面和 OpenTSDB 自带界面都可以看到这些数据。
+由于sys.cpu.sys的数据只有一条，所以 OpenTSDB 只能看到一个点。而elasticsearch则看到了多条数据，这时因为它还索引了meta数据等信息（除了metric，还有tagk和tagv）。</p>
+
+<p>下图为 OpenTSDB 自带的查询界面，访问 <a href="http://localhost:4242">http://localhost:4242</a> 即可。</p>
+
+<p><img src="http://77gaj2.com1.z0.glb.clouddn.com/2015/07/09/opentsdb/opentsdb-ui.png/zoom1" alt="" /></p>
+
+<h3>OpenTSDB中的数据存储结构</h3>
+
+<p>我们来看看 OpenTSDB 的重要概念uid，先从HBase中存储的数据开始吧，我们来看一下它都有哪些表，以及这些表都是干什么的。</p>
+
+<h4>tsdb：存储数据点</h4>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>hbase(main):003:0&gt; scan 'tsdb'
+</span><span class='line'>ROW                           COLUMN+CELL                                                                         
+</span><span class='line'> \x00\x00\x01U\x9C\xAEP\x00\x column=t:q\x80, timestamp=1436350142588, value=\x17                                 
+</span><span class='line'> 00\x01\x00\x00\x01\x00\x00\x                                                                                     
+</span><span class='line'> 02\x00\x00\x02                                                                                                   
+</span><span class='line'>1 row(s) in 0.2800 seconds
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，该表只有一条数据，我们先不管rowid，只来看看列，只有一列，值为0x17，即十进制23，即该metric的值。</p>
+
+<p>左面的row key则是 OpenTSDB 的特点之一，其规则为：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>metric + timestamp + tagk1 + tagv1… + tagkN + tagvN</span></code></pre></td></tr></table></div></figure>
+
+
+<p>以上属性值均为对应名称的uid。</p>
+
+<p>我们上面添加的metric为：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>sys.cpu.user 1436333416 23 host=web01 user=10001</span></code></pre></td></tr></table></div></figure>
+
+
+<p>一共涉及到5个uid，即名为sys.cpu.user的metric，以及host和user两个tagk及其值web01和10001。</p>
+
+<p>上面数据的row key为：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>\x00\x00\x01U\x9C\xAEP\x00\x00\x01\x00\x00\x01\x00\x00\x02\x00\x00\x02</span></code></pre></td></tr></table></div></figure>
+
+
+<p>具体这个row key是怎么算出来的，我们来看看tsdb-uid表。</p>
+
+<h4>tsdb-uid：存储name和uid的映射关系</h4>
+
+<p>下面tsdb-uid表的数据，各行之间人为加了空行，为方便显示。</p>
+
+<p>tsdb-uid用来保存名字和UID（metric，tagk，tagv）之间互相映射的关系，都是成组出现的，即给定一个name和uid，会保存（name,uid）和（uid,name）两条记录。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>hbase(main):004:0&gt; scan 'tsdb-uid'
+</span><span class='line'>ROW                           COLUMN+CELL                                                                         
+</span><span class='line'> \x00                         column=id:metrics, timestamp=1436350140242, value=\x00\x00\x00\x00\x00\x00\x00\x01  
+</span><span class='line'> \x00                         column=id:tagk, timestamp=1436350141423, value=\x00\x00\x00\x00\x00\x00\x00\x02     
+</span><span class='line'> \x00                         column=id:tagv, timestamp=1436350141475, value=\x00\x00\x00\x00\x00\x00\x00\x02     
+</span><span class='line'>
+</span><span class='line'> \x00\x00\x01                 column=name:metric_meta, timestamp=1436350142592, value={"type":"METRIC","displayNam
+</span><span class='line'>                              e":"","description":"","notes":"","created":1436350140,"custom":null}               
+</span><span class='line'> \x00\x00\x01                 column=name:metrics, timestamp=1436350140348, value=sys.cpu.user                    
+</span><span class='line'> \x00\x00\x01                 column=name:tagk, timestamp=1436350141357, value=host                               
+</span><span class='line'> \x00\x00\x01                 column=name:tagk_meta, timestamp=1436350142592, value={"type":"TAGK","displayName":"
+</span><span class='line'>                              ","description":"","notes":"","created":1436350141,"custom":null}                   
+</span><span class='line'> \x00\x00\x01                 column=name:tagv, timestamp=1436350141385, value=web01                              
+</span><span class='line'> \x00\x00\x01                 column=name:tagv_meta, timestamp=1436350142592, value={"type":"TAGV","displayName":"
+</span><span class='line'>                              ","description":"","notes":"","created":1436350141,"custom":null}                   
+</span><span class='line'>
+</span><span class='line'> \x00\x00\x02                 column=name:tagk, timestamp=1436350141462, value=user                               
+</span><span class='line'> \x00\x00\x02                 column=name:tagk_meta, timestamp=1436350142592, value={"type":"TAGK","displayName":"
+</span><span class='line'>                              ","description":"","notes":"","created":1436350141,"custom":null}                   
+</span><span class='line'> \x00\x00\x02                 column=name:tagv, timestamp=1436350141480, value=10001                              
+</span><span class='line'> \x00\x00\x02                 column=name:tagv_meta, timestamp=1436350142592, value={"type":"TAGV","displayName":"
+</span><span class='line'>                              ","description":"","notes":"","created":1436350141,"custom":null}                   
+</span><span class='line'>
+</span><span class='line'> 10001                        column=id:tagv, timestamp=1436350141495, value=\x00\x00\x02                         
+</span><span class='line'>
+</span><span class='line'> host                         column=id:tagk, timestamp=1436350141363, value=\x00\x00\x01                         
+</span><span class='line'>
+</span><span class='line'> sys.cpu.user                 column=id:metrics, timestamp=1436350140408, value=\x00\x00\x01                      
+</span><span class='line'>
+</span><span class='line'> user                         column=id:tagk, timestamp=1436350141466, value=\x00\x00\x02                         
+</span><span class='line'>
+</span><span class='line'> web01                        column=id:tagv, timestamp=1436350141396, value=\x00\x00\x01                         
+</span><span class='line'>
+</span><span class='line'>8 row(s) in 0.7280 seconds</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们一共看到了8行数据。</p>
+
+<p>前面我们在tsdb表中已经看到，metric数据的row key为\x00\x00\x01U\x9C\xAEP\x00\x00\x01\x00\x00\x01\x00\x00\x02\x00\x00\x02
+，我们将其分解下，用+号连起来（从name到uid的映射为最后5行）：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'> \x00\x00\x01 + U + \x9C\xAE + P + \x00\x00\x01 + \x00\x00\x01 + \x00\x00\x02  + \x00\x00\x02
+</span><span class='line'>sys.cpu.user       1436333416           host    =      web01          user     =    10001
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，这和我们前面说到的row key的构成方式是吻合的。</p>
+
+<p>需要着重说明的是时间戳的存储方式。</p>
+
+<p>虽然我们指定的时间是以秒为单位的，但是，row key中用到的却是以一小时为单位的，即：1436333416 – 1436333416 % 3600 = 1436331600 。</p>
+
+<p>1436331600转换为16进制，即0x55 0x9c 0xae 0x50，而0x55即大写字母U，0x50为大写字母P，这就是4个字节的时间戳存储方式。相信下面这张图能帮助各位更好理解这个意思，即一小时只有一个row key，每秒钟的数据都会存为一列，大大提高查询的速度。</p>
+
+<p><img src="http://77gaj2.com1.z0.glb.clouddn.com/2015/07/09/opentsdb/row-key-storage.png/zoom1" alt="" /></p>
+
+<p>反过来，从uid到name也一样，比如找uid为\x00\x00\x02的tagk，我们从上面结果可以看到，该row key（\x00\x00\x02）有4列，而column=name:tagk的value就是user，非常简单直观。</p>
+
+<p>重要：我们看到，上面的metric也好，tagk或者tagv也好，uid只有3个字节，这是 OpenTSDB 的默认配置，三个字节，应该能表示1600多万的不同数据，这对metric名或者tagk来说足够长了，对tagv来说就不一定了，比如tagv是ip地址的话，或者电话号码，那么这个字段就不够长了，这时可以通过修改源代码来重新编译 OpenTSDB 就可以了，同时要注意的是，重编以后，老数据就不能直接使用了，需要导出后重新导入。</p>
+
+<h4>tsdb-meta：元数据表</h4>
+
+<p>我们再看下第三个表tsdb-meta，这是用来存储时间序列索引和元数据的表。这也是一个可选特性，默认是不开启的，可以通过配置文件来启用该特性，这里不做特殊介绍了。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>hbase(main):005:0&gt; scan 'tsdb-meta'
+</span><span class='line'>ROW                           COLUMN+CELL                                                                         
+</span><span class='line'> \x00\x00\x01\x00\x00\x01\x00 column=name:ts_ctr, timestamp=1436350141578, value=\x00\x00\x00\x00\x00\x00\x00\x01 
+</span><span class='line'> \x00\x01\x00\x00\x02\x00\x00                                                                                     
+</span><span class='line'> \x02                                                                                                             
+</span><span class='line'> \x00\x00\x01\x00\x00\x01\x00 column=name:ts_meta, timestamp=1436350142589, value={"tsuid":"0000010000010000010000
+</span><span class='line'> \x00\x01\x00\x00\x02\x00\x00 02000002","displayName":"","description":"","notes":"","created":1436350141,"custom"
+</span><span class='line'> \x02                         :null,"units":"","dataType":"","retention":0,"max":"NaN","min":"NaN"}               
+</span><span class='line'>1 row(s) in 0.1320 seconds</span></code></pre></td></tr></table></div></figure>
+
+
+<h4>tsdb-tree：树形表</h4>
+
+<p>第4个表是tsdb-tree，用来以树状层次关系来表示metric的结构，只有在配置文件开启该特性后，才会使用此表，这里我们不介绍了，可以自己尝试。</p>
+
+<h3>通过HTTP接口保存数据</h3>
+
+<p>保存数据除了我们前面用到的telnet方式，也可以选择HTTP API或者批量导入工具import（<a href="http://opentsdb.net/docs/build/html/user_guide/cli/import.html%EF%BC%89%EF%BC%8C%E8%BF%99%E9%87%8C%E6%88%91%E4%BB%AC%E5%86%8D%E5%AF%B9HTTP">http://opentsdb.net/docs/build/html/user_guide/cli/import.html%EF%BC%89%EF%BC%8C%E8%BF%99%E9%87%8C%E6%88%91%E4%BB%AC%E5%86%8D%E5%AF%B9HTTP</a> API进行简单示例说明。</p>
+
+<p>假设我们有如下数据，保存为文件mysql.json：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>[
+</span><span class='line'>    {
+</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
+</span><span class='line'>        "timestamp": 1435716527,
+</span><span class='line'>        "value": 1234,
+</span><span class='line'>        "tags": {
+</span><span class='line'>           "host": "web01",
+</span><span class='line'>           "dc": "beijing"
+</span><span class='line'>        }
+</span><span class='line'>    },
+</span><span class='line'>    {
+</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
+</span><span class='line'>        "timestamp": 1435716529,
+</span><span class='line'>        "value": 2345,
+</span><span class='line'>        "tags": {
+</span><span class='line'>           "host": "web01",
+</span><span class='line'>           "dc": "beijing"
+</span><span class='line'>        }
+</span><span class='line'>    },
+</span><span class='line'>    {
+</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
+</span><span class='line'>        "timestamp": 1435716627,
+</span><span class='line'>        "value": 3456,
+</span><span class='line'>        "tags": {
+</span><span class='line'>           "host": "web02",
+</span><span class='line'>           "dc": "beijing"
+</span><span class='line'>        }
+</span><span class='line'>    },
+</span><span class='line'>    {
+</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
+</span><span class='line'>        "timestamp": 1435716727,
+</span><span class='line'>        "value": 6789,
+</span><span class='line'>        "tags": {
+</span><span class='line'>           "host": "web01",
+</span><span class='line'>           "dc": "tianjin"
+</span><span class='line'>        }
+</span><span class='line'>    }
+</span><span class='line'>]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后执行如下命令：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ curl -X POST -H “Content-Type: application/json” http://localhost:4242/api/put -d @mysql.json</span></code></pre></td></tr></table></div></figure>
+
+
+<p>即可将数据保存到 OpenTSDB 了。</p>
+
+<h2>查询数据</h2>
+
+<p>看完了如何保存数据，我们再来看看如何查找。</p>
+
+<p>查询数据可以使用query接口，它既可以使用get的query string方式，也可以使用post方式以JSON格式指定查询条件，这里我们以后者为例，对刚才保存的数据进行说明。</p>
+
+<p>首先，保存如下内容为search.json：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;start&quot;</span><span class="p">:</span> <span class="mi">1435716527</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;queries&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mysql.innodb.row_lock_time&quot;</span><span class="p">,</span>
+</span><span class='line'>            <span class="nt">&quot;aggregator&quot;</span><span class="p">:</span> <span class="s2">&quot;avg&quot;</span><span class="p">,</span>
+</span><span class='line'>            <span class="nt">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>                <span class="nt">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+</span><span class='line'>                <span class="nt">&quot;dc&quot;</span><span class="p">:</span> <span class="s2">&quot;beijing&quot;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>执行如下命令进行查询。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">$</span> <span class="err">curl</span> <span class="err">-s</span> <span class="err">-X</span> <span class="err">POST</span> <span class="err">-H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="err">http://localhost:</span><span class="mi">4242</span><span class="err">/api/query</span> <span class="err">-d</span> <span class="err">@search.json</span> <span class="err">|</span> <span class="err">jq</span> <span class="err">.</span>
+</span><span class='line'><span class="p">[</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mysql.innodb.row_lock_time&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;web01&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;dc&quot;</span><span class="p">:</span> <span class="s2">&quot;beijing&quot;</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="nt">&quot;aggregateTags&quot;</span><span class="p">:</span> <span class="p">[],</span>
+</span><span class='line'>    <span class="nt">&quot;dps&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;1435716527&quot;</span><span class="p">:</span> <span class="mi">1234</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;1435716529&quot;</span><span class="p">:</span> <span class="mi">2345</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mysql.innodb.row_lock_time&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;web02&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;dc&quot;</span><span class="p">:</span> <span class="s2">&quot;beijing&quot;</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="nt">&quot;aggregateTags&quot;</span><span class="p">:</span> <span class="p">[],</span>
+</span><span class='line'>    <span class="nt">&quot;dps&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;1435716627&quot;</span><span class="p">:</span> <span class="mi">3456</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，我们保存了<code>dc=tianjin</code>的数据，但是并没有在此查询中返回，这是因为，我们指定了<code>dc=beijing</code>这一条件。</p>
+
+<p>值得注意的是，tags参数在新版本2.2中，将不被推荐，取而代之的是filters参数。</p>
+
+<h2>总结</h2>
+
+<p>可以看出来， OpenTSDB 还是非常容易上手的，尤其是单机版，安装也很简单。有HBase作为后盾，查询起来也非常快，很多大公司，类似雅虎等，也都在用此软件。</p>
+
+<p>但是，大规模用起来，多个TDB以及多存储节点等，应该都需要专业、细心的运维工作了。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[时序列数据库武斗大会之TSDB名录 Part 2]]></title>
