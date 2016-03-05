@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-03-05T20:27:23+08:00</updated>
+  <updated>2016-03-05T20:31:57+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[时序列数据库武斗大会之OpenTSDB篇]]></title>
-    <link href="http://liubin.github.io/blog/2016/03/03/tsdb-opentsdb/"/>
-    <updated>2016-03-03T00:25:30+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/03/03/tsdb-opentsdb</id>
+    <link href="http://liubin.github.io/blog/2016/03/05/tsdb-opentsdb/"/>
+    <updated>2016-03-05T00:25:30+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/03/05/tsdb-opentsdb</id>
     <content type="html"><![CDATA[<h2>什么是 OpenTSDB</h2>
 
 <p>OpenTSDB ，可以认为是一个时系列数据（库），它基于HBase存储数据，充分发挥了HBase的分布式列存储特性，支持数百万每秒的读写，它的特点就是容易扩展，灵活的tag机制。</p>
@@ -401,7 +401,7 @@
 
 <h3>通过HTTP接口保存数据</h3>
 
-<p>保存数据除了我们前面用到的telnet方式，也可以选择HTTP API或者批量导入工具import（<a href="http://opentsdb.net/docs/build/html/user_guide/cli/import.html%EF%BC%89%EF%BC%8C%E8%BF%99%E9%87%8C%E6%88%91%E4%BB%AC%E5%86%8D%E5%AF%B9HTTP">http://opentsdb.net/docs/build/html/user_guide/cli/import.html%EF%BC%89%EF%BC%8C%E8%BF%99%E9%87%8C%E6%88%91%E4%BB%AC%E5%86%8D%E5%AF%B9HTTP</a> API进行简单示例说明。</p>
+<p>保存数据除了我们前面用到的telnet方式，也可以选择HTTP API或者批量导入工具import（ <a href="http://opentsdb.net/docs/build/html/user_guide/cli/import.html">http://opentsdb.net/docs/build/html/user_guide/cli/import.html</a> ），这里我们再对HTTP API进行简单示例说明。</p>
 
 <p>假设我们有如下数据，保存为文件mysql.json：</p>
 
