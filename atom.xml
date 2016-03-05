@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-03-05T20:31:57+08:00</updated>
+  <updated>2016-03-05T21:17:50+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -24,7 +24,7 @@
 
 <h2>架构简介</h2>
 
-<p>这里我们简单看一下它的架构，如下图所示。</p>
+<p>这里我们简单看一下它的架构，如下图所示：</p>
 
 <p><img src="http://77gaj2.com1.z0.glb.clouddn.com/2015/07/09/opentsdb/opentsdb_dataflow.jpg/zoom1" alt="" /></p>
 
@@ -215,8 +215,8 @@
 </span><span class='line'>put sys.cpu.user 1436333416 23 host=web01 user=10001</span></code></pre></td></tr></table></div></figure>
 
 
-<p>这时，从kibana的界面和 OpenTSDB 自带界面都可以看到这些数据。
-由于sys.cpu.sys的数据只有一条，所以 OpenTSDB 只能看到一个点。而elasticsearch则看到了多条数据，这时因为它还索引了meta数据等信息（除了metric，还有tagk和tagv）。</p>
+<p>这时，从 OpenTSDB 自带界面都可以看到这些数据。
+由于sys.cpu.sys的数据只有一条，所以 OpenTSDB 只能看到一个点。</p>
 
 <p>下图为 OpenTSDB 自带的查询界面，访问 <a href="http://localhost:4242">http://localhost:4242</a> 即可。</p>
 
@@ -405,7 +405,7 @@
 
 <p>假设我们有如下数据，保存为文件mysql.json：</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
@@ -443,57 +443,59 @@
 <span class='line-number'>36</span>
 <span class='line-number'>37</span>
 <span class='line-number'>38</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>[
-</span><span class='line'>    {
-</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
-</span><span class='line'>        "timestamp": 1435716527,
-</span><span class='line'>        "value": 1234,
-</span><span class='line'>        "tags": {
-</span><span class='line'>           "host": "web01",
-</span><span class='line'>           "dc": "beijing"
-</span><span class='line'>        }
-</span><span class='line'>    },
-</span><span class='line'>    {
-</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
-</span><span class='line'>        "timestamp": 1435716529,
-</span><span class='line'>        "value": 2345,
-</span><span class='line'>        "tags": {
-</span><span class='line'>           "host": "web01",
-</span><span class='line'>           "dc": "beijing"
-</span><span class='line'>        }
-</span><span class='line'>    },
-</span><span class='line'>    {
-</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
-</span><span class='line'>        "timestamp": 1435716627,
-</span><span class='line'>        "value": 3456,
-</span><span class='line'>        "tags": {
-</span><span class='line'>           "host": "web02",
-</span><span class='line'>           "dc": "beijing"
-</span><span class='line'>        }
-</span><span class='line'>    },
-</span><span class='line'>    {
-</span><span class='line'>        "metric": "mysql.innodb.row_lock_time",
-</span><span class='line'>        "timestamp": 1435716727,
-</span><span class='line'>        "value": 6789,
-</span><span class='line'>        "tags": {
-</span><span class='line'>           "host": "web01",
-</span><span class='line'>           "dc": "tianjin"
-</span><span class='line'>        }
-</span><span class='line'>    }
-</span><span class='line'>]</span></code></pre></td></tr></table></div></figure>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">[</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mysql.innodb.row_lock_time&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;timestamp&quot;</span><span class="p">:</span> <span class="mi">1435716527</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1234</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>           <span class="nt">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;web01&quot;</span><span class="p">,</span>
+</span><span class='line'>           <span class="nt">&quot;dc&quot;</span><span class="p">:</span> <span class="s2">&quot;beijing&quot;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mysql.innodb.row_lock_time&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;timestamp&quot;</span><span class="p">:</span> <span class="mi">1435716529</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="mi">2345</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>           <span class="nt">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;web01&quot;</span><span class="p">,</span>
+</span><span class='line'>           <span class="nt">&quot;dc&quot;</span><span class="p">:</span> <span class="s2">&quot;beijing&quot;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mysql.innodb.row_lock_time&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;timestamp&quot;</span><span class="p">:</span> <span class="mi">1435716627</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="mi">3456</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>           <span class="nt">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;web02&quot;</span><span class="p">,</span>
+</span><span class='line'>           <span class="nt">&quot;dc&quot;</span><span class="p">:</span> <span class="s2">&quot;beijing&quot;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mysql.innodb.row_lock_time&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;timestamp&quot;</span><span class="p">:</span> <span class="mi">1435716727</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="mi">6789</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>           <span class="nt">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;web01&quot;</span><span class="p">,</span>
+</span><span class='line'>           <span class="nt">&quot;dc&quot;</span><span class="p">:</span> <span class="s2">&quot;tianjin&quot;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>之后执行如下命令：</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ curl -X POST -H “Content-Type: application/json” http://localhost:4242/api/put -d @mysql.json</span></code></pre></td></tr></table></div></figure>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">$</span> <span class="err">curl</span> <span class="err">-X</span> <span class="err">POST</span> <span class="err">-H</span> <span class="err">“Content-Type:</span> <span class="err">application/json”</span> <span class="err">http://localhost:</span><span class="mi">4242</span><span class="err">/api/put</span> <span class="err">-d</span> <span class="err">@mysql.json</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>即可将数据保存到 OpenTSDB 了。</p>
 
 <h2>查询数据</h2>
 
-<p>看完了如何保存数据，我们再来看看如何查找。</p>
+<p>看完了如何保存数据，我们再来看看如何查询数据。</p>
 
 <p>查询数据可以使用query接口，它既可以使用get的query string方式，也可以使用post方式以JSON格式指定查询条件，这里我们以后者为例，对刚才保存的数据进行说明。</p>
 
@@ -528,7 +530,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>执行如下命令进行查询。</p>
+<p>执行如下命令进行查询：</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
