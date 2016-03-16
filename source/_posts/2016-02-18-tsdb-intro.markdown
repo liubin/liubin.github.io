@@ -226,5 +226,5 @@ ELK这么流行，跟其一揽子方案关系很大。除了强大的功能之�
 * 时序列数据库武斗大会之什么是TSDB
 * [时序列数据库武斗大会之TSDB名录 Part 1](/blog/2016/02/25/tsdb-list-part-1/)
 * [时序列数据库武斗大会之TSDB名录 Part 2](/blog/2016/03/01/tsdb-list-part-2/)
-
-
+* [时序列数据库武斗大会之OpenTSDB篇](/blog/2016/03/05/tsdb-opentsdb/)
+* [时序列数据库武斗大会之KairosDB篇](/blog/2016/03/12/tsdb-kairosdb/)

@@ -413,3 +413,12 @@ $ curl -s -X POST -H "Content-Type: application/json" http://localhost:4242/api/
 
 但是，大规模用起来，多个TDB以及多存储节点等，应该都需要专业、细心的运维工作了。
 
+## 相关阅读
+
+这是本系列文章的其他部分：
+
+* [时序列数据库武斗大会之什么是TSDB](/blog/2016/02/18/tsdb-intro/)
+* [时序列数据库武斗大会之TSDB名录 Part 1](/blog/2016/02/25/tsdb-list-part-1/)
+* [时序列数据库武斗大会之TSDB名录 Part 2](/blog/2016/03/01/tsdb-list-part-2/)
+* 时序列数据库武斗大会之OpenTSDB篇
+* [时序列数据库武斗大会之KairosDB篇](/blog/2016/03/12/tsdb-kairosdb/)
