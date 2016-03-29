@@ -91,7 +91,7 @@ Cookpad微服务之间的通信采用了 [基于Garage的RESTful Hypermedia API]
 
 REST API集成的问题之一就是API的兼容性。
 
-通常在CI能够发挥作用的测试级别的测试中，发给其他服务的请求都是stub的形式，不能确认是否有不兼容该服务接口的变动混入。使用Protocol Buffers这样方式的话，由于需要共享proto文件，可能不会出什么问题。而使用REST API的方式进行集成的话，也有一种使用JSON Schema的方法。不过由于是Ruby + HTTP风格的文化，相比使用类型系统进行管理的开发风格，我们的工程师们更习惯于进行动态测试这种风格。这也是 [Rack::VCR](http://techlife.cookpad.com/entry/2015/10/09/125108) 产生的背景。但是使用各服务自己的CI来保证兼容性的话，如果服务之间的构建频率不一致，在Cookpad这样发布非常频繁的公司，很可能会出现在发布之后才能发现API不兼容的问题（*即发布之后API提供方的API才检测到调用方的调用有问题 -- 译者注*）。因此我们决定转向 [Consumer-Driven Contract testing](http://techlife.cookpad.com/entry/2016/01/04/094705) ，现在已经迁移到Pact了。
+通常在CI能够发挥作用的测试级别的测试中，发给其他服务的请求都是stub的形式，不能确认是否有不兼容该服务接口的变动混入。使用Protocol Buffers这样方式的话，由于需要共享proto文件，可能不会出什么问题。而使用REST API的方式进行集成的话，也有一种使用JSON Schema的方法。不过由于是Ruby + HTTP风格的文化，相比使用类型系统进行管理的开发风格，我们的工程师们更习惯于进行动态测试这种风格。这也是 [Rack::VCR](http://techlife.cookpad.com/entry/2015/10/09/125108) 产生的背景。但是使用各服务自己的CI来保证兼容性的话，如果服务之间的构建频率不一致，在Cookpad这样发布非常频繁的公司，很可能会出现在发布之后才能发现API不兼容的问题（*即发布之后API提供方的API才检测到调用方的调用有问题 -- 译者注*）。因此我们决定转向 [Consumer-Driven Contract testing](http://techlife.cookpad.com/entry/2016/01/04/094705) ，现在已经迁移到 [Pact](https://github.com/realestate-com-au/pact) 了。
 
 ![](/images/2016/03/cookpad-micro-services/p3.png)
 
