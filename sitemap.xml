@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://liubin.github.io/blog/2016/03/29/engineers-resume/</loc>
+    <lastmod>2016-03-29T22:02:59+08:00</lastmod>
+  </url>
+  <url>
     <loc>http://liubin.github.io/blog/2016/03/16/microservice-at-cookpad/</loc>
     <lastmod>2016-03-16T23:54:31+08:00</lastmod>
   </url>
