@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-04-24T18:16:36+08:00</updated>
+  <updated>2016-04-25T15:04:17+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[如何选择Docker监控方案]]></title>
-    <link href="http://liubin.github.io/blog/2016/04/24/how-to-chose-a-docker-monitor-solution/"/>
+    <link href="http://liubin.github.io/blog/2016/04/24/how-to-choose-a-docker-monitor-solution/"/>
     <updated>2016-04-24T11:48:38+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/04/24/how-to-chose-a-docker-monitor-solution</id>
+    <id>http://liubin.github.io/blog/2016/04/24/how-to-choose-a-docker-monitor-solution</id>
     <content type="html"><![CDATA[<p><em>这是2016/4/23关于Docker性能监控的一次Meetup的内容节选，完整内容请参见文末<a href="https://github.com/liubin/presentations/tree/master/20160423-docker-monitoring">链接</a></em></p>
 
 <p>大家好，非常高兴来上海跟大家分享一下我们在Docker监控方面的一点点经验。</p>
