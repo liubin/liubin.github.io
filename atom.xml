@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-04-25T15:04:17+08:00</updated>
+  <updated>2016-04-26T11:58:42+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,118 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[如何使用git diff来对比Office文档？]]></title>
+    <link href="http://liubin.github.io/blog/2016/04/26/how-to-use-git-to-diff-office-documents/"/>
+    <updated>2016-04-26T12:51:35+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/04/26/how-to-use-git-to-diff-office-documents</id>
+    <content type="html"><![CDATA[<p>我们知道用 <code>git diff</code> 命令比较文本文件还是比较容易的，Office文档的修改能比较么？</p>
+
+<p>答案是可以的。下面我们就来看一下如何对Office文档进行比较。例子为在OS X上使用tika来将Office文本化之后再进行比较。</p>
+
+<ul>
+<li>安装tika</li>
+</ul>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>brew install tika</span></code></pre></td></tr></table></div></figure>
+
+
+<p>​
+这可能需要一些时间，如果你的网速不快的话。</p>
+
+<ul>
+<li>创建脚本</li>
+</ul>
+
+
+<p>然后编辑一条用于比较Office文档的命令</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># 文件名 ~/bin/diffoffice
+</span><span class='line'>
+</span><span class='line'>#!/bin/sh
+</span><span class='line'>tika -t "$1"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>并将文件设置为可执行权限</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>chmod +x ~/bin/diffoffice</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>编辑 git 配置文件</li>
+</ul>
+
+
+<p>编辑 <code>~/.gitconfig</code> 文件</p>
+
+<p>添加如下内容：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>[diff "office"]
+</span><span class='line'>  binary = true
+</span><span class='line'>  textconv = ~/bin/diffoffice</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>编辑代码仓库的属性文件</li>
+</ul>
+
+
+<p>在代码仓库的根目录下，创建 <code>.gitattributes</code> 文件，其内容如下：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>*.pptx diff=office
+</span><span class='line'>*.docx diff=office
+</span><span class='line'>*.xlsx diff=office</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面操作完成之后，就可以对Office的“二进制文件”进行对比了。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ git diff keynote.pptx
+</span><span class='line'>
+</span><span class='line'>... ...
+</span><span class='line'>
+</span><span class='line'>index 68a6a9a..bf108f9 100644
+</span><span class='line'>--- a/20160423-docker-monitoring/keynote.pptx
+</span><span class='line'>+++ b/20160423-docker-monitoring/keynote.pptx
+</span><span class='line'>@@ -175,7 +175,7 @@ SaaS
+</span><span class='line'> 采集
+</span><span class='line'> 存储
+</span><span class='line'> 展示
+</span><span class='line'>-报警（动作）
+</span><span class='line'>+报警（事件处理）
+</span><span class='line'> </span></code></pre></td></tr></table></div></figure>
+
+
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[如何选择Docker监控方案]]></title>
