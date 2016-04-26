@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-04-26T11:58:42+08:00</updated>
+  <updated>2016-04-26T12:00:44+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[如何使用git diff来对比Office文档？]]></title>
+    <title type="html"><![CDATA[如何使用 git diff 来对比Office文档？]]></title>
     <link href="http://liubin.github.io/blog/2016/04/26/how-to-use-git-to-diff-office-documents/"/>
     <updated>2016-04-26T12:51:35+08:00</updated>
     <id>http://liubin.github.io/blog/2016/04/26/how-to-use-git-to-diff-office-documents</id>
