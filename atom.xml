@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-06-17T16:34:45+08:00</updated>
+  <updated>2016-06-17T22:45:36+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -37,14 +37,16 @@
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
 </pre></td><td class='code'><pre><code class=''><span class='line'>$ docker swarm init --listen-addr 192.168.99.100:2377
-</span><span class='line'>Swarm initialized: current node (09fm6su6c24qn) is now a manager.
-</span><span class='line'>
-</span><span class='line'>$ docker node ls
+</span><span class='line'>Swarm initialized: current node (09fm6su6c24qn) is now a manager.</span></code></pre></td></tr></table></div></figure>
+
+
+<p>查看节点：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker node ls
 </span><span class='line'>ID              NAME      MEMBERSHIP  STATUS  AVAILABILITY  MANAGER STATUS  LEADER
 </span><span class='line'>09fm6su6c24q *  manager1  Accepted    Ready   Active        Reachable       Yes</span></code></pre></td></tr></table></div></figure>
 
@@ -77,13 +79,6 @@
 <span class='line-number'>8</span>
 <span class='line-number'>9</span>
 <span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
 </pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service update --scale 5 helloworld
 </span><span class='line'>helloworld
 </span><span class='line'>
@@ -93,10 +88,17 @@
 </span><span class='line'>dfhsosk00wxfb7j0cazp3fmhy  helloworld.2  helloworld  alpine  RUNNING        RUNNING 15 seconds  worker2
 </span><span class='line'>6cbedbeywo076zn54fnwc667a  helloworld.3  helloworld  alpine  RUNNING        RUNNING 15 seconds  worker1
 </span><span class='line'>7w80cafrry7asls96lm2tmwkz  helloworld.4  helloworld  alpine  RUNNING        RUNNING 10 seconds  worker1
-</span><span class='line'>bn67kh76crn6du22ve2enqg5j  helloworld.5  helloworld  alpine  RUNNING        RUNNING 10 seconds  manager1
-</span><span class='line'>
-</span><span class='line'># 在一台机器上使用 docker ps
-</span><span class='line'>$ docker ps
+</span><span class='line'>bn67kh76crn6du22ve2enqg5j  helloworld.5  helloworld  alpine  RUNNING        RUNNING 10 seconds  manager1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在一台机器上使用 <code>docker ps</code> :</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker ps
 </span><span class='line'>
 </span><span class='line'>CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 </span><span class='line'>910669d5e188        alpine:latest       "ping docker.com"   10 seconds ago      Up 10 seconds                           helloworld.5.bn67kh76crn6du22ve2enqg5j
@@ -141,17 +143,19 @@
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
 <span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
 </pre></td><td class='code'><pre><code class=''><span class='line'>$ docker plugin install aragunathan/no-remove
 </span><span class='line'>Plugin "aragunathan/no-remove:latest" requested the following privileges:
 </span><span class='line'> - Networking: host
 </span><span class='line'> - Mounting host path: /data
-</span><span class='line'>Do you grant the above permissions? [y/N] y
-</span><span class='line'>
-</span><span class='line'>$ docker plugin ls
+</span><span class='line'>Do you grant the above permissions? [y/N] y</span></code></pre></td></tr></table></div></figure>
+
+
+<p>查看插件列表：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker plugin ls
 </span><span class='line'>NAME                    VERSION             ACTIVE
 </span><span class='line'>aragunathan/no-remove   latest              true</span></code></pre></td></tr></table></div></figure>
 
@@ -191,6 +195,32 @@
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker run --name=test -d \
+</span><span class='line'>    --health-cmd='stat /etc/passwd || exit 1' \
+</span><span class='line'>    --health-interval=2s \
+</span><span class='line'>    busybox sleep 1d</span></code></pre></td></tr></table></div></figure>
+
+
+<p>查看健康状态，返回 <code>healthy</code>：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ sleep 2; docker inspect --format='' test
+</span><span class='line'>healthy</span></code></pre></td></tr></table></div></figure>
+
+
+<p>故意删除 <code>/etc/passwd</code> 文件：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker exec test rm /etc/passwd</span></code></pre></td></tr></table></div></figure>
+
+
+<p>再次查看节点健康状态：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
 <span class='line-number'>5</span>
 <span class='line-number'>6</span>
 <span class='line-number'>7</span>
@@ -212,21 +242,7 @@
 <span class='line-number'>23</span>
 <span class='line-number'>24</span>
 <span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker run --name=test -d \
-</span><span class='line'>    --health-cmd='stat /etc/passwd || exit 1' \
-</span><span class='line'>    --health-interval=2s \
-</span><span class='line'>    busybox sleep 1d
-</span><span class='line'>$ sleep 2; docker inspect --format='' test
-</span><span class='line'>healthy
-</span><span class='line'>$ docker exec test rm /etc/passwd
-</span><span class='line'>$ sleep 2; docker inspect --format='' test
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ sleep 2; docker inspect --format='' test
 </span><span class='line'>{
 </span><span class='line'>  "Status": "unhealthy",
 </span><span class='line'>  "FailingStreak": 3,
@@ -260,7 +276,7 @@
 
 <h3><code>dockerd</code> 和 <code>docker</code> 二进制文件分离</h3>
 
-<p><code>docker daemon</code> 改为了 <code>dockerd</code> ，这样以后就需要实用两个可执行程序了。</p>
+<p><code>docker daemon</code> 改为了 <code>dockerd</code> ，这样以后就需要使用两个可执行程序了。</p>
 
 <p>PR： <a href="https://github.com/docker/docker/pull/22386">https://github.com/docker/docker/pull/22386</a></p>
 
@@ -270,8 +286,8 @@
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>docker daemon --storage-opt btrfs.min_space=xx_
-</span><span class='line'>docker run --storage-opt size=xx</span></code></pre></td></tr></table></div></figure>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker daemon --storage-opt btrfs.min_space=xx
+</span><span class='line'>$ docker run --storage-opt size=xx</span></code></pre></td></tr></table></div></figure>
 
 
 <p>PR1：<a href="https://github.com/docker/docker/pull/19651">https://github.com/docker/docker/pull/19651</a>
@@ -298,9 +314,9 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>docker search --filter is-official=true ubuntu
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker search --filter is-official=true ubuntu
 </span><span class='line'>
-</span><span class='line'>docker search --filter stars=30 ubuntu
+</span><span class='line'>$ docker search --filter stars=30 ubuntu
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -314,10 +330,10 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>docker run -d --net=bridge --name=onbridgenetwork busybox top
-</span><span class='line'>docker run -d --net=none --name=onnonenetwork busybox top
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker run -d --net=bridge --name=onbridgenetwork busybox top
+</span><span class='line'>$ docker run -d --net=none --name=onnonenetwork busybox top
 </span><span class='line'>
-</span><span class='line'>docker ps --filter network=bridge </span></code></pre></td></tr></table></div></figure>
+</span><span class='line'>$ docker ps --filter network=bridge </span></code></pre></td></tr></table></div></figure>
 
 
 <p>PR： <a href="https://github.com/docker/docker/pull/23300">https://github.com/docker/docker/pull/23300</a></p>
@@ -388,7 +404,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <p>当然，还有类似小的一些改进，这里并没有都列出来，到时候大家看一下参考手册就能见到了，也许很多功能大家根本就不会用到：-）</p>
 
-<p>到这里我们简单的就浏览了一下新版本的Docker中将会搭载的新功能，如果你觉得哪些是你希望的，就等着Docker 1.12.0的发布吧。</p>
+<p>到这里我们简单的就浏览了一下新版本的Docker中将会搭载的新功能，如果你觉得哪些是你想要的，就等着Docker 1.12.0的发布吧。</p>
 ]]></content>
   </entry>
   
