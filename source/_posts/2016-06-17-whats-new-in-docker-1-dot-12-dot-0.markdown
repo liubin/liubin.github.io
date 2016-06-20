@@ -28,7 +28,12 @@ categories:
 ```
 $ docker swarm init --listen-addr 192.168.99.100:2377
 Swarm initialized: current node (09fm6su6c24qn) is now a manager.
+```
 
+
+查看节点：
+
+```
 $ docker node ls
 ID              NAME      MEMBERSHIP  STATUS  AVAILABILITY  MANAGER STATUS  LEADER
 09fm6su6c24q *  manager1  Accepted    Ready   Active        Reachable       Yes
@@ -58,8 +63,11 @@ dfhsosk00wxfb7j0cazp3fmhy  helloworld.2  helloworld  alpine  RUNNING        RUNN
 6cbedbeywo076zn54fnwc667a  helloworld.3  helloworld  alpine  RUNNING        RUNNING 15 seconds  worker1
 7w80cafrry7asls96lm2tmwkz  helloworld.4  helloworld  alpine  RUNNING        RUNNING 10 seconds  worker1
 bn67kh76crn6du22ve2enqg5j  helloworld.5  helloworld  alpine  RUNNING        RUNNING 10 seconds  manager1
+```
 
-# 在一台机器上使用 docker ps
+在一台机器上使用 `docker ps` :
+
+```
 $ docker ps
 
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
@@ -101,7 +109,11 @@ Plugin "aragunathan/no-remove:latest" requested the following privileges:
  - Networking: host
  - Mounting host path: /data
 Do you grant the above permissions? [y/N] y
+```
 
+查看插件列表：
+
+```
 $ docker plugin ls
 NAME                    VERSION             ACTIVE
 aragunathan/no-remove   latest              true
@@ -114,7 +126,6 @@ aragunathan/no-remove   latest              true
 * plugin inspect
 * plugin install
 * plugin rm
-
 
 
 ## 增加 `overlay2` 存储驱动（PR#22126 Overlay multiple lower directory support）
@@ -142,9 +153,24 @@ $ docker run --name=test -d \
     --health-cmd='stat /etc/passwd || exit 1' \
     --health-interval=2s \
     busybox sleep 1d
+```
+
+查看健康状态，返回 `healthy`：
+
+```
 $ sleep 2; docker inspect --format='{{.State.Health.Status}}' test
 healthy
+```
+
+故意删除 `/etc/passwd` 文件：
+
+```
 $ docker exec test rm /etc/passwd
+```
+
+再次查看节点健康状态：
+
+```
 $ sleep 2; docker inspect --format='{{json .State.Health}}' test
 {
   "Status": "unhealthy",
@@ -180,7 +206,7 @@ $ sleep 2; docker inspect --format='{{json .State.Health}}' test
 
 ### `dockerd` 和 `docker` 二进制文件分离
 
-`docker daemon` 改为了 `dockerd` ，这样以后就需要实用两个可执行程序了。
+`docker daemon` 改为了 `dockerd` ，这样以后就需要使用两个可执行程序了。
 
 PR： https://github.com/docker/docker/pull/22386
 
@@ -190,8 +216,8 @@ PR： https://github.com/docker/docker/pull/22386
 类似这样，可以在Docker守护进程或者容器级别设置根文件系统的大小：
 
 ```
-docker daemon --storage-opt btrfs.min_space=xx_
-docker run --storage-opt size=xx
+$ docker daemon --storage-opt btrfs.min_space=xx
+$ docker run --storage-opt size=xx
 ```
 
 PR1：https://github.com/docker/docker/pull/19651
@@ -210,9 +236,9 @@ PR：https://github.com/docker/docker/pull/23107
 比如可以指定只返回官方镜像，或者返回一定数量star的镜像：
 
 ```
-docker search --filter is-official=true ubuntu
+$ docker search --filter is-official=true ubuntu
 
-docker search --filter stars=30 ubuntu
+$ docker search --filter stars=30 ubuntu
 
 ```
 
@@ -223,10 +249,10 @@ PR：https://github.com/docker/docker/pull/22369
 只列出指定网络模式的容器：
 
 ```
-docker run -d --net=bridge --name=onbridgenetwork busybox top
-docker run -d --net=none --name=onnonenetwork busybox top
+$ docker run -d --net=bridge --name=onbridgenetwork busybox top
+$ docker run -d --net=none --name=onnonenetwork busybox top
 
-docker ps --filter network=bridge 
+$ docker ps --filter network=bridge 
 ```
 PR： https://github.com/docker/docker/pull/23300
 
@@ -280,7 +306,7 @@ PR: https://github.com/docker/docker/pull/21495
 
 当然，还有类似小的一些改进，这里并没有都列出来，到时候大家看一下参考手册就能见到了，也许很多功能大家根本就不会用到：-）
 
-到这里我们简单的就浏览了一下新版本的Docker中将会搭载的新功能，如果你觉得哪些是你希望的，就等着Docker 1.12.0的发布吧。
+到这里我们简单的就浏览了一下新版本的Docker中将会搭载的新功能，如果你觉得哪些是你想要的，就等着Docker 1.12.0的发布吧。
 
 
 
