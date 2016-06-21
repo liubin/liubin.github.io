@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-06-17T22:45:36+08:00</updated>
+  <updated>2016-06-21T20:41:03+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,582 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[初试Docker swarm]]></title>
+    <link href="http://liubin.github.io/blog/2016/06/21/try-new-docker-swarm/"/>
+    <updated>2016-06-21T20:41:42+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/06/21/try-new-docker-swarm</id>
+    <content type="html"><![CDATA[<p>DockerCon 2016今天凌晨开始了，Docker公司的CEO和CTO都做了慷慨激昂的演讲（其实是我瞎想象的，没听，只是看了一些别人整理的 highlight ）。</p>
+
+<p>同时，1.12 RC2也出来了，很多 <a href="http://liubin.org/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0/">新功能</a> 已经可以试用了， 这里我们就来试一下 <code>docker swarm</code> 命令吧，这也是 <code>swarm</code> 成为Docker子命令的第一个版本。</p>
+
+<p>测试环境：</p>
+
+<ul>
+<li>OS：OS X</li>
+<li>Docker：1.12.0-rc2</li>
+<li>Docker Machine：0.8.0-rc1</li>
+</ul>
+
+
+<p>系统构成：</p>
+
+<ul>
+<li>master 1台</li>
+<li>worker 2台</li>
+</ul>
+
+
+<h2>升级Docker</h2>
+
+<p>使用Docker for Mac升级Docker很简单，这里不多说了；升级之后确认一下是最新版的Docker就可以了。</p>
+
+<h2>创建3台Docker主机</h2>
+
+<p>首先，使用Docker Machine创建3台主机，一台名为 <code>manager1</code> ，其余两台为 <code>worker1</code> 和 <code>worker2</code> ：</p>
+
+<p>创建master节点：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine create --driver virtualbox manager1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>创建2个worker节点：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine create --driver virtualbox worker1
+</span><span class='line'>$ docker-machine create --driver virtualbox worker2</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后可以确认一下3台机器是否创建成功，以及ta们的IP地址：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine ls
+</span><span class='line'>NAME       ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
+</span><span class='line'>manager1   -        virtualbox   Running   tcp://192.168.99.100:2376           v1.12.0-rc2   
+</span><span class='line'>worker1    -        virtualbox   Running   tcp://192.168.99.101:2376           v1.12.0-rc2   
+</span><span class='line'>worker2    -        virtualbox   Running   tcp://192.168.99.102:2376           v1.12.0-rc2   
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>创建Swarm集群</h2>
+
+<p>首先，切换到 <code>manager1</code> 主机，使用 <code>docker swarm init</code> 命令创建一个集群：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ eval $(docker-machine env manager1)
+</span><span class='line'>
+</span><span class='line'>$ docker swarm init --listen-addr 192.168.99.100:2377
+</span><span class='line'>Swarm initialized: current node (alq8w7fi34f41j3z4ise1vkd7) is now a manager.</span></code></pre></td></tr></table></div></figure>
+
+
+<p>使用 <code>docker info</code> 确认一下当前节点信息，可以看到Swarm属性部分：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker info
+</span><span class='line'>... ...
+</span><span class='line'>Swarm: active
+</span><span class='line'> NodeID: alq8w7fi34f41j3z4ise1vkd7
+</span><span class='line'> IsManager: Yes
+</span><span class='line'> Managers: 1
+</span><span class='line'> Nodes: 1
+</span><span class='line'> CACertHash: sha256:7a9d0eb1621afe2be07c5fd405b8f038c76be3a8dc7b2c73944a2d1ab9dffd76
+</span><span class='line'>
+</span><span class='line'>... ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在2台worker节点上，通过  <code>docker swarm join</code> 命令加入到刚才创建的集群中：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ eval $(docker-machine env worker1)
+</span><span class='line'>$ docker swarm join 192.168.99.100:2377
+</span><span class='line'>This node joined a Swarm as a worker.
+</span><span class='line'>$ docker info
+</span><span class='line'>... ...
+</span><span class='line'>Swarm: active
+</span><span class='line'> NodeID: 4l2a9ebgmcpwqlo0roye0n6m5
+</span><span class='line'> IsManager: No
+</span><span class='line'>... ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>回到 <code>manager1</code> 节点，确认一下集群中节点的个数和状态。在 <code>MANAGER STATUS</code> 属性中，可以看到谁是Leader：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ eval $(docker-machine env manager1)
+</span><span class='line'>$ docker node ls
+</span><span class='line'>ID                           NAME      MEMBERSHIP  STATUS  AVAILABILITY  MANAGER STATUS
+</span><span class='line'>4l2a9ebgmcpwqlo0roye0n6m5    worker1   Accepted    Ready   Active        
+</span><span class='line'>alq8w7fi34f41j3z4ise1vkd7 *  manager1  Accepted    Ready   Active        Leader
+</span><span class='line'>e0khh79c6owm0e14mli602q0a    worker2   Accepted    Ready   Active        </span></code></pre></td></tr></table></div></figure>
+
+
+<h2>创建nginx服务</h2>
+
+<p>首先，创建一个覆盖网络：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker network create -d overlay ngx_net
+</span><span class='line'>8kiv8muduf60f66rs99ufo25f</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后使用这个覆盖网络，创建nginx服务：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service create --name nginx --replicas 1 --network ngx_net -p 80:80/tcp nginx
+</span><span class='line'>78cmmh8ef4qcwmjjzgn3k45ch</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这样，就创建了一个具有一个副本（ <code>--replicas 1</code> ）的 <code>nginx</code> 服务，使用镜像 <code>nginx</code> 。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
+</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE           DESIRED STATE  NODE
+</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Preparing 9 seconds  Running        manager1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意上面的 <code>STATE</code> 字段中刚开始的服务状态为 <code>Preparing</code>，需要等一会才能变为 <code>Running</code> 状态，其中最费时间的应该是下载镜像的过程。</p>
+
+<p>过一会再查看服务状态，就可以看到状态已经变为 <code>Running</code> 了，这是可以通过 <code>http://192.168.99.100/</code> 查看 Nginx服务。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
+</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE              DESIRED STATE  NODE
+</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running About a minute  Running        manager1
+</span><span class='line'>
+</span><span class='line'># 通过curl查看服务是否正常运行
+</span><span class='line'>$ curl http://192.168.99.100/
+</span><span class='line'>...
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>对服务进行扩展（scale）</h2>
+
+<p>当然，如果只是通过service启动容器，swarm也算不上什么新鲜东西了。Service还提供了复制（类似k8s里的副本）功能。可以通过 <code>docker service scale</code> 命令来设置服务中容器的副本数：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service scale nginx=5
+</span><span class='line'>nginx scaled to 5</span></code></pre></td></tr></table></div></figure>
+
+
+<p>和创建服务一样，增加scale数之后，将会创建新的容器，这些新启动的容器也会经历从准备到运行的过程，过一分钟左右，服务应该就会启动完成，这时候可以再来看一下 <code>nginx</code> 服务中的容器（task）：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
+</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE         DESIRED STATE  NODE
+</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running 5 minutes  Running        manager1
+</span><span class='line'>co0re9u7infoo9qiegm6yiqcn  nginx.2  nginx    nginx  Running 2 minutes  Running        worker1
+</span><span class='line'>19dvayah8fjz3vykrl2oi12uu  nginx.3  nginx    nginx  Running 2 minutes  Running        worker1
+</span><span class='line'>d8okdip767972p083tix4dk7d  nginx.4  nginx    nginx  Running 2 minutes  Running        manager1
+</span><span class='line'>9rq59mf6bq5m411y6gdzb5pq6  nginx.5  nginx    nginx  Running 2 minutes  Running        worker2</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到，之前 <code>nginx</code> 容器只在 <code>manager1</code> 上有一个实例，而现在又增加了4个实例。</p>
+
+<p>我们可以在 <code>manager1</code> 上查看一下这台主机上运行的容器：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker ps
+</span><span class='line'>CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+</span><span class='line'>4bbc02bc426e        nginx:latest        "nginx -g 'daemon off"   4 minutes ago       Up 4 minutes        80/tcp, 443/tcp     nginx.4.d8okdip767972p083tix4dk7d
+</span><span class='line'>1eda6f7d3029        nginx:latest        "nginx -g 'daemon off"   5 minutes ago       Up 5 minutes        80/tcp, 443/tcp     nginx.1.394by1b72i44a44jms2xwk6ud</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>容器异常停止时的处理</h2>
+
+<p>如果一个服务中的一个任务突然终止了，Docker会怎么处理？这里我们就来模拟某一容器异常终止的情况。</p>
+
+<p>在操作之前，我们在另一个窗口，准备好使用 <code>tail -f /var/log/docker.log</code> 命令来查看Docker守护进程的日志。</p>
+
+<p>我们通过 <code>docker rm -f</code> 来删除一个容器（<code>4b</code> 表示的是我们第一个启动的 <code>4bbc02bc426e</code> 容器）：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker rm -f 4b
+</span><span class='line'>4b
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>回到Docker守护进程的日志查看窗口，我们会看到类似这样的日志（有删减），从日志中，我们可以看到旧容器（id为 <code>4bbc02bc426e</code> ，task id为 <code>d8okdip767972p083tix4dk7d</code>）的删除和新容器（task id为 <code>cumjdktbadaxca66rt4hi63na</code>）的调度过程（删除了日志中的时间戳和日志级别等非重要信息，但保留了日志的时间顺序）：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># 调用删除容器的API
+</span><span class='line'>msg="Calling DELETE /v1.24/containers/4b?force=1" 
+</span><span class='line'>
+</span><span class='line'># d8的任务从RUNNING变为了FAILED状态
+</span><span class='line'>msg="state changed" module=taskmanager state.desired=RUNNING state.transition="RUNNING-&gt;FAILED" task.id=d8okdip767972p083tix4dk7d 
+</span><span class='line'>
+</span><span class='line'># 将旧任务停止
+</span><span class='line'>msg=assigned module=agent task.desiredstate=SHUTDOWN task.id=d8okdip767972p083tix4dk7d 
+</span><span class='line'>
+</span><span class='line'># 分配到新的节点，创建新的任务id： cumj
+</span><span class='line'>msg="Assigning to node e0khh79c6owm0e14mli602q0a" task.id=cumjdktbadaxca66rt4hi63na 
+</span><span class='line'>
+</span><span class='line'># 旧任务状态更新为FAILED
+</span><span class='line'>msg="(*Agent).UpdateTaskStatus" module=agent task.id=d8okdip767972p083tix4dk7d 
+</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="FAILED-&gt;FAILED" task.id=d8okdip767972p083tix4dk7d 
+</span><span class='line'>
+</span><span class='line'># 新任务从ASSIGNED变为接受状态
+</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="ASSIGNED-&gt;ACCEPTED" task.id=cumjdktbadaxca66rt4hi63na 
+</span><span class='line'>
+</span><span class='line'># 准备运行新任务
+</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="ACCEPTED-&gt;PREPARING" task.id=cumjdktbadaxca66rt4hi63na 
+</span><span class='line'>
+</span><span class='line'># 运行新任务
+</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="PREPARING-&gt;STARTING" task.id=cumjdktbadaxca66rt4hi63na 
+</span><span class='line'>
+</span><span class='line'># 新任务启动完成
+</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="STARTING-&gt;RUNNING" task.id=cumjdktbadaxca66rt4hi63na 
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>从上面的日志我们不能看出，一个任务的生命周期的前半生，大概就是 <code>ASSIGNED</code> -> <code>ACCEPTED</code> -> <code>PREPARING</code> -> <code>STARTING</code> -> <code>RUNNING</code> 。</p>
+
+<p>在 <code>manager1</code>主机上，我们看到这个容器已经删除了， <code>ps</code> 只能看到一个容器：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker ps
+</span><span class='line'>CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+</span><span class='line'>1eda6f7d3029        nginx:latest        "nginx -g 'daemon off"   6 minutes ago       Up 6 minutes        80/tcp, 443/tcp     nginx.1.394by1b72i44a44jms2xwk6ud</span></code></pre></td></tr></table></div></figure>
+
+
+<p>再来查看一下 <code>nginx</code> 服务的任务列表，可以看到新创建的任务 <code>cumjdktbadaxca66rt4hi63na</code> 被调度到了 <code>worker2</code> 上运行：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
+</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE          DESIRED STATE  NODE
+</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running 8 minutes   Running        manager1
+</span><span class='line'>co0re9u7infoo9qiegm6yiqcn  nginx.2  nginx    nginx  Running 5 minutes   Running        worker1
+</span><span class='line'>19dvayah8fjz3vykrl2oi12uu  nginx.3  nginx    nginx  Running 5 minutes   Running        worker1
+</span><span class='line'>cumjdktbadaxca66rt4hi63na  nginx.4  nginx    nginx  Running 32 seconds  Running        worker2
+</span><span class='line'>9rq59mf6bq5m411y6gdzb5pq6  nginx.5  nginx    nginx  Running 5 minutes   Running        worker2</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>删除一个节点？</h2>
+
+<p>不难想象，如果一个节点都宕机了，则Docker应该会将在该节点运行的容器，调度到其他节点，以满足指定数量的副本保持运行状态。</p>
+
+<p>下面我们就来模拟一下这种场景。</p>
+
+<p>首先，我们删除一个节点 <code>worker2</code>：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine rm worker2
+</span><span class='line'>About to remove worker2
+</span><span class='line'>Are you sure? (y/n): y
+</span><span class='line'>Successfully removed worker2</span></code></pre></td></tr></table></div></figure>
+
+
+<p>删除之后，Docker就会开始重新调度，最终调度结束（&lt; 1分钟）后，再查看该服务的任务状态，应该如下面这样，有5个 <code>nginx</code> 容器在剩下的两台机器上运行：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
+</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE          DESIRED STATE  NODE
+</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running 22 minutes  Running        manager1
+</span><span class='line'>co0re9u7infoo9qiegm6yiqcn  nginx.2  nginx    nginx  Running 19 minutes  Running        worker1
+</span><span class='line'>19dvayah8fjz3vykrl2oi12uu  nginx.3  nginx    nginx  Running 19 minutes  Running        worker1
+</span><span class='line'>991v97eg9q1hnnzxda6c9mmv7  nginx.4  nginx    nginx  Running 20 seconds  Running        manager1
+</span><span class='line'>e9yztfmy5luaxnadz80e5j8nl  nginx.5  nginx    nginx  Running 20 seconds  Running        manager1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>除了上面用到的一些命令， <code>docker service</code> 还有以下一些子命令：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service --help
+</span><span class='line'>
+</span><span class='line'>Usage:    docker service COMMAND
+</span><span class='line'>
+</span><span class='line'>Manage Docker services
+</span><span class='line'>
+</span><span class='line'>Options:
+</span><span class='line'>      --help   Print usage
+</span><span class='line'>
+</span><span class='line'>Commands:
+</span><span class='line'>  create      Create a new service
+</span><span class='line'>  inspect     Inspect a service
+</span><span class='line'>  tasks       List the tasks of a service
+</span><span class='line'>  ls          List services
+</span><span class='line'>  rm          Remove a service
+</span><span class='line'>  scale       Scale one or multiple services
+</span><span class='line'>  update      Update a service
+</span><span class='line'>
+</span><span class='line'>Run 'docker service COMMAND --help' for more information on a command.</span></code></pre></td></tr></table></div></figure>
+
+
+<p>比如我们可以用 <code>docker service inspect</code> 来获得 <code>nginx</code> 服务的详情信息：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service inspect nginx
+</span><span class='line'>[
+</span><span class='line'>    {
+</span><span class='line'>        "ID": "78cmmh8ef4qcwmjjzgn3k45ch",
+</span><span class='line'>        "Version": {
+</span><span class='line'>            "Index": 32
+</span><span class='line'>        },
+</span><span class='line'>        "CreatedAt": "2016-06-21T08:31:21.427244594Z",
+</span><span class='line'>        "UpdatedAt": "2016-06-21T08:33:50.75625288Z",
+</span><span class='line'>        "Spec": {
+</span><span class='line'>            "Name": "nginx",
+</span><span class='line'>            "TaskTemplate": {
+</span><span class='line'>                "ContainerSpec": {
+</span><span class='line'>                    "Image": "nginx"
+</span><span class='line'>                },
+</span><span class='line'>                "Resources": {
+</span><span class='line'>                    "Limits": {},
+</span><span class='line'>                    "Reservations": {}
+</span><span class='line'>                },
+</span><span class='line'>                "RestartPolicy": {
+</span><span class='line'>                    "Condition": "any",
+</span><span class='line'>                    "MaxAttempts": 0
+</span><span class='line'>                },
+</span><span class='line'>                "Placement": {}
+</span><span class='line'>            },
+</span><span class='line'>            "Mode": {
+</span><span class='line'>                "Replicated": {
+</span><span class='line'>                    "Replicas": 5
+</span><span class='line'>                }
+</span><span class='line'>            },
+</span><span class='line'>            "UpdateConfig": {},
+</span><span class='line'>            "Networks": [
+</span><span class='line'>                {
+</span><span class='line'>                    "Target": "8kiv8muduf60f66rs99ufo25f"
+</span><span class='line'>                }
+</span><span class='line'>            ],
+</span><span class='line'>            "EndpointSpec": {
+</span><span class='line'>                "Mode": "vip",
+</span><span class='line'>                "Ports": [
+</span><span class='line'>                    {
+</span><span class='line'>                        "Protocol": "tcp",
+</span><span class='line'>                        "TargetPort": 80,
+</span><span class='line'>                        "PublishedPort": 80
+</span><span class='line'>                    }
+</span><span class='line'>                ]
+</span><span class='line'>            }
+</span><span class='line'>        },
+</span><span class='line'>        "Endpoint": {
+</span><span class='line'>            "Spec": {},
+</span><span class='line'>            "Ports": [
+</span><span class='line'>                {
+</span><span class='line'>                    "Protocol": "tcp",
+</span><span class='line'>                    "TargetPort": 80,
+</span><span class='line'>                    "PublishedPort": 80
+</span><span class='line'>                }
+</span><span class='line'>            ],
+</span><span class='line'>            "VirtualIPs": [
+</span><span class='line'>                {
+</span><span class='line'>                    "NetworkID": "e9et32s47olva4e0uisamdqao",
+</span><span class='line'>                    "Addr": "10.255.0.6/16"
+</span><span class='line'>                },
+</span><span class='line'>                {
+</span><span class='line'>                    "NetworkID": "8kiv8muduf60f66rs99ufo25f",
+</span><span class='line'>                    "Addr": "10.0.0.2/24"
+</span><span class='line'>                }
+</span><span class='line'>            ]
+</span><span class='line'>        }
+</span><span class='line'>    }
+</span><span class='line'>]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>也可以通过 <code>docker service rm nginx</code> 命令，删除 <code>nginx</code> 服务（现在的版本删除服务前没有警告提示，请小心操作）。</p>
+
+<h2>总结</h2>
+
+<p>上手很简单，Docker swarm可以非常方便的创建类似k8s那样带有副本的服务，确保一定数量的容器运行，保证服务的高可用。</p>
+
+<p>然而，光从官方文档来说，功能似乎又有些简单，从生产环境来说，下面这些方面都还有所欠缺（其实从Swarm v1就有这个问题）：</p>
+
+<ul>
+<li>没有配置文件，不好进行版本化管理，不方便部署</li>
+<li>持久存储的缺失。Docker已经支持Volume Driver，k8s等也有存储卷插件在机制，真正的生产环境没有Volume支持估计是很难想象的。</li>
+<li>是否能确保本身的高可用</li>
+<li>调度策略还处于初级阶段</li>
+</ul>
+
+
+<p>不过，正如Docker让容器技术变得平民化一样，Docker Machine和Swarm，也将在各种基础设施上运行Docker和Docker集群变得更加简单，从这一点上来说，其意义也是很大的。</p>
+
+<p>不过在开源社区和商业竞争的角度来看，Docker Swarm将会走向何方呢？</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Docker 1.12.0将要发布的新功能]]></title>
