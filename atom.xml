@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-06-21T20:41:03+08:00</updated>
+  <updated>2016-06-21T21:39:13+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -317,7 +317,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>从上面的日志我们不能看出，一个任务的生命周期的前半生，大概就是 <code>ASSIGNED</code> -> <code>ACCEPTED</code> -> <code>PREPARING</code> -> <code>STARTING</code> -> <code>RUNNING</code> 。</p>
+<p>从上面的日志我们不难看出，一个任务的生命周期的前半生，大概就是 <code>ASSIGNED</code> -> <code>ACCEPTED</code> -> <code>PREPARING</code> -> <code>STARTING</code> -> <code>RUNNING</code> 。</p>
 
 <p>在 <code>manager1</code>主机上，我们看到这个容器已经删除了， <code>ps</code> 只能看到一个容器：</p>
 
