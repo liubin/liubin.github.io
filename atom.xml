@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-06-21T21:39:13+08:00</updated>
+  <updated>2016-06-27T22:57:32+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -4636,12 +4636,16 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <p>InfluxDB是TSDB中为数不多的进行了用户和角色方面实现的，提供了Cluster Admin、Database Admin和Database User三种角色。</p>
 
-<p>InfluxDB的数据采集系统也支持多种协议和插件：
-- 行文本
-- UDP
-- Graphite
-- CollectD
-- OpenTSDB</p>
+<p>InfluxDB的数据采集系统也支持多种协议和插件：</p>
+
+<ul>
+<li>行文本</li>
+<li>UDP</li>
+<li>Graphite</li>
+<li>CollectD</li>
+<li>OpenTSDB</li>
+</ul>
+
 
 <p>不过InfluxDB每次变动都较大，尤其是在存储和集群方面，追求平平安过日子，不想瞎折腾的可以考虑下。</p>
 
