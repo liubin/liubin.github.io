@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-06-27T22:57:32+08:00</updated>
+  <updated>2016-06-27T23:02:50+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -4783,9 +4783,13 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 </table>
 
 
-<p>Graphite由Orbitz, LLC 的 Chris Davis创立于2006年，它主要有两个功能：
-* 存储数值型时序列数据
-* 根据请求对数据进行可视化（画图）</p>
+<p>Graphite由Orbitz, LLC 的 Chris Davis创立于2006年，它主要有两个功能：</p>
+
+<ul>
+<li>存储数值型时序列数据</li>
+<li>根据请求对数据进行可视化（画图）</li>
+</ul>
+
 
 <p>相应的，它的特点为：</p>
 
