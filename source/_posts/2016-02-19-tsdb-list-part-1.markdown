@@ -54,6 +54,7 @@ InfluxDB的主要特点包括下面这些：
 InfluxDB是TSDB中为数不多的进行了用户和角色方面实现的，提供了Cluster Admin、Database Admin和Database User三种角色。
 
 InfluxDB的数据采集系统也支持多种协议和插件：
+
 - 行文本
 - UDP
 - Graphite
@@ -118,6 +119,7 @@ RRDtool全称为**Round Robin Database Tool**，也就是用于操作RRD的工�
 | 文档 | 详细 |  |
 
 Graphite由Orbitz, LLC 的 Chris Davis创立于2006年，它主要有两个功能：
+
 * 存储数值型时序列数据
 * 根据请求对数据进行可视化（画图）
 
