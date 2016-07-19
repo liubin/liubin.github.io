@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
+<loc>http://liubin.github.io/blog/2016/07/09/06-reading/</loc>
+<lastmod>2016-07-09T23:06:52+08:00</lastmod>
+</url>
+<url>
 <loc>http://liubin.github.io/blog/2016/06/21/try-new-docker-swarm/</loc>
 <lastmod>2016-06-21T20:41:42+08:00</lastmod>
 </url>
@@ -92,11 +96,5 @@
 </url>
 <url>
 <loc>http://liubin.github.io/about/</loc>
-</url>
-<url>
-<loc>http://liubin.github.io/posts/2/</loc>
-</url>
-<url>
-<loc>http://liubin.github.io/posts/3/</loc>
 </url>
 </urlset>
