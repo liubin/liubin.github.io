@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-09-07T19:12:56+08:00</updated>
+  <updated>2016-10-08T18:21:04+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,140 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Golang中一个不错的处理 JSON 的库 go-dproxy]]></title>
+    <link href="http://liubin.github.io/blog/2016/10/08/go-dproxy/"/>
+    <updated>2016-10-08T18:11:13+08:00</updated>
+    <id>http://liubin.github.io/blog/2016/10/08/go-dproxy</id>
+    <content type="html"><![CDATA[<p>Golang 自己就带了 JSON (encoding/json) 处理的库，也有第三方的 <a href="https://github.com/bitly/go-simplejson">simplejson</a> 之类的库，但总是感觉不如Python这样的动态语言方便，在 Python 里，数组和字典的处理都很方便，和 JSON 互转也非常简单。</p>
+
+<p><code>encoding/json</code> 最大的问题是不够灵活，需要预先定义很多的 <code>struct</code> 来进行编解码，这样对于处理结构不定的 JSON 文件非常不方便。</p>
+
+<p>这里介绍一个名为 go-dproxy 的库，非常方便和简单，不需要预先定义 <code>struct</code> ，还可以类似 XPath 那样查找。</p>
+
+<p>下面是一个例子：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>package main
+</span><span class='line'>
+</span><span class='line'>import (
+</span><span class='line'>  "encoding/json"
+</span><span class='line'>  "fmt"
+</span><span class='line'>  "github.com/koron/go-dproxy"
+</span><span class='line'>)
+</span><span class='line'>
+</span><span class='line'>func main() {
+</span><span class='line'>  var v interface{}
+</span><span class='line'>
+</span><span class='line'>  json.Unmarshal([]byte(`{
+</span><span class='line'>      "name": "dproxy",
+</span><span class='line'>  "strings": [ "a", "b", "c" ],
+</span><span class='line'>  "numbers": [ 1,2,3 ],
+</span><span class='line'>  "mixs": ["a", 1, "b"],
+</span><span class='line'>
+</span><span class='line'>  "tags": {
+</span><span class='line'>    "key-1": "value-1",
+</span><span class='line'>    "key-2": 100,
+</span><span class='line'>    "key-3": [4,5,6]
+</span><span class='line'>  }
+</span><span class='line'>}`), &v)
+</span><span class='line'>
+</span><span class='line'>  // s == "dproxy", got a string.
+</span><span class='line'>  s, _ := dproxy.New(v).M("name").String()
+</span><span class='line'>
+</span><span class='line'>  fmt.Printf("1. name is %s\n", s)
+</span><span class='line'>
+</span><span class='line'>  // err: not matched types: expected=int64 actual=string: name
+</span><span class='line'>  _, err := dproxy.New(v).M("name").Int64()
+</span><span class='line'>  fmt.Printf("2. err is %s\n", err)
+</span><span class='line'>
+</span><span class='line'>  // can be chained. n == 3, got a int64
+</span><span class='line'>  n, _ := dproxy.New(v).M("numbers").A(2).Int64()
+</span><span class='line'>  fmt.Printf("3. n is %d\n", n)
+</span><span class='line'>
+</span><span class='line'>  // got value-1
+</span><span class='line'>  s, _ = dproxy.New(v).M("tags").M("key-1").String()
+</span><span class='line'>  fmt.Printf("4. key-1 is %s\n", s)
+</span><span class='line'>
+</span><span class='line'>  // err.Error() == "not found: data.kustom", wrong query can be verified.
+</span><span class='line'>  _, err = dproxy.New(v).M("data").M("kustom").String()
+</span><span class='line'>  fmt.Printf("5. err is %s\n", err)
+</span><span class='line'>
+</span><span class='line'>  // n == 5
+</span><span class='line'>  n, err = dproxy.Pointer(v, "/tags/key-3/1").Int64()
+</span><span class='line'>  fmt.Printf("6. n is %d\n", n)
+</span><span class='line'>
+</span><span class='line'>}
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>或者从 <a href="https://gist.github.com/liubin/5521035cb9dab26e5981549b2cea355a">gist</a> 下载这个文件，执行：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ go get github.com/koron/go-dproxy
+</span><span class='line'>$ go build dproxy-test.go 
+</span><span class='line'>$ ./dproxy-test</span></code></pre></td></tr></table></div></figure>
+
+
+<p></p>
+
+<p>即可。</p>
+
+<p>总之，这个库处理JSON应该算是非常简单，希望对你有所帮助。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[2016年8月读书记录]]></title>
@@ -5891,128 +6025,6 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 <li>成功的人屁都是经验</li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[一家名为久世福的商店]]></title>
-    <link href="http://liubin.github.io/blog/2016/01/22/kuzefuku-shop/"/>
-    <updated>2016-01-22T17:52:49+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/01/22/kuzefuku-shop</id>
-    <content type="html"><![CDATA[<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_logo.png" alt="" /></p>
-
-<p>知道这个商店，也是通过一家日本设计公司的博客。打开的一瞬间，被其怀旧且温暖的风格所吸引。</p>
-
-<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_1.jpg" width="800"></p>
-
-<p>不过如果只是如此，我们只需要看看图片就可以了。久世福商店主页的第一大段文字，讲的是其经商心得（对商业的理解）：</p>
-
-<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_kokoroe.png" alt="" /></p>
-
-<p>翻译为中文如下：</p>
-
-<ul>
-<li>当代随一</li>
-</ul>
-
-
-<p>走遍世界各地，只挑选那些无与伦比的手工制造品</p>
-
-<ul>
-<li>唯一无二</li>
-</ul>
-
-
-<p>制作出此前世间无有，只有久世福商店才能制作的食材</p>
-
-<ul>
-<li>三位一体</li>
-</ul>
-
-
-<p>只挑选价格、味道和品质都最优的商品，进行能满足顾客、生成商（进货商）和社会三方的商业</p>
-
-<p>而其价值观，则更能打动人（以下为部分摘抄）：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>久世福の心意気
-</span><span class='line'>
-</span><span class='line'>東に脂がのった鰯があると聞けば赴き、
-</span><span class='line'>听说东边有肥厚的鰯鱼（貌似就是沙丁鱼），就赶到东边，
-</span><span class='line'>
-</span><span class='line'>西に甘い塩があると聞けば赴き、
-</span><span class='line'>听说西边有甜的盐，就赶到西边，
-</span><span class='line'>
-</span><span class='line'>南に香りの高い焼酎があると聞けば赴き、
-</span><span class='line'>听说南边有香醇的烧酒，就赶到南边，
-</span><span class='line'>
-</span><span class='line'>北に旨い昆布があると聞けば赴き、
-</span><span class='line'>听说北边有美味的海带，就赶到北边，
-</span><span class='line'>
-</span><span class='line'>そうして久世福商店のオリジナル商品たちは生まれました。
-</span><span class='line'>久世福商店自创的商品就是这样诞生的。</span></code></pre></td></tr></table></div></figure>
-
-
-<p>巧的是，最近刚读完一本书，书名是《日本最了不起的公司：永续经营的闪光之魂》。</p>
-
-<p>该书分两大部分，第一部分讨论公司为谁而存在，第二部分介绍了日本最了不起的五家企业。</p>
-
-<p>该书的第一部分，开篇作者即列出了其结论，公司需要负担对五个人的使命与责任：</p>
-
-<ul>
-<li>让员工和员工家人幸福</li>
-<li>使合作伙伴（进货商等）的员工幸福</li>
-<li>使顾客幸福</li>
-<li>使地方社会幸福、繁荣</li>
-<li>自然早就股东的幸福</li>
-</ul>
-
-
-<p>其中有一段寺院主持的话让人印象深刻：“所谓的幸福，一是被爱，二是受到赞美，三是对他人有所共享，四是为人所需要。这其中后三项，必须要借助工作才能享有。”</p>
-
-<p>“人需要通过工作而生存，而自力更生，而公司正式提供这种机会的地方，这就是企业的存在价值和社会使命。”</p>
-
-<p>这也是原书的话，这个久世福商店的“三位一体”是一致的，不谋而合。</p>
-
-<p>第二部分以5家公司为代表进行了介绍。光看书名，你可能觉得里面会有索尼、东芝、NEC之类的公司。</p>
-
-<p>你想错了，这本书介绍的公司是小公司，非常没名，有做甜点的，有做假肢的，还有卖水果的。</p>
-
-<p>这五家企业都有以下几个特点（不是全都有）：</p>
-
-<ul>
-<li>生产和人息息相关的产品</li>
-<li>创造独一无二的东西</li>
-<li>雇佣弱者（残疾人）</li>
-<li>从员工幸福出发</li>
-<li>贡献社会</li>
-<li>将感情融入商品</li>
-<li>……</li>
-</ul>
-
-
-<p>所谓的独一无二的商品，其实不是像iPhone那样生生造出来的需求，而是从很多传统行业发现的新机遇，从普通生活中挖掘出来的新需求而已。本着让他人幸福、服务社会的宗旨去做，是不是更容易创造出唯一的商品呢？</p>
-
-<p>虽然我觉得百年企业从文化或者怀旧的角度上来说意义更大一点，但是日本这么多百年企业，虽然跟其子承父业的文化关系很大，但其经营理念绝对是值得学习的。</p>
-
-<p>以史为镜，以彼为镜。反观我们现在企业的经营现状，欺骗客户、股东，压榨员工，破坏环境，恶意竞争，是不是有很多的东西需要反思一下？</p>
-
-<p><img src="http://liubin.github.io/images/2016/01/kuzefuku-shop/kuzefuku_2.jpg" width="800"></p>
 ]]></content>
   </entry>
   
