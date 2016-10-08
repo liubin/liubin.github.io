@@ -11,11 +11,11 @@ Golang 自己就带了 JSON (encoding/json) 处理的库，也有第三方的 [s
 
 `encoding/json` 最大的问题是不够灵活，需要预先定义很多的 `struct` 来进行编解码，这样对于处理结构不定的 JSON 文件非常不方便。
 
-这里介绍一个名为 go-dproxy 的库，非常方便和简单，不需要预先定义 `struct` ，还可以类似 XPath 那样查找。
+这里介绍一个名为 [go-dproxy](https://github.com/koron/go-dproxy) 的库，非常方便和简单，不需要预先定义 `struct` ，还可以类似 XPath 那样查找。
 
 下面是一个例子：
 
-```golang
+```go
 
 package main
 
