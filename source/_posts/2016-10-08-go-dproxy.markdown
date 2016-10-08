@@ -1,0 +1,86 @@
+---
+layout: post
+title: "Golang中一个不错的处理 JSON 的库 go-dproxy"
+date: 2016-10-08 18:11:13 +0800
+comments: true
+categories: 
+---
+
+
+Golang 自己就带了 JSON (encoding/json) 处理的库，也有第三方的 [simplejson](https://github.com/bitly/go-simplejson) 之类的库，但总是感觉不如Python这样的动态语言方便，在 Python 里，数组和字典的处理都很方便，和 JSON 互转也非常简单。
+
+`encoding/json` 最大的问题是不够灵活，需要预先定义很多的 `struct` 来进行编解码，这样对于处理结构不定的 JSON 文件非常不方便。
+
+这里介绍一个名为 go-dproxy 的库，非常方便和简单，不需要预先定义 `struct` ，还可以类似 XPath 那样查找。
+
+下面是一个例子：
+
+```golang
+
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/koron/go-dproxy"
+)
+
+func main() {
+	var v interface{}
+
+	json.Unmarshal([]byte(`{
+		"name": "dproxy",
+  "strings": [ "a", "b", "c" ],
+  "numbers": [ 1,2,3 ],
+  "mixs": ["a", 1, "b"],
+
+  "tags": {
+    "key-1": "value-1",
+    "key-2": 100,
+    "key-3": [4,5,6]
+  }
+}`), &v)
+
+	// s == "dproxy", got a string.
+	s, _ := dproxy.New(v).M("name").String()
+
+	fmt.Printf("1. name is %s\n", s)
+
+	// err: not matched types: expected=int64 actual=string: name
+	_, err := dproxy.New(v).M("name").Int64()
+	fmt.Printf("2. err is %s\n", err)
+
+	// can be chained. n == 3, got a int64
+	n, _ := dproxy.New(v).M("numbers").A(2).Int64()
+	fmt.Printf("3. n is %d\n", n)
+
+	// got value-1
+	s, _ = dproxy.New(v).M("tags").M("key-1").String()
+	fmt.Printf("4. key-1 is %s\n", s)
+
+	// err.Error() == "not found: data.kustom", wrong query can be verified.
+	_, err = dproxy.New(v).M("data").M("kustom").String()
+	fmt.Printf("5. err is %s\n", err)
+
+	// n == 5
+	n, err = dproxy.Pointer(v, "/tags/key-3/1").Int64()
+	fmt.Printf("6. n is %d\n", n)
+
+}
+
+```
+
+或者从 [gist](https://gist.github.com/liubin/5521035cb9dab26e5981549b2cea355a) 下载这个文件，执行：
+
+```
+$ go get github.com/koron/go-dproxy
+$ go build dproxy-test.go 
+$ ./dproxy-test
+``` 
+
+即可。
+
+
+总之，这个库处理JSON应该算是非常简单，希望对你有所帮助。
+
+
