@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.github.io/atom.xml" rel="self"/>
   <link href="http://liubin.github.io/"/>
-  <updated>2016-10-08T18:21:04+08:00</updated>
+  <updated>2016-10-08T18:27:27+08:00</updated>
   <id>http://liubin.github.io/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -22,11 +22,11 @@
 
 <p><code>encoding/json</code> 最大的问题是不够灵活，需要预先定义很多的 <code>struct</code> 来进行编解码，这样对于处理结构不定的 JSON 文件非常不方便。</p>
 
-<p>这里介绍一个名为 go-dproxy 的库，非常方便和简单，不需要预先定义 <code>struct</code> ，还可以类似 XPath 那样查找。</p>
+<p>这里介绍一个名为 <a href="https://github.com/koron/go-dproxy">go-dproxy</a> 的库，非常方便和简单，不需要预先定义 <code>struct</code> ，还可以类似 XPath 那样查找。</p>
 
 <p>下面是一个例子：</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
@@ -76,67 +76,68 @@
 <span class='line-number'>48</span>
 <span class='line-number'>49</span>
 <span class='line-number'>50</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>package main
+</pre></td><td class='code'><pre><code class='go'><span class='line'><span class="kn">package</span> <span class="nx">main</span>
 </span><span class='line'>
-</span><span class='line'>import (
-</span><span class='line'>  "encoding/json"
-</span><span class='line'>  "fmt"
-</span><span class='line'>  "github.com/koron/go-dproxy"
-</span><span class='line'>)
+</span><span class='line'><span class="kn">import</span> <span class="p">(</span>
+</span><span class='line'>  <span class="s">&quot;encoding/json&quot;</span>
+</span><span class='line'>  <span class="s">&quot;fmt&quot;</span>
+</span><span class='line'>  <span class="s">&quot;github.com/koron/go-dproxy&quot;</span>
+</span><span class='line'><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>func main() {
-</span><span class='line'>  var v interface{}
+</span><span class='line'><span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">v</span> <span class="kd">interface</span><span class="p">{}</span>
 </span><span class='line'>
-</span><span class='line'>  json.Unmarshal([]byte(`{
-</span><span class='line'>      "name": "dproxy",
-</span><span class='line'>  "strings": [ "a", "b", "c" ],
-</span><span class='line'>  "numbers": [ 1,2,3 ],
-</span><span class='line'>  "mixs": ["a", 1, "b"],
+</span><span class='line'>  <span class="nx">json</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{</span>
+</span><span class='line'><span class="s">      &quot;name&quot;: &quot;dproxy&quot;,</span>
+</span><span class='line'><span class="s">  &quot;strings&quot;: [ &quot;a&quot;, &quot;b&quot;, &quot;c&quot; ],</span>
+</span><span class='line'><span class="s">  &quot;numbers&quot;: [ 1,2,3 ],</span>
+</span><span class='line'><span class="s">  &quot;mixs&quot;: [&quot;a&quot;, 1, &quot;b&quot;],</span>
 </span><span class='line'>
-</span><span class='line'>  "tags": {
-</span><span class='line'>    "key-1": "value-1",
-</span><span class='line'>    "key-2": 100,
-</span><span class='line'>    "key-3": [4,5,6]
-</span><span class='line'>  }
-</span><span class='line'>}`), &v)
+</span><span class='line'><span class="s">  &quot;tags&quot;: {</span>
+</span><span class='line'><span class="s">    &quot;key-1&quot;: &quot;value-1&quot;,</span>
+</span><span class='line'><span class="s">    &quot;key-2&quot;: 100,</span>
+</span><span class='line'><span class="s">    &quot;key-3&quot;: [4,5,6]</span>
+</span><span class='line'><span class="s">  }</span>
+</span><span class='line'><span class="s">}`</span><span class="p">),</span> <span class="o">&amp;</span><span class="nx">v</span><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>  // s == "dproxy", got a string.
-</span><span class='line'>  s, _ := dproxy.New(v).M("name").String()
+</span><span class='line'>  <span class="c1">// s == &quot;dproxy&quot;, got a string.</span>
+</span><span class='line'>  <span class="nx">s</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">).</span><span class="nx">String</span><span class="p">()</span>
 </span><span class='line'>
-</span><span class='line'>  fmt.Printf("1. name is %s\n", s)
+</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;1. name is %s\n&quot;</span><span class="p">,</span> <span class="nx">s</span><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>  // err: not matched types: expected=int64 actual=string: name
-</span><span class='line'>  _, err := dproxy.New(v).M("name").Int64()
-</span><span class='line'>  fmt.Printf("2. err is %s\n", err)
+</span><span class='line'>  <span class="c1">// err: not matched types: expected=int64 actual=string: name</span>
+</span><span class='line'>  <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">).</span><span class="nx">Int64</span><span class="p">()</span>
+</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;2. err is %s\n&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>  // can be chained. n == 3, got a int64
-</span><span class='line'>  n, _ := dproxy.New(v).M("numbers").A(2).Int64()
-</span><span class='line'>  fmt.Printf("3. n is %d\n", n)
+</span><span class='line'>  <span class="c1">// can be chained. n == 3, got a int64</span>
+</span><span class='line'>  <span class="nx">n</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;numbers&quot;</span><span class="p">).</span><span class="nx">A</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nx">Int64</span><span class="p">()</span>
+</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;3. n is %d\n&quot;</span><span class="p">,</span> <span class="nx">n</span><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>  // got value-1
-</span><span class='line'>  s, _ = dproxy.New(v).M("tags").M("key-1").String()
-</span><span class='line'>  fmt.Printf("4. key-1 is %s\n", s)
+</span><span class='line'>  <span class="c1">// got value-1</span>
+</span><span class='line'>  <span class="nx">s</span><span class="p">,</span> <span class="nx">_</span> <span class="p">=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;tags&quot;</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;key-1&quot;</span><span class="p">).</span><span class="nx">String</span><span class="p">()</span>
+</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;4. key-1 is %s\n&quot;</span><span class="p">,</span> <span class="nx">s</span><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>  // err.Error() == "not found: data.kustom", wrong query can be verified.
-</span><span class='line'>  _, err = dproxy.New(v).M("data").M("kustom").String()
-</span><span class='line'>  fmt.Printf("5. err is %s\n", err)
+</span><span class='line'>  <span class="c1">// err.Error() == &quot;not found: data.kustom&quot;, wrong query can be verified.</span>
+</span><span class='line'>  <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;data&quot;</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;kustom&quot;</span><span class="p">).</span><span class="nx">String</span><span class="p">()</span>
+</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;5. err is %s\n&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>  // n == 5
-</span><span class='line'>  n, err = dproxy.Pointer(v, "/tags/key-3/1").Int64()
-</span><span class='line'>  fmt.Printf("6. n is %d\n", n)
+</span><span class='line'>  <span class="c1">// n == 5</span>
+</span><span class='line'>  <span class="nx">n</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">(</span><span class="nx">v</span><span class="p">,</span> <span class="s">&quot;/tags/key-3/1&quot;</span><span class="p">).</span><span class="nx">Int64</span><span class="p">()</span>
+</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;6. n is %d\n&quot;</span><span class="p">,</span> <span class="nx">n</span><span class="p">)</span>
 </span><span class='line'>
-</span><span class='line'>}
+</span><span class='line'><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
 <p>或者从 <a href="https://gist.github.com/liubin/5521035cb9dab26e5981549b2cea355a">gist</a> 下载这个文件，执行：</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ go get github.com/koron/go-dproxy
-</span><span class='line'>$ go build dproxy-test.go 
-</span><span class='line'>$ ./dproxy-test</span></code></pre></td></tr></table></div></figure>
+</pre></td><td class='code'><pre><code class='go'><span class='line'><span class="err">$</span> <span class="k">go</span> <span class="nx">get</span> <span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="o">/</span><span class="nx">koron</span><span class="o">/</span><span class="k">go</span><span class="o">-</span><span class="nx">dproxy</span>
+</span><span class='line'><span class="err">$</span> <span class="k">go</span> <span class="nx">build</span> <span class="nx">dproxy</span><span class="o">-</span><span class="nx">test</span><span class="p">.</span><span class="k">go</span>
+</span><span class='line'><span class="err">$</span> <span class="p">.</span><span class="o">/</span><span class="nx">dproxy</span><span class="o">-</span><span class="nx">test</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p></p>
