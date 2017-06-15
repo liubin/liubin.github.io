@@ -1,0 +1,265 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>工具的品格 - 自言自语</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="工具的品格 开发人员除了开发工具（编辑器、中间件），还需要各种必备的任务管理（或者进度管理、项目管理，不纠结其名字）工具，你可能用的是免费的 TODO list、Trello，或者诸如 JIRA 等商业软件，亦或是自己编写的简单 Web 管理工具，甚至记事本、OneNote等。也不管我们叫他 &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.github.io/blog/2017/06/15/task-toolss-element">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="自言自语"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">自言自语</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.github.io/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">工具的品格</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>开发人员除了开发工具（编辑器、中间件），还需要各种必备的任务管理（或者进度管理、项目管理，不纠结其名字）工具，你可能用的是免费的 TODO list、Trello，或者诸如 JIRA 等商业软件，亦或是自己编写的简单 Web 管理工具，甚至记事本、OneNote等。也不管我们叫他 GTD 还是个人助理，我们依赖这些软件的原因之一无非是好脑子不如烂笔头，记下来就不会“忘”。</p>
+
+<p>前面的“忘”字为什么加个双引号呢？因为记下来你看不到，还是会忘，因为这个工具可能并没有告诉现在你应该去做什么，这个任务，可能一直沉睡于箱子的底部。</p>
+
+<p>一个好的任务管理工具最，我觉得基本应该包括以下几点必须的品格：</p>
+
+<h2>任务状态</h2>
+
+<p>是在进行中，还是准备中；是否处于一个流水线上，处于哪个阶段；是否顺利，有什么 Block 的问题等等。有了任务状态，才能决定采取何种措施。我们对应用程序的性能、服务器的使用情况、中间件的健康程度都有监控，自己的任务也应该有类似的监控机制：你的任务是绿？黄？还是红？（Elastic Search用户都秒懂的）</p>
+
+<h2>任务优先级</h2>
+
+<p>对大多数软件开发人员来说，并行工作司空见惯，反过来一个月只做一件事的人估计只能是宝洁或者厨子了。一个人很多时候可能担任多个项目、多个产品、多个组件的开发工作，这时候任务列表可能堆积如山，如果没有为这些工作设置优先级并进行可视化，你看到这么多任务如何决定该先干哪个后干哪个？有新的任务进来，是不是该停下手头的工作开始新任务？还是让新任务靠边站。</p>
+
+<p>为任务排序，是有条不紊高效工作的第一步。</p>
+
+<h2>依赖关系</h2>
+
+<p>大多时候你不是一个人在战斗，你可能会和前端、后端、日志服务、API服务、运维或者产品经理一起在完成一个功能，你即依赖别人，也被别人依赖。DevOps 主张消除浪费，每个等待都是浪费，你写到一半的代码就像保存在仓库中的玉米，天气潮湿可能发霉、生虫。</p>
+
+<p>识别依赖关系、解决绊脚石，能保证任务顺利完成。</p>
+
+<h2>工作流支持</h2>
+
+<p>DevOps 要做的是一个统一工作流平台，就像流水线那样，零件从一个部分传到下一个部分，如果流水线的履带宽度不一样、速度不一样，能衔接的稳？</p>
+
+<p>任务管理工具也是，和其他工具的无缝集成是一个大大的必备项。比如是否支持开发中其他工具，比如构建、发布或测试等的插件支持。</p>
+
+<p>这很重要，也是 DevOps 或者流水线的关键，我们的每项开发活动的产出物，是否可以通畅的缴费给流水线的下一个动作？</p>
+
+<p>考察这一点的标准也很简单，你是否在不同的工具之间拷贝某个提交号、版本号、或者某些说明？</p>
+
+<h2>领导角度</h2>
+
+<p>个人需要方便的任务管理工具，领导更需要。成员的任务就是组织的任务，领导是最任务的终责任者，最终责任者更需要对任务状态、进度等了如指掌，这是第一。</p>
+
+<p>第二，你需要掌握组员的状态。而任务可以在很大的程度上体现组员的现在状态：是否工作压力很大，是否遇到了麻烦，是否可以抽出来去做别的救火队员。</p>
+
+<p>从管理角度上来说，多维度的报表也很重要，项目进度、花费的成本、产品的质量，都可以从任务管理工具得到直观的结果。</p>
+
+<h2>铁证如上</h2>
+
+<p>不管你要扯皮的对象是谁：同事、领导、客户、其他部门，你都需要拿出证据去说服别人、怼（dǔi）到别人让别人无话可说。</p>
+
+<p>上面列出来的只是自己的观点，有些人可能不觉得，甚至很多人都不在乎，不过大叔实在是难以忍受不抱怨工具的开发 ：-）</p>
+
+<p>你在用什么任务管理工具，哪里方便哪里不方便？分享请留言。</p>
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2017-06-15 16:46:01 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.github.io/blog/2017/06/15/task-toolss-element/"
+	 data-via="OurColorfulDays"
+	 data-counturl="http://liubin.github.io/blog/2017/06/15/task-toolss-element/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2017 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
