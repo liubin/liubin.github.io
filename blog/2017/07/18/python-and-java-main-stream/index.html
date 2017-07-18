@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>Python/Java 才是王道，PHP 还得靠边站 - 自言自语</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="Python/Java 才是王道，PHP 还得靠边站 3 月份 Erik Bernhardsson 发表了一篇文章 The eigenvector of &ldquo;Why we moved from language X to language Y” ，作者根据 Google 里面搜索 &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.github.io/blog/2017/07/18/python-and-java-main-stream">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="自言自语"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">自言自语</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.github.io/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">Python/Java 才是王道，PHP 还得靠边站</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>3 月份 Erik Bernhardsson 发表了一篇文章 <a href="https://erikbern.com/2017/03/15/the-eigenvector-of-why-we-moved-from-language-x-to-language-y.html">The eigenvector of &ldquo;Why we moved from language X to language Y”</a> ，作者根据 Google 里面搜索 <code>move from &lt;language 1&gt; to &lt;language 2&gt;</code> 或 <code>switch to &lt;language 2&gt; from &lt;language 1&gt;</code> 等的结果数量，做了一个编程语言之间的转移矩阵（Stochastic matrix），采用马可夫链的平稳分布，得到了一些关于未来什么语言最流行的结论，文中也多次提到，那就是 go 语言，很多人搜索了从 xx 到 go ，go 语言才是未来的语言。此外，作者认为 Perl 已死，Java 正当年，Rust 也很有希望。</p>
+
+<p>当然，在 Google 搜一下从 xx 到 yy ，并不代表真的开发者就要移情别恋，只有真的写了 yy 的代码，新的恋情才算开始。</p>
+
+<p>所以，上周 Waren Long 基于 GitHub 数据的统计结果，发表了一篇文章 <a href="https://blog.sourced.tech/post/language_migrations/">Analyzing GitHub, how developers change programming languages over time</a> ，该文章统计了包含GitHub 中 450 万用户，以及10 TB 的源代码，分析了 393 种语言的变化趋势，最后得出的结论就是：Python 和 Java 才是王道。</p>
+
+<p>这是 Waren Long 总结出来的流行语言的 Top 10 ：</p>
+
+<p><img src="/images/2017/07/language_top_10.png" alt="" /></p>
+
+<p>从上图可以看到 Python (16.1 %) 才是最流行的编程语言，紧随其后的是 Java (15.3 %) 。而且前五名中，Python 代码量也比其他语言所占的比例要低（只有 11.3 %，我们可以理解为投入产出比、效益率，投入越少，产出越大，当然语言就比较流行），PHP 代码量最大，达到了 24.4 %，但是其流行程度只有 Python 的一半而已。</p>
+
+<p>在这个排名中，go 排名第 9 ，但是相对于其 0.9 % 的代码量占比，这个位置还是很牛的了，效益率也是最高的。考虑到这个数据的时效性，相信 go 语言肯定还会进一步扩大受众。</p>
+
+<p>下图是各语言之间的转换矩阵，左面是 From ，右面是 To ：</p>
+
+<p><img src="/images/2017/07/sum_matrix_22lang_eig.svg" alt="" /></p>
+
+<p>在排名前 5 的语言中（Java、 C、 C++、 PHP、 Ruby，除去 Python ），有平均近 22% 的概率，会转移到 Python，不过大叔不理解的是为啥 Ruby 还会转移到 Python ？</p>
+
+<p>而作为统计学领域中的 Fortran (36 %)、 Matlab (33 %) 和 R (40 %) ，转移到 Python 的概率都是非常高的，可见，在数学计算、机器学习等领域，Python 的地位似乎越来越稳固了。</p>
+
+<p>从上面的转移矩阵，我们还可以发现一些有意思的规律，比如：</p>
+
+<ul>
+<li>Pascal 程序员最喜欢学习 Java</li>
+<li>Visual Basic 程序员学习 C# 顺理成章，C# 程序员爱转 Python</li>
+<li>Scala/Clojure 程序员最喜欢 Java，但是反过来不是，Java 程序员爱转 Python</li>
+<li>Object C 和 Swift 互转说明这个统计结果还是挺靠谱的</li>
+<li>转 go 最多的竟然不是 PHP 这样的脚本语言，而是 Rust，难道是 Rust 的学习曲线太陡了？</li>
+</ul>
+
+
+<p>下面的图是 16 年来各语言的平稳分布图：</p>
+
+<p><img src="/images/2017/07/eigenvect_stack_22lang.png" alt="" /></p>
+
+<p>不过大叔不知道这16年的数据是怎么来的，如果我没记错的话，那时候应该还没有 GitHub 。</p>
+
+<p>前两名 Python 和 Java 的趋势基本一样，都是稳中有升的形状。这两个语言已经取代了 C 语言的霸主地位，如果把这 3 种语言合起来看，则它们的总量几乎没什么变化。</p>
+
+<p>Perl 基本死了，PHP 的扩张趋势也没那么明显，Ruby 粗了几年又细了，应该是和 Python 份额的扩大和 go 等的日渐流行有关。</p>
+
+<p>如果让我总结一下，那么 Java、Python 和 go 值得关注、持续学习。</p>
+
+<hr>
+
+
+<p>这就是 Waren Long 原文里的几个重要结论，如果你对原始数据和算法感兴趣，可以直接 <a href="https://blog.sourced.tech/post/language_migrations/">阅读原文</a>  。</p>
+
+<p><em>注意： 由于 JavaScript 的特殊性（前后通吃、受众广等，不适用于统计模型），Waren Long 的文章中并没有将 JavaScript 作为评价对象。</em></p>
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2017-07-18 15:01:02 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.github.io/blog/2017/07/18/python-and-java-main-stream/"
+	 data-via="OurColorfulDays"
+	 data-counturl="http://liubin.github.io/blog/2017/07/18/python-and-java-main-stream/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2017 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
