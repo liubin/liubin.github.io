@@ -44,7 +44,7 @@ func Until(f func(), period time.Duration, stopCh <-chan struct{})
 K8s 的很多地方都用到了这些函数，比如这里在 [Container manager 启动的时候](https://github.com/kubernetes/kubernetes/blob/release-1.10/pkg/kubelet/dockershim/cm/container_manager_linux.go#L70-L81)，就启动了一个无限循环来进行实际的工作（ `m.doWork` 函数）
 
 
-```golang
+```go
 func (m *containerManager) Start() error {
 	// TODO: check if the required cgroups are mounted.
 	if len(m.cgroupsName) != 0 {
