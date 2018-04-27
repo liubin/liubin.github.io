@@ -1,0 +1,6 @@
+_deploy
+.pygments-cache
+.sass-cache
+source/stylesheets/screen.css
+Gemfile.lock
+public/
