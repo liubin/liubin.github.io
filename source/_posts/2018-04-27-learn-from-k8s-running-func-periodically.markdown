@@ -29,13 +29,13 @@ K8s 就实现了很多这样的方法，比如 "k8s.io/apimachinery/pkg/util/wai
 
 首先，最简单的每隔 10 秒执行一个函数，永不停止，那么可以用[这个方法](https://github.com/kubernetes/kubernetes/blob/release-1.10/staging/src/k8s.io/apimachinery/pkg/util/wait/wait.go#L78)：
 
-```
+```go
 func Forever(f func(), period time.Duration)
 ```
 
 如果你想在上面的基础上，在需要的时候停止循环，那么可以使用[下面的方法](https://github.com/kubernetes/kubernetes/blob/release-1.10/staging/src/k8s.io/apimachinery/pkg/util/wait/wait.go#L87)，增加一个用于停止的 `chan` 即可。
 
-```
+```go
 func Until(f func(), period time.Duration, stopCh <-chan struct{})
 ```
 
@@ -62,7 +62,7 @@ func (m *containerManager) Start() error {
 
 上面只是简单的定期运行任务的例子，有时候，我们还会需要在运行前去检查先决条件，在条件满足的时候才去运行某一任务，这时候可以使用 [Poll 方法](https://github.com/kubernetes/kubernetes/blob/release-1.10/staging/src/k8s.io/apimachinery/pkg/util/wait/wait.go#L220)。
 
-```
+```go
 func Poll(interval, timeout time.Duration, condition ConditionFunc)
 ```
 
