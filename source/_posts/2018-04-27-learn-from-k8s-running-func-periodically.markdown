@@ -14,7 +14,7 @@ categories:
 
 首先简单介绍下 K8s 的简单架构，主要包括以下几个组件（大体流程）：
 
-* API servier
+* API server
 * Scheduler
 * Controller manager
 * Kubelet
