@@ -1,0 +1,72 @@
+---
+layout: post
+title: "Google 发布 gVisor - 容器沙箱运行时（sandboxed container runtime）"
+date: 2018-05-02 07:53:41 +0800
+comments: true
+categories: 
+---
+
+这是来自官方博客 [Open-sourcing gVisor, a sandboxed container runtime](https://cloudplatform.googleblog.com/2018/05/Open-sourcing-gVisor-a-sandboxed-container-runtime.html) 的摘要及翻译。
+
+自 Docker 的普及开始，我们开发、打包和部署应用的方式发生了根本性的变化，但是由于容器的隔离技术所限，并不是所有的人都推崇使用容器技术，因为其共享内核机制，系统还存在很大的攻击面，这就会存在恶意应用程序侵入系统的威胁。
+
+为了运行那些不可信以及存在潜在威胁的容器，人们开始更加重视沙箱容器：一种能在宿主机和应用程序之间提供更安全的隔离机制。
+
+Google 发布的 gVisor ，就是这样一种新型的沙箱容器技术，它能为容器提供更安全的隔离，同时比虚拟机（VM）更轻量。 而且，gVisor 还能和 Docker 以及 Kubernetes 集成在一起，使得在生产环境中运行沙箱容器更简单。
+
+## 传统的 Linux 容器并非沙箱
+
+传统 Linux 容器中运行的应用程序与常规（非容器化）应用程序以相同的方式访问系统资源：直接对主机内核进行系统调用。内核以特权模式运行，允许它与必要的硬件交互并将结果返回给应用程序。
+
+![](http://ourcolorfuldays.com/wp-content/uploads/2018/04/traditional-linux-containers-gvisor.png)	
+
+在传统的容器技术中，内核会对应用程序需要访问的资源施加一些限制。这些限制通过使用 Linux 的 cgroups 和命名空间技术来实现，然而并非所有的资源都可以通过这些机制来进行控制。此外，即使使用这些限制，内核仍然面向恶意程序暴露出过多的攻击面。
+
+像 seccomp 这样的技术可以在应用程序和主机内核之间提供更好的隔离，但是它们要求用户创建预定义的系统调用白名单。在实际中，很难事先罗列出应用程序所需要的所有系统调用。如果你需要调用的系统调用存在漏洞，那么这类过滤器也很难发挥作用。
+
+## 已有基于 VM 的容器技术
+
+提高容器隔离性的一种方法是将容器运行在其自己的虚拟机（VM）之内。也就是为每个容器提供自己专用的“机器”，包括内核和虚拟化设备，并与主机完全分离。即使 guest 虚拟机存在漏洞，管理程序（ hypervisor ）仍会隔离主机以及主机上运行的其他应用程序/容器。
+
+![](http://ourcolorfuldays.com/wp-content/uploads/2018/04/vm-based-container-technology-gvisor-300x272.png)
+
+在不同的 VM 中运行容器提供了很好的隔离性、兼容性和性能，但也可能需要更大的资源占用。
+
+Kata containers 是一个开源项目，它使用精简的虚拟机来尽量减少资源的占用，并最大限度地提高隔离容器的性能。与 gVisor 一样，Kata 也包含与 Docker 和 Kubernetes 兼容的 OCI （Open Container Initiative ）运行时。
+
+## 基于 gVisor 的沙箱容器（ Sandboxed containers ）
+
+gVisor 比 VM 更轻量，同时具备相同的隔离级别。 gVisor 的核心是一个以普通非特权进程方式运行的内核，它支持大多数 Linux 系统调用。这个内核是用 Go 编写的，选择 Go 语言是由于其较小的内存占用以及类型安全等特性。和虚拟机一样，在 gVisor 沙箱中运行的应用程序也可以拥有独立于主机和其他沙箱、自己独自的内核和一组虚拟设备。
+
+![](http://ourcolorfuldays.com/wp-content/uploads/2018/04/gvisor-sandbox-containers-300x184.png)
+
+gVisor 通过拦截应用程序的系统调用，并充当 guest 内核，提供了非常强的隔离性，而所有的这些都运行在用户空间。和虚拟机在创建时需要一定的资源不同，gVisor 可以像普通 Linux 进程一样，随时调整自己的资源使用。可以将 gVisor 看做是一个完全虚拟化的操作系统，但是与完整的虚拟机相比，它具有灵活的资源占用和更低的固定成本。
+
+但是，这种灵活性的代价是单个系统调用的消耗、应用程序的兼容性（和系统调用相关）以及其他问题。
+
+“安全工作负载（workloads）是业界的首要任务，我们很高兴看到像 gVisor 这样的创新，并期待在规范方面进行合作，并对相关技术组件进行改进，从而为生态系统带来更大的安全性。”
+
+- Samuel Ortiz，Kata 技术指导委员会成员，英特尔公司首席工程师
+
+“Hyper 非常高兴看到 gVisor 这样全新的提高容器隔离性的方法。行业需要一个强大的安全容器技术生态系统，我们期待通过与 gVisor 的合作让安全容器成为主流。“
+
+- Xu Wang，Kata 技术指导委员会成员，Hyper.sh CTO
+
+## 和 Docker、Kubernetes 集成
+
+gVisor 运行时可以通过 `runsc`（run Sandboxed Container） 和 Docker 以及 Kubernetes 进行无缝集成。
+
+runsc 运行时与 Docker 的默认容器运行时 runc 可以互换。runsc 的安装很简单，一旦安装完成，只需要在运行 docker 的时候增加一个参数就可以使用沙箱容器：
+
+```
+$ docker run --runtime=runsc hello-world
+$ docker run --runtime=runsc -p 3306:3306 mysql
+```
+
+在 Kubernetes 中，大多数资源隔离都以 Pod 为单位，因此 Pod 也自然成为了 gVisor 沙箱的边界（boundary）。Kubernetes 社区目前正在致力于实现沙箱 Pod API，但是今天 gVisor 沙箱已经可以在实验版中（experimental support）可用。
+
+runsc 运行时可以通过 cri-o 或 cri-containerd 等项目来在 Kubernetes 群集中使用沙箱技术，这些项目会将 Kubelet 中的消息转换为 OCI 运行时命令。
+
+gVisor 实现了大部分 Linux 系统 API （ 200 个系统调用，并且还在增加中），但并不是所有的系统调用。目前有一些系统调用和参数还没有支持，以及 /proc 和 /sys 文件系统的一些部分内容。因此，并不是说所有的应用程序都可以在 gVisor 中正常运行，但大部分应用程序应该都可以正常运行，包括 Node.js、Java 8、MySQL、Jenkins、Apache、Redis 和 MongoDB 等等。
+
+gVisor 已经开源，可以在 [https://github.com/google/gvisor](https://github.com/google/gvisor) 查看到其内容，相信这里将会是大家了解 gVisor 最好的开始。
