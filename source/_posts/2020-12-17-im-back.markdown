@@ -1,0 +1,60 @@
+---
+layout: post
+title: "I'm back"
+date: 2020-12-17 12:32:17 +0800
+comments: true
+categories: 
+---
+
+在 2020 年底，终于又想起了还有这么个页面，上次更新还是在 2018 年，2019 一年空白，不知道 2021 能记录多少。
+
+主页用的是 Octopress ，但是最近换了台机器，重新 clone blog 的 repo，结果并不能像原来那样直接就发布了。关键问题在 `_deploy` 文件夹，这里面是 repo 的 master 分支，所以必须要和 repo 同步才行。
+
+## Clone 代码并安装需要的软件
+
+```bash
+$ git clone git@github.com:liubin/liubin.github.io.git blog
+$ cd blog/
+$ git co source
+
+$ sudo gem install octopress
+$ bundle
+
+```
+
+## 初始化 `_deploy` 目录
+
+
+```bash
+$ git clone git@github.com:liubin/liubin.github.io.git _deploy 
+```
+
+## 创建新页面
+
+创建新页面并编辑：
+
+```bash
+$ bundle exec rake new_post["I'm back"]
+```
+
+编辑并预览：
+
+```bash
+$ bundle exec rake preview
+```
+
+发布：
+
+```bash
+$ bundle exec rake generate
+$ bundle exec rake deploy
+```
+
+最后别忘了提交到 `source` 分支：
+
+```bash
+$ git status
+$ git add .
+$ git commit -m "some message"
+```
+
