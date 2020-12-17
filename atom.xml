@@ -2,10 +2,10 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 
   <title><![CDATA[自言自语]]></title>
-  <link href="http://liubin.github.io/atom.xml" rel="self"/>
-  <link href="http://liubin.github.io/"/>
-  <updated>2018-05-04T11:27:42+08:00</updated>
-  <id>http://liubin.github.io/</id>
+  <link href="http://liubin.org/atom.xml" rel="self"/>
+  <link href="http://liubin.org/"/>
+  <updated>2020-12-17T12:28:37+08:00</updated>
+  <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
     
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[世界是 container 的，也是 microservice 的，但最终还是 serverless 的]]></title>
-    <link href="http://liubin.github.io/blog/2018/05/04/the-world-is-full-managed/"/>
+    <link href="http://liubin.org/blog/2018/05/04/the-world-is-full-managed/"/>
     <updated>2018-05-04T07:53:41+08:00</updated>
-    <id>http://liubin.github.io/blog/2018/05/04/the-world-is-full-managed</id>
+    <id>http://liubin.org/blog/2018/05/04/the-world-is-full-managed</id>
     <content type="html"><![CDATA[<p>副标题是这样的： “Hyper，Fargate，以及 Serverless infrastructure”。</p>
 
 <p>世界上有两种基础设施，一种是拿来主义，另一种是自主可控。</p>
@@ -185,9 +185,9 @@
   
   <entry>
     <title type="html"><![CDATA[Google 发布 gVisor - 容器沙箱运行时（sandboxed container runtime）]]></title>
-    <link href="http://liubin.github.io/blog/2018/05/02/gvisor/"/>
+    <link href="http://liubin.org/blog/2018/05/02/gvisor/"/>
     <updated>2018-05-02T07:53:41+08:00</updated>
-    <id>http://liubin.github.io/blog/2018/05/02/gvisor</id>
+    <id>http://liubin.org/blog/2018/05/02/gvisor</id>
     <content type="html"><![CDATA[<p>这是来自官方博客 <a href="https://cloudplatform.googleblog.com/2018/05/Open-sourcing-gVisor-a-sandboxed-container-runtime.html">Open-sourcing gVisor, a sandboxed container runtime</a> 的摘要及翻译。</p>
 
 <p>自 Docker 的普及开始，我们开发、打包和部署应用的方式发生了根本性的变化，但是由于容器的隔离技术所限，并不是所有的人都推崇使用容器技术，因为其共享内核机制，系统还存在很大的攻击面，这就会存在恶意应用程序侵入系统的威胁。</p>
@@ -264,9 +264,9 @@
   
   <entry>
     <title type="html"><![CDATA[向 Kubernetes 学习 - Controller manager 的高可用实现方式]]></title>
-    <link href="http://liubin.github.io/blog/2018/04/28/how-to-build-controller-manager-high-available/"/>
+    <link href="http://liubin.org/blog/2018/04/28/how-to-build-controller-manager-high-available/"/>
     <updated>2018-04-28T19:04:56+08:00</updated>
-    <id>http://liubin.github.io/blog/2018/04/28/how-to-build-controller-manager-high-available</id>
+    <id>http://liubin.org/blog/2018/04/28/how-to-build-controller-manager-high-available</id>
     <content type="html"><![CDATA[<p>这不是一系列入门级别的文章，也不是按部就班而来的，而是我看到哪里，发现有些代码写的精妙的地方，都值得我们学习下，顺手记录下来，一方面是让自己将来可以有迹可循，另外对大家应该也会有所帮助。而且记录本身成本并不是很高。</p>
 
 <p>高可用部署情况下，需要部署多个controller manager （以下简称 cm ），每个 cm 需要 <code>--leader-elect=true</code> 启动参数，即告知 cm 以高可用方式启动，谁要想进行真正的工作，必须先抢到锁，被选举为 leader 才行，而抢不到所得只能待机，在 leader 因为异常终止的时候，由剩余的其余节点再次获得锁。</p>
@@ -804,9 +804,9 @@
   
   <entry>
     <title type="html"><![CDATA[向 Kubernetes 学习 - 如何实现定时轮训]]></title>
-    <link href="http://liubin.github.io/blog/2018/04/27/learn-from-k8s-running-func-periodically/"/>
+    <link href="http://liubin.org/blog/2018/04/27/learn-from-k8s-running-func-periodically/"/>
     <updated>2018-04-27T19:29:04+08:00</updated>
-    <id>http://liubin.github.io/blog/2018/04/27/learn-from-k8s-running-func-periodically</id>
+    <id>http://liubin.org/blog/2018/04/27/learn-from-k8s-running-func-periodically</id>
     <content type="html"><![CDATA[<p>编程中常见的场景包括定时执行任务，很多语言，比如 Java 提供了非常方便易用且功能强大的类库，但是 Golang 中并没有，虽然我们可以通过 <code>time.Ticker</code> 等机制实现，但是不如原生直接支持更简单。</p>
 
 <p>其实参考别人的代码是最好的学习方式了，比如通过阅读 K8s 的源代码，我们可以学习到很多编程技巧。</p>
@@ -897,9 +897,9 @@
   
   <entry>
     <title type="html"><![CDATA[Python/Java 才是王道，PHP 还得靠边站]]></title>
-    <link href="http://liubin.github.io/blog/2017/07/18/python-and-java-main-stream/"/>
+    <link href="http://liubin.org/blog/2017/07/18/python-and-java-main-stream/"/>
     <updated>2017-07-18T15:01:02+08:00</updated>
-    <id>http://liubin.github.io/blog/2017/07/18/python-and-java-main-stream</id>
+    <id>http://liubin.org/blog/2017/07/18/python-and-java-main-stream</id>
     <content type="html"><![CDATA[<p>3 月份 Erik Bernhardsson 发表了一篇文章 <a href="https://erikbern.com/2017/03/15/the-eigenvector-of-why-we-moved-from-language-x-to-language-y.html">The eigenvector of &ldquo;Why we moved from language X to language Y”</a> ，作者根据 Google 里面搜索 <code>move from &lt;language 1&gt; to &lt;language 2&gt;</code> 或 <code>switch to &lt;language 2&gt; from &lt;language 1&gt;</code> 等的结果数量，做了一个编程语言之间的转移矩阵（Stochastic matrix），采用马可夫链的平稳分布，得到了一些关于未来什么语言最流行的结论，文中也多次提到，那就是 go 语言，很多人搜索了从 xx 到 go ，go 语言才是未来的语言。此外，作者认为 Perl 已死，Java 正当年，Rust 也很有希望。</p>
 
 <p>当然，在 Google 搜一下从 xx 到 yy ，并不代表真的开发者就要移情别恋，只有真的写了 yy 的代码，新的恋情才算开始。</p>
@@ -908,7 +908,7 @@
 
 <p>这是 Waren Long 总结出来的流行语言的 Top 10 ：</p>
 
-<p><img src="http://liubin.github.io/images/2017/07/language_top_10.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2017/07/language_top_10.png" alt="" /></p>
 
 <p>从上图可以看到 Python (16.1 %) 才是最流行的编程语言，紧随其后的是 Java (15.3 %) 。而且前五名中，Python 代码量也比其他语言所占的比例要低（只有 11.3 %，我们可以理解为投入产出比、效益率，投入越少，产出越大，当然语言就比较流行），PHP 代码量最大，达到了 24.4 %，但是其流行程度只有 Python 的一半而已。</p>
 
@@ -916,7 +916,7 @@
 
 <p>下图是各语言之间的转换矩阵，左面是 From ，右面是 To ：</p>
 
-<p><img src="http://liubin.github.io/images/2017/07/sum_matrix_22lang_eig.svg" alt="" /></p>
+<p><img src="http://liubin.org/images/2017/07/sum_matrix_22lang_eig.svg" alt="" /></p>
 
 <p>在排名前 5 的语言中（Java、 C、 C++、 PHP、 Ruby，除去 Python ），有平均近 22% 的概率，会转移到 Python，不过大叔不理解的是为啥 Ruby 还会转移到 Python ？</p>
 
@@ -935,7 +935,7 @@
 
 <p>下面的图是 16 年来各语言的平稳分布图：</p>
 
-<p><img src="http://liubin.github.io/images/2017/07/eigenvect_stack_22lang.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2017/07/eigenvect_stack_22lang.png" alt="" /></p>
 
 <p>不过大叔不知道这16年的数据是怎么来的，如果我没记错的话，那时候应该还没有 GitHub 。</p>
 
@@ -956,9 +956,9 @@
   
   <entry>
     <title type="html"><![CDATA[沟通的原则]]></title>
-    <link href="http://liubin.github.io/blog/2017/06/16/rules-for-communication/"/>
+    <link href="http://liubin.org/blog/2017/06/16/rules-for-communication/"/>
     <updated>2017-06-16T07:40:16+08:00</updated>
-    <id>http://liubin.github.io/blog/2017/06/16/rules-for-communication</id>
+    <id>http://liubin.org/blog/2017/06/16/rules-for-communication</id>
     <content type="html"><![CDATA[<p>沟通是工作中第一要义。</p>
 
 <p>有效地沟通，能使工作更高效、提高大家的满意度；相反，错误的沟通方式除了降低工作的效率，还会制造出各种部门隔阂、人之矛盾，影响公司士气。因此高效的沟通不仅能更好地完成工作，还有助于提高公司的凝聚力，创造良好的公司文化。</p>
@@ -1047,9 +1047,9 @@
   
   <entry>
     <title type="html"><![CDATA[工具的品格]]></title>
-    <link href="http://liubin.github.io/blog/2017/06/15/task-toolss-element/"/>
+    <link href="http://liubin.org/blog/2017/06/15/task-toolss-element/"/>
     <updated>2017-06-15T16:46:01+08:00</updated>
-    <id>http://liubin.github.io/blog/2017/06/15/task-toolss-element</id>
+    <id>http://liubin.org/blog/2017/06/15/task-toolss-element</id>
     <content type="html"><![CDATA[<p>开发人员除了开发工具（编辑器、中间件），还需要各种必备的任务管理（或者进度管理、项目管理，不纠结其名字）工具，你可能用的是免费的 TODO list、Trello，或者诸如 JIRA 等商业软件，亦或是自己编写的简单 Web 管理工具，甚至记事本、OneNote等。也不管我们叫他 GTD 还是个人助理，我们依赖这些软件的原因之一无非是好脑子不如烂笔头，记下来就不会“忘”。</p>
 
 <p>前面的“忘”字为什么加个双引号呢？因为记下来你看不到，还是会忘，因为这个工具可能并没有告诉现在你应该去做什么，这个任务，可能一直沉睡于箱子的底部。</p>
@@ -1104,9 +1104,9 @@
   
   <entry>
     <title type="html"><![CDATA[Golang中一个不错的处理 JSON 的库 go-dproxy]]></title>
-    <link href="http://liubin.github.io/blog/2016/10/08/go-dproxy/"/>
+    <link href="http://liubin.org/blog/2016/10/08/go-dproxy/"/>
     <updated>2016-10-08T18:11:13+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/10/08/go-dproxy</id>
+    <id>http://liubin.org/blog/2016/10/08/go-dproxy</id>
     <content type="html"><![CDATA[<p>Golang 自己就带了 JSON (encoding/json) 处理的库，也有第三方的 <a href="https://github.com/bitly/go-simplejson">simplejson</a> 之类的库，但总是感觉不如Python这样的动态语言方便，在 Python 里，数组和字典的处理都很方便，和 JSON 互转也非常简单。</p>
 
 <p><code>encoding/json</code> 最大的问题是不够灵活，需要预先定义很多的 <code>struct</code> 来进行编解码，这样对于处理结构不定的 JSON 文件非常不方便。</p>
@@ -1239,9 +1239,9 @@
   
   <entry>
     <title type="html"><![CDATA[2016年8月读书记录]]></title>
-    <link href="http://liubin.github.io/blog/2016/09/06/2016-08-reading/"/>
+    <link href="http://liubin.org/blog/2016/09/06/2016-08-reading/"/>
     <updated>2016-09-06T19:34:20+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/09/06/2016-08-reading</id>
+    <id>http://liubin.org/blog/2016/09/06/2016-08-reading</id>
     <content type="html"><![CDATA[<h2>穿越百年中东</h2>
 
 <p><img src="https://img3.doubanio.com/lpic/s28419285.jpg" alt="" /></p>
@@ -1314,9 +1314,9 @@
   
   <entry>
     <title type="html"><![CDATA[2016年7月读书记录]]></title>
-    <link href="http://liubin.github.io/blog/2016/08/05/07-reading/"/>
+    <link href="http://liubin.org/blog/2016/08/05/07-reading/"/>
     <updated>2016-08-05T23:46:34+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/08/05/07-reading</id>
+    <id>http://liubin.org/blog/2016/08/05/07-reading</id>
     <content type="html"><![CDATA[<p>7月大概是比较忙的原因吧，读完的只有3本，一本是东野圭吾的《梦幻花》，kindle上看着价格还不错就买了；还有一本是最近比较火的管理类，杰克•韦尔奇的《商业的本质》。《无声告白》也是在kindle上看的。</p>
 
 <h2>《梦幻花》</h2>
@@ -1361,9 +1361,9 @@
   
   <entry>
     <title type="html"><![CDATA[2016年6月读书记录]]></title>
-    <link href="http://liubin.github.io/blog/2016/07/09/06-reading/"/>
+    <link href="http://liubin.org/blog/2016/07/09/06-reading/"/>
     <updated>2016-07-09T23:06:52+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/07/09/06-reading</id>
+    <id>http://liubin.org/blog/2016/07/09/06-reading</id>
     <content type="html"><![CDATA[<p>度过5月低潮，6月的阅读时间又升上来了，本月基本上以微信读书为主。至于是什么原因呢？可能是因为一本书读起来就不想放下，一直读下去，直到读完。</p>
 
 <p>6月一共阅读了6本，分别是《消费心理十四讲》、《袁腾飞讲先秦上古春秋》、《中国为什么有前途》、《白夜行》、《最神奇的经济学定律》和《国学讲演录》</p>
@@ -1482,9 +1482,9 @@
   
   <entry>
     <title type="html"><![CDATA[初试Docker swarm]]></title>
-    <link href="http://liubin.github.io/blog/2016/06/21/try-new-docker-swarm/"/>
+    <link href="http://liubin.org/blog/2016/06/21/try-new-docker-swarm/"/>
     <updated>2016-06-21T20:41:42+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/06/21/try-new-docker-swarm</id>
+    <id>http://liubin.org/blog/2016/06/21/try-new-docker-swarm</id>
     <content type="html"><![CDATA[<p>DockerCon 2016今天凌晨开始了，Docker公司的CEO和CTO都做了慷慨激昂的演讲（其实是我瞎想象的，没听，只是看了一些别人整理的 highlight ）。</p>
 
 <p>同时，1.12 RC2也出来了，很多 <a href="http://liubin.org/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0/">新功能</a> 已经可以试用了， 这里我们就来试一下 <code>docker swarm</code> 命令吧，这也是 <code>swarm</code> 成为Docker子命令的第一个版本。</p>
@@ -2058,9 +2058,9 @@
   
   <entry>
     <title type="html"><![CDATA[2016年5月读书记录]]></title>
-    <link href="http://liubin.github.io/blog/2016/06/18/05-reading/"/>
+    <link href="http://liubin.org/blog/2016/06/18/05-reading/"/>
     <updated>2016-06-18T19:07:29+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/06/18/05-reading</id>
+    <id>http://liubin.org/blog/2016/06/18/05-reading</id>
     <content type="html"><![CDATA[<p>5月读完的，大概只有一本。</p>
 
 <h2>《途客圈创业记：不疯魔，不成活》</h2>
@@ -2113,9 +2113,9 @@
   
   <entry>
     <title type="html"><![CDATA[Docker 1.12.0将要发布的新功能]]></title>
-    <link href="http://liubin.github.io/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0/"/>
+    <link href="http://liubin.org/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0/"/>
     <updated>2016-06-17T18:27:03+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0</id>
+    <id>http://liubin.org/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0</id>
     <content type="html"><![CDATA[<p>按计划，6/14 是1.12.0版本的 <a href="https://github.com/docker/docker/wiki">feature冻结</a> 的日子，再有两个星期Docker 1.12.0也该发布了。这里列出来的新功能，都是已经合并到主分支的功能，不出意外，下一个版本的Docker应该是能体验到了。</p>
 
 <p>下周2016 DockerCon也该开始了，好像也有一场专门来讲Docker新特性的，不过在这之前，我们就可以抢先一步，浏览一下这些新功能、新特性。尤其是前两个，都是比较吸引人的功能。</p>
@@ -2508,9 +2508,9 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
   
   <entry>
     <title type="html"><![CDATA[2016年4月读书记录]]></title>
-    <link href="http://liubin.github.io/blog/2016/05/26/04-reading/"/>
+    <link href="http://liubin.org/blog/2016/05/26/04-reading/"/>
     <updated>2016-05-26T23:13:27+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/05/26/04-reading</id>
+    <id>http://liubin.org/blog/2016/05/26/04-reading</id>
     <content type="html"><![CDATA[<p>这两个月效率非常低，也没什么兴致。4月读的书不多，总结也拖到了5月底，最近私事较多，希望6越以后能好转，至少可以不用为别的事分心。</p>
 
 <p>4月读了3本书，2本电子书，1本纸版。</p>
@@ -2597,9 +2597,9 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
   
   <entry>
     <title type="html"><![CDATA[如何使用 git diff 来对比Office文档？]]></title>
-    <link href="http://liubin.github.io/blog/2016/04/26/how-to-use-git-to-diff-office-documents/"/>
+    <link href="http://liubin.org/blog/2016/04/26/how-to-use-git-to-diff-office-documents/"/>
     <updated>2016-04-26T12:51:35+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/04/26/how-to-use-git-to-diff-office-documents</id>
+    <id>http://liubin.org/blog/2016/04/26/how-to-use-git-to-diff-office-documents</id>
     <content type="html"><![CDATA[<p>我们知道用 <code>git diff</code> 命令比较文本文件还是比较容易的，Office文档的修改能比较么？</p>
 
 <p>答案是可以的。下面我们就来看一下如何对Office文档进行比较。例子为在OS X上使用tika来将Office文本化之后再进行比较。</p>
@@ -2709,9 +2709,9 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
   
   <entry>
     <title type="html"><![CDATA[如何选择Docker监控方案]]></title>
-    <link href="http://liubin.github.io/blog/2016/04/24/how-to-choose-a-docker-monitor-solution/"/>
+    <link href="http://liubin.org/blog/2016/04/24/how-to-choose-a-docker-monitor-solution/"/>
     <updated>2016-04-24T11:48:38+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/04/24/how-to-choose-a-docker-monitor-solution</id>
+    <id>http://liubin.org/blog/2016/04/24/how-to-choose-a-docker-monitor-solution</id>
     <content type="html"><![CDATA[<p><em>这是2016/4/23关于Docker性能监控的一次Meetup的内容节选，完整内容请参见文末<a href="https://github.com/liubin/presentations/tree/master/20160423-docker-monitoring">链接</a></em></p>
 
 <p>大家好，非常高兴来上海跟大家分享一下我们在Docker监控方面的一点点经验。</p>
@@ -3090,7 +3090,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <h2>cAdvisor（Container Advisor）</h2>
 
-<p><img src="http://liubin.github.io/images/2016/04/docker-monitor/cadvisor.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/04/docker-monitor/cadvisor.png" alt="" /></p>
 
 <p>cAdvisor是一个用于收集、聚合处理和输出容器运行指标的守护进程。而且cAdvisor基本算是一个获取Docker性能数据的标配了吧。</p>
 
@@ -3167,7 +3167,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <p>如果你的数据采集和存储都是自己来完成的，只想使用一个外部的图形化界面的话，选Grafana应该没错，Grafana展现形式非常丰富，配置也很灵活。</p>
 
-<p><img src="http://liubin.github.io/images/2016/04/docker-monitor/grafana.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/04/docker-monitor/grafana.png" alt="" /></p>
 
 <h2>开源方案</h2>
 
@@ -3216,7 +3216,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <p>Graphite本身不带数据采集功能，你需要选择其他第三方插件，比如Collectd等。</p>
 
-<p><img src="http://liubin.github.io/images/2016/04/docker-monitor/graphite.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/04/docker-monitor/graphite.png" alt="" /></p>
 
 <p>Graphite架构自下而上分为3个模块：</p>
 
@@ -3248,7 +3248,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 </ul>
 
 
-<p><img src="http://liubin.github.io/images/2016/04/docker-monitor/prometheus-arch.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/04/docker-monitor/prometheus-arch.png" alt="" /></p>
 
 <p>Prometheus是一个全套监控和预测方案，包括数据采集、存储、查询和可视化，以及报警功能。由社交音乐平台SoundCloud在2012年开发，最近也非常火。</p>
 
@@ -3423,7 +3423,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 </ul>
 
 
-<p><img src="http://liubin.github.io/images/2016/04/docker-monitor/atsd.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/04/docker-monitor/atsd.png" alt="" /></p>
 
 <p>作为TSDB，ATSD支持长时间存储高精度的metric数据。ATSD支持多种数据采集工具和协议，比如tcollector, Collectd，当然ATSD也支持从多台Docker主机手机指标数据，并长期保存，进行可视化和分析。</p>
 
@@ -3526,9 +3526,9 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
   
   <entry>
     <title type="html"><![CDATA[2016年3月读书记录]]></title>
-    <link href="http://liubin.github.io/blog/2016/04/05/03-reading/"/>
+    <link href="http://liubin.org/blog/2016/04/05/03-reading/"/>
     <updated>2016-04-05T23:39:45+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/04/05/03-reading</id>
+    <id>http://liubin.org/blog/2016/04/05/03-reading</id>
     <content type="html"><![CDATA[<p>本以为3月很忙，应该看不了几本，不过实际结果还是有点小惊喜的。这也说明，时间挤挤还是能挤出来一点的，不要再抱怨时间不够了。</p>
 
 <p>三月读完6本书，主要是下面三种媒介：</p>
@@ -3714,9 +3714,9 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
   
   <entry>
     <title type="html"><![CDATA[为什么你的简历投出之后渺无音讯？]]></title>
-    <link href="http://liubin.github.io/blog/2016/03/29/engineers-resume/"/>
+    <link href="http://liubin.org/blog/2016/03/29/engineers-resume/"/>
     <updated>2016-03-29T22:02:59+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/03/29/engineers-resume</id>
+    <id>http://liubin.org/blog/2016/03/29/engineers-resume</id>
     <content type="html"><![CDATA[<p>很多人在向心仪的公司投了简历之后，渺无音讯，犹如石沉大海一般，不禁感叹有些公司只会看学历、看背景，以“貌”取人。</p>
 
 <p>殊不知，如果你仔细反省一下，可能确实是个人达不到用人单位的要求，与目标职位不匹配；而另一种情况就是你自己的能力并未从简历中体现出来。简历筛选者也许收到了数以百计的简历，花在单一简历上的时间自然不多，如果你的简历中没有什么让人眼前一亮的东西，又怎么会得到面试机会？如果是因为简历写的不好而失去面试机会，有多可惜？</p>
@@ -3868,9 +3868,9 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
   
   <entry>
     <title type="html"><![CDATA[Cookpad近期微服务经验总结]]></title>
-    <link href="http://liubin.github.io/blog/2016/03/16/microservice-at-cookpad/"/>
+    <link href="http://liubin.org/blog/2016/03/16/microservice-at-cookpad/"/>
     <updated>2016-03-16T23:54:31+08:00</updated>
-    <id>http://liubin.github.io/blog/2016/03/16/microservice-at-cookpad</id>
+    <id>http://liubin.org/blog/2016/03/16/microservice-at-cookpad</id>
     <content type="html"><![CDATA[<p>译者注：</p>
 
 <h2>关于版权</h2>
@@ -3909,7 +3909,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <p>根据产品关注点的分类。一个根本原则是微服务需要根据业务领域来划分。Cookpad提供了包括美味料理、料理教室、料理视频、Cookpad博客、大家的咖啡等在内的众多服务。</p>
 
-<p><img src="http://liubin.github.io/images/2016/03/cookpad-micro-services/p1.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/03/cookpad-micro-services/p1.png" alt="" /></p>
 
 <p>尽管大多数服务都采用了Rails进行开发（也有一部分服务只有手机客户端），但是每个团队的特点都不一样。比如ES6的话既使用了React.js，也使用了CoffeeScript；有的团队使用了Rubocop，有的则没有使用。</p>
 
@@ -3919,7 +3919,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <p>Domain model相同但是展现形式不一样。</p>
 
-<p><img src="http://liubin.github.io/images/2016/03/cookpad-micro-services/p2.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/03/cookpad-micro-services/p2.png" alt="" /></p>
 
 <p>从形式上很像 <a href="https://www.thoughtworks.com/radar/techniques/bff-backend-for-frontends">BFF(Backend for frontends)</a> 模式，但是由于Cookpad需要兼容各种各样的设备，因此同一个domain model需要以不同版本（<em>这里的版本不是指alpha、beta这样的版本号，而是类似个人版、商业版这样的概念 &ndash; 译者注</em>）的形式来提供。OEM版就是一个例子，提供的东西是一样的，但是却以不同版本的UI或者用户系统来提供服务。</p>
 
@@ -3960,7 +3960,7 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 
 <p>通常在CI能够发挥作用的测试级别的测试中，发给其他服务的请求都是stub的形式，不能确认是否有不兼容该服务接口的变动混入。使用Protocol Buffers这样方式的话，由于需要共享proto文件，可能不会出什么问题。而使用REST API的方式进行集成的话，也有一种使用JSON Schema的方法。不过由于是Ruby + HTTP风格的文化，相比使用类型系统进行管理的开发风格，我们的工程师们更习惯于进行动态测试这种风格。这也是 <a href="http://techlife.cookpad.com/entry/2015/10/09/125108">Rack::VCR</a> 产生的背景。但是使用各服务自己的CI来保证兼容性的话，如果服务之间的构建频率不一致，在Cookpad这样发布非常频繁的公司，很可能会出现在发布之后才能发现API不兼容的问题（<em>即发布之后API提供方的API才检测到调用方的调用有问题 &ndash; 译者注</em>）。因此我们决定转向 <a href="http://techlife.cookpad.com/entry/2016/01/04/094705">Consumer-Driven Contract testing</a> ，现在已经迁移到 <a href="https://github.com/realestate-com-au/pact">Pact</a> 了。</p>
 
-<p><img src="http://liubin.github.io/images/2016/03/cookpad-micro-services/p3.png" alt="" /></p>
+<p><img src="http://liubin.org/images/2016/03/cookpad-micro-services/p3.png" alt="" /></p>
 
 <p>这样，如果客户端破坏了API的兼容性，会被提供方（provider）的CI会检测到，从而防止不兼容的修改被发布。</p>
 
