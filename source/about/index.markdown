@@ -8,22 +8,12 @@ footer: true
 ---
 
 
-## 一个小小的程序员。
+## 软件工程师
 
-* [@OurColorfulDays](https://twitter.com/OurColorfulDays)
+大于 40 岁的那种。
+
+* [@liubuneng](https://twitter.com/liubuneng)
 * [GitHub](https://github.com/liubin)
-
-
-## 微信公号
-
-还运营者一个个人公众账号：西小口物语，本来想叫西小口夜话，但是貌似 ***夜话*** 这个词审核不通过。无奈改为物语了。叫西小口，也不是因为别的，是因为家和[公司](http://www.oneapm.com)都在这附近。
-
-这个公号的内容主要就是自己平时接触到的技术、观点、新闻等，还有一些感触。
-
-你可以关注试一下。
-
-![](/images/wechat_xixiaokou.jpeg)
-
 
 ## publications & presentations
 
