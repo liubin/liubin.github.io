@@ -1,0 +1,373 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>关于 K8s Mutating Webhook 的几点摘记 - 自言自语</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="关于 K8s Mutating Webhook 的几点摘记 最近又写了一个 K8s 的 Mutating Webhook ，阅读了一下 官方文档，有些特殊需要记住的地摘记如下。虽然主要是针对 Mutating 类型的 webhook 的，但是应该对 Validating 类型的 webhook &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/01/18/something-about-k8s-mutatingwebhook">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="自言自语"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">自言自语</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">关于 K8s Mutating Webhook 的几点摘记</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>最近又写了一个 K8s 的 Mutating Webhook ，阅读了一下 <a href="https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/">官方文档</a>，有些特殊需要记住的地摘记如下。虽然主要是针对 Mutating 类型的 webhook 的，但是应该对 Validating 类型的 webhook 一样有效。</p>
+
+<h2>版本说明</h2>
+
+<p>在 K8s 里编程最麻烦的一件事就是版本的问题，以及由此引起的 go mod 的依赖问题。所以在写代码之前，参考别人的代码之前，第一件事就是要确认需要支持和使用的各 API 版本。</p>
+
+<p>对于 Mutating Webhook 来说，在 K8s 1.9 之前，API 版本需要使用 <code>admissionregistration.k8s.io/v1beta1</code> ，如果是 1.16 之后的 K8s ，则使用 <code>admissionregistration.k8s.io/v1</code>。</p>
+
+<h2>默认超时时间</h2>
+
+<p>对于 <code>admissionregistration.k8s.io/v1</code> 来说，默认超时时间是 10s，对于 <code>admissionregistration.k8s.io/v1beta1</code> 来说默认的超时时间是 30s。</p>
+
+<p>但是从 K8s 1.14 开始支持自定义超时时间。一般来说推荐使用一个较小的 timeout 值，这有两个原因，一是 webhook 一般都跑在 K8s 同一个集群中，所以不会有太大延迟。二是这个值如果太大了，会增加资源创建的延迟，降低响应时间。Webhook 耗时太长，应该说程序有问题或者设计有问题，本着 fast fail 的原则，应该设置较小的 timeout 时间。</p>
+
+<h2>关于资源过滤器</h2>
+
+<p>可以使用资源过滤器来过滤需要进行修改的资源。</p>
+
+<h3>objectSelector</h3>
+
+<p>比如下面的例子只选择带有 <code>foo: bar</code> label 的资源。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">apiVersion</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">admissionregistration.k8s.io/v1</span>
+</span><span class='line'><span class="l-Scalar-Plain">kind</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">MutatingWebhookConfiguration</span>
+</span><span class='line'><span class="l-Scalar-Plain">webhooks</span><span class="p-Indicator">:</span>
+</span><span class='line'><span class="p-Indicator">-</span> <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">my-webhook.example.com</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">objectSelector</span><span class="p-Indicator">:</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">matchLabels</span><span class="p-Indicator">:</span>
+</span><span class='line'>      <span class="l-Scalar-Plain">foo</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">bar</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">rules</span><span class="p-Indicator">:</span>
+</span><span class='line'>  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">operations</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;CREATE&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">apiGroups</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;*&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">apiVersions</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;*&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">resources</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;*&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">scope</span><span class="p-Indicator">:</span> <span class="s">&quot;*&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>namespaceSelector</h3>
+
+<p><code>namespaceSelector</code> 通过判断资源所在 namespace 的 labels 中是否包含指定的 laable 来对 namespaced 资源或者 Namespace 类型的资源进行筛选。如果要检查的对象类型就是 Namespace ，则会对其 <code>object.metadata.labels</code> 进行判断。</p>
+
+<p><code>namespaceSelector</code> 对集群级别的资源无效。</p>
+
+<p>这个例子显示的是一个 validating 类型的 webhook ，将会匹配到 namespaced 资源的 CREATR 请求中，<code>environment</code> 被设置为 &ldquo;prod&rdquo; 或 &ldquo;staging&rdquo; 的资源：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">apiVersion</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">admissionregistration.k8s.io/v1</span>
+</span><span class='line'><span class="l-Scalar-Plain">kind</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">ValidatingWebhookConfiguration</span>
+</span><span class='line'><span class="nn">...</span>
+</span><span class='line'><span class="l-Scalar-Plain">webhooks</span><span class="p-Indicator">:</span>
+</span><span class='line'><span class="p-Indicator">-</span> <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">my-webhook.example.com</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">namespaceSelector</span><span class="p-Indicator">:</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">matchExpressions</span><span class="p-Indicator">:</span>
+</span><span class='line'>    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">key</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">environment</span>
+</span><span class='line'>      <span class="l-Scalar-Plain">operator</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">In</span>
+</span><span class='line'>      <span class="l-Scalar-Plain">values</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;prod&quot;</span><span class="p-Indicator">,</span><span class="s">&quot;staging&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">rules</span><span class="p-Indicator">:</span>
+</span><span class='line'>  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">operations</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;CREATE&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">apiGroups</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;*&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">apiVersions</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;*&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">resources</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;*&quot;</span><span class="p-Indicator">]</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">scope</span><span class="p-Indicator">:</span> <span class="s">&quot;Namespaced&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>指定 webhook 连接方式。</h2>
+
+<p>有两种连接设置方式，告诉 API server 如何找到 webhook 的地址，一种是直接使用 URL 指定，另一种方式是使用 K8s 的 service 资源。</p>
+
+<h3>URL 方式</h3>
+
+<p>这种方式只需要指定一个 <code>scheme://host:port/path</code> 格式的网址，比较简单直接，比如可以用于指定一个 K8s 之外的服务地址。</p>
+
+<p>有一个限制，就是 <code>scheme</code> 必须是 <code>https</code> ，也就是说你可能在部署的时候会遇到证书认证的问题，关于如何创建证书，特别是自签名的证书，这里就不作说明了。</p>
+
+<p>同时这种方式有一个限制，就是不支持 <code>user@pass</code> 这样的 basic 认证，也不支持在 URL 中使用 <code>?</code> 或 <code>#</code> 这两个 href 中具特殊意义的分隔符。</p>
+
+<p>示例：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">apiVersion</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">admissionregistration.k8s.io/v1</span>
+</span><span class='line'><span class="l-Scalar-Plain">kind</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">MutatingWebhookConfiguration</span>
+</span><span class='line'><span class="l-Scalar-Plain">webhooks</span><span class="p-Indicator">:</span>
+</span><span class='line'><span class="p-Indicator">-</span> <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">my-webhook.example.com</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">clientConfig</span><span class="p-Indicator">:</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">url</span><span class="p-Indicator">:</span> <span class="s">&quot;https://my-webhook.example.com:9443/my-webhook-path&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>service 引用</h3>
+
+<p>如果 webhook 运行在集群中，则通过 service 来指定 webhook 的地址会比较方便。Service 的 <code>namespace</code> 和 <code>name</code> 都是必须的， <code>port</code> 不是必须的，有一个默认值 443 ，因为要走 <code>https</code> 协议。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">apiVersion</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">admissionregistration.k8s.io/v1</span>
+</span><span class='line'><span class="l-Scalar-Plain">kind</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">MutatingWebhookConfiguration</span>
+</span><span class='line'>
+</span><span class='line'><span class="l-Scalar-Plain">webhooks</span><span class="p-Indicator">:</span>
+</span><span class='line'><span class="p-Indicator">-</span> <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">my-webhook.example.com</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">clientConfig</span><span class="p-Indicator">:</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">caBundle</span><span class="p-Indicator">:</span> <span class="s">&quot;Ci0tLS0tQk...&lt;base64-encoded</span><span class="nv"> </span><span class="s">PEM</span><span class="nv"> </span><span class="s">bundle</span><span class="nv"> </span><span class="s">containing</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">CA</span><span class="nv"> </span><span class="s">that</span><span class="nv"> </span><span class="s">signed</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">webhook&#39;s</span><span class="nv"> </span><span class="s">serving</span><span class="nv"> </span><span class="s">certificate&gt;...tLS0K&quot;</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">service</span><span class="p-Indicator">:</span>
+</span><span class='line'>      <span class="l-Scalar-Plain">namespace</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">my-service-namespace</span>
+</span><span class='line'>      <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">my-service-name</span>
+</span><span class='line'>      <span class="l-Scalar-Plain">path</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">/my-path</span>
+</span><span class='line'>      <span class="l-Scalar-Plain">port</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">1234</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意：这时候 ca 证书签署时 server 名必须为 <code>&lt;svc_name&gt;.&lt;svc_namespace&gt;.svc</code> 。</p>
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-01-18 17:03:56 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/01/18/something-about-k8s-mutatingwebhook/"
+	 data-via="OurColorfulDays"
+	 data-counturl="http://liubin.org/blog/2021/01/18/something-about-k8s-mutatingwebhook/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
