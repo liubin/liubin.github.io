@@ -1,0 +1,646 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>Rust 学习笔记：package/crate/module - 自言自语</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="Rust 学习笔记：package/crate/module cargo new 会生成项目的雏形，提供了src/main.rs和src/lib.rs文件，但是随着项目的增长，代码的量也会变大，靠一个文件维护一大堆代码，肯定是不合适的。这时候一般都会按“模块”来拆分文件，rust也不例外。 &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/01/19/packages-slash-crate-slash-modules-in-rust">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="自言自语"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">自言自语</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">Rust 学习笔记：package/crate/module</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>cargo new 会生成项目的雏形，提供了src/main.rs和src/lib.rs文件，但是随着项目的增长，代码的量也会变大，靠一个文件维护一大堆代码，肯定是不合适的。这时候一般都会按“模块”来拆分文件，rust也不例外。</p>
+
+<p>这里学习一下rust中代码的组织方式，主要涉及到以下几个概念：</p>
+
+<ul>
+<li>package：Cargo中的概念，管理crate</li>
+<li>crate：模块的集合，编译单位，有lib和bin两种，即供别人调用，或者是一个可执行文件</li>
+<li>module：用于在crate内组织代码</li>
+<li>workspace：项目复杂时，管理多个package</li>
+</ul>
+
+
+<h2>package</h2>
+
+<p>cargo new 命令会创建一个新项目，也是一个package，里面有一个Cargo.toml文件，用于定义package、所需外部依赖，以及如何编译crate等。</p>
+
+<h2>crate</h2>
+
+<p>rust里有两种crate，lib类型和bin类型，并且默认以文件名为标准按以下规则处理crate：</p>
+
+<ul>
+<li>src/main.rs：表示该crate是一个bin类型的crate</li>
+<li>src/lib.rs：表示该crate是一个lib类型的crate</li>
+</ul>
+
+
+<p>src/main.rs和src/lib.rs都是crate的根，也就是crate引用、rustc编译的入口。</p>
+
+<p>此外，一个package中的crate还有如下约束：</p>
+
+<ol>
+<li>多个bin类型的crate</li>
+<li>0个或1个lib类型的crate</li>
+</ol>
+
+
+<p>其中，1和2并不互斥，也就是说一个项目下可以有1个lib和多个bin类型的crate，即一个package还以编译出多个可执行文件。</p>
+
+<p>只是如果有多个bin类型的crate，一个src/main.rs就不行了，就得放到 src/bin 下面，每个crate一个文件，换句话说，每个文件都是一个不同的crate。</p>
+
+<h2>mod</h2>
+
+<p>代码多了可以对代码以mod（文件/文件夹）为单位进行拆分，而不必把所有代码都写在src/lib.rs或者src/main.rs里。</p>
+
+<p>以lib类型的crate为例，该crate的入口在src/lib.rs，也是crate的根。在 src/lib.rs 里定义模块很简单：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">mod</span> <span class="n">mymod</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;test&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>而实际项目中，我们都不可能只有一个lib.rs文件，而是会将代码按功能等拆分为多个模块。</p>
+
+<h3>模块拆分</h3>
+
+<p>一般来说，一个文件都会被视为一个mod，而且mod可以嵌套定义。嵌套定义的mod既可以写在同一个文件里，也可以通过文件夹的形式来实现。</p>
+
+<p>具体我们来看几个例子。</p>
+
+<p>假设当前项目文件结构如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">src</span>
+</span><span class='line'><span class="err">├──</span> <span class="n">lib</span><span class="p">.</span><span class="n">rs</span>
+</span><span class='line'><span class="err">├──</span> <span class="n">mod_a</span>
+</span><span class='line'><span class="err">│</span>   <span class="err">├──</span> <span class="kn">mod</span><span class="p">.</span><span class="n">rs</span>
+</span><span class='line'><span class="err">│</span>   <span class="err">└──</span> <span class="n">mod_b</span><span class="p">.</span><span class="n">rs</span>
+</span><span class='line'><span class="err">└──</span> <span class="n">mod_c</span><span class="p">.</span><span class="n">rs</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里显示定义了3个mod：mod_a、mod_b和mod_c，其中mod_a为文件夹形式，而mod b 和mod c都有对应的文件。其中mod_b是mod_a的子模块。</p>
+
+<p>我们来看一下各个模块是怎么声明的，以及应该如何引用。</p>
+
+<p>首先来看一下crate的根，也就是入口lib.rs：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">pub</span> <span class="kn">mod</span> <span class="n">mod_a</span><span class="p">;</span>
+</span><span class='line'><span class="kn">mod</span> <span class="n">mod_c</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里声明了两个mod，如果需要在crate外部访问，可以在mod前面加上pub关键字。注意这里不需要声明mod_a的子模块mod_c，这个需要由mod_a来声明。</p>
+
+<p>再来看一下这两个mod。先看mod_a，这是一个文件夹形式存在的mod，按cargo规定，这时候需要在该文件夹下有一个名为mod.rs的文件定义该mod下的内容。该文件内容如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// src/mod_a/mod.rs</span>
+</span><span class='line'><span class="k">pub</span> <span class="kn">mod</span> <span class="n">mod_b</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到，这个文件和lib.rs类似，都可以声明mod。该文件声明的mod_b的代码则保存为mod_b.rs：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// src/mod_a/mod_b.rs</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">super</span><span class="o">::</span><span class="n">super</span><span class="o">::</span><span class="n">mod_c</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">pub</span> <span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;i&#39;m mod_b&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">fn</span> <span class="n">call_mod_c</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">mod_c</span><span class="o">::</span><span class="n">test</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>再来看一下mod_c的代码：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// src/mod_c.rs</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">crate</span><span class="o">::</span><span class="n">mod_a</span><span class="o">::</span><span class="n">mod_b</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">pub</span> <span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">mod_b</span><span class="o">::</span><span class="n">test</span><span class="p">();</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;i&#39;, mod_c&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>除了如何定义mod，还需要注意的是如何引用其他mod的定义。这里在mod_c中，要想使用mod_b，可以使用 <strong>use crate::mod_a::mod_b</strong> 这种绝对路径形式。</p>
+
+<p>而在mod_b中使用mod_c的时候，使用了 <strong>use super::super::mod_c</strong> 这种先对路径的形式。</p>
+
+<h3>添加main.rs</h3>
+
+<p>最后在上面代码的基础上添加一下main.rs，看看如何作为外部crate使用上面的mod_a。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// src/main.rs</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">testlib</span><span class="o">::</span><span class="n">mod_a</span><span class="o">::</span><span class="n">mod_b</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;main&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">mod_b</span><span class="o">::</span><span class="n">test</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里唯一想要提醒的就是lib的引用方法，不能使用crate开头的绝对路径或者相对路径引用方式，必须使用该crate的名称（也就是Cargo.toml里的名称，本例为testlib）来引用。因为main和lib分别属于不同的crate。</p>
+
+<p>假如将上面的testlib改为crate，编译器会报如下错误：</p>
+
+<p><img class="center-image" src="/images/2021/01/rust-compile-error.png" title="'编译错误'" ></p>
+
+<p>很多时候编译器都是我们最好的老师。</p>
+
+<h3>pub修饰符</h3>
+
+<h4>结构体和枚举</h4>
+
+<p>要想访问其他mod里的结构体，需要将结构体声明为pub，但是这也只能访问到结构体而已，如果要想操作里面的字段，可以有两种方式：</p>
+
+<ul>
+<li>提供pub的方法修改字段</li>
+<li>将需要操作的字段直接修改为pub类型</li>
+</ul>
+
+
+<p>可能前者更“面向对象”一些。</p>
+
+<p>而枚举类型的话只需要在枚举名前面加上pub即可，不需要对其中的variant进行设置。</p>
+
+<h2>use语句</h2>
+
+<p>讲了这么多基础概念，下面看一下如何使用。</p>
+
+<p>在crate和模块了可能定义了函数、结构体等，要想在其他模块或crate使用，需要将其引入到当前scope中，类似java的import的功能，rust里需要使用use。</p>
+
+<p>如何表示要被引用的对象（rust中称为item），rust里称之为path，可以理解为我们在操作系统里使用文件一下。</p>
+
+<p>rust中path有两种形式，也跟文件系统一样，绝对路径和相对路径：</p>
+
+<ul>
+<li>绝对路径始于crate的根（src/main.rs或src/lib.rs），可以使用crate名或者crate这个字面值表示</li>
+<li>相对路径可以使用当前模块名、当前模块中可以使用的对象，super和self等。</li>
+</ul>
+
+
+<p>path中的层级使用两个冒号，类似文件系统中的斜线。</p>
+
+<p>假设有如下代码（来自trpl）：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">mod</span> <span class="n">front_of_house</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="kn">mod</span> <span class="n">hosting</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">pub</span> <span class="k">fn</span> <span class="n">add_to_waitlist</span><span class="p">()</span> <span class="p">{}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">pub</span> <span class="k">fn</span> <span class="n">eat_at_restaurant</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">// Absolute path</span>
+</span><span class='line'>    <span class="n">crate</span><span class="o">::</span><span class="n">front_of_house</span><span class="o">::</span><span class="n">hosting</span><span class="o">::</span><span class="n">add_to_waitlist</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Relative path</span>
+</span><span class='line'>    <span class="n">front_of_house</span><span class="o">::</span><span class="n">hosting</span><span class="o">::</span><span class="n">add_to_waitlist</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面的第9行就是绝对路径形式的引用，而第12行就是相对路径的引用，这里，front_of_house处于crate的根之下，而不是位于其他子模块之下。</p>
+
+<p>有一些限制需要知道：</p>
+
+<ul>
+<li>在父模块中不能使用子模块中的private项目</li>
+<li>子模块可以使用父模块中的所有item</li>
+</ul>
+
+
+<p>注意 front_of_house 模块虽然不是pub的，但是eat_at_restaurant却可以使用，因为他们在同一模块下，这不需要pub就可以使用，否则所有item都只能变成pub才能使用了。但是hosting模块和add_to_waitlist方法必须为pub类型的，否则就不能从他们的父模块中的项目中使用了。</p>
+
+<p>下面是一个使用了super的例子：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">serve_order</span><span class="p">()</span> <span class="p">{}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kn">mod</span> <span class="n">back_of_house</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">fn</span> <span class="n">fix_incorrect_order</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">cook_order</span><span class="p">();</span>
+</span><span class='line'>        <span class="n">super</span><span class="o">::</span><span class="n">serve_order</span><span class="p">();</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">fn</span> <span class="n">cook_order</span><span class="p">()</span> <span class="p">{}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>fix_incorrect_order方法属于back_of_house模块，要调用的serve_order和back_of_house同级，因此在back_of_house模块中的函数里，可以使用super::serve_order，访问到该模块同级的serve_order方法。</p>
+
+<p>如果use后面的路径具有具有共同的父路径，可以使用简化的模式。比如 ：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">io</span><span class="p">;</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">cmp</span><span class="o">::</span><span class="nb">Ordering</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以简化为：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="p">{</span><span class="n">cmp</span><span class="o">::</span><span class="nb">Ordering</span><span class="p">,</span> <span class="n">io</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果同时use的mod之间有父子关系，也可以像上面那样简化，使用self代表父mod。比如：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">io</span><span class="p">;</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">io</span><span class="o">::</span><span class="n">Write</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以简化为：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">io</span><span class="o">::</span><span class="p">{</span><span class="bp">self</span><span class="p">,</span> <span class="n">Write</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果想将某一路径下的所有public的item都引入到当前scope中，可以使用<code>*</code>。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">collections</span><span class="o">::*</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>一般业务代码文件内的单元测试中常用：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="cp">#[cfg(test)]</span>
+</span><span class='line'><span class="kn">mod</span> <span class="n">tests</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kn">use</span> <span class="n">super</span><span class="o">::*</span><span class="p">;</span>
+</span><span class='line'>    <span class="cp">#[test]</span>
+</span><span class='line'>    <span class="k">fn</span> <span class="n">it_works</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这样在单测mod中，可以使用父mod中的所有item。</p>
+
+<h3>引用层级</h3>
+
+<p>对比两段代码：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="err">#</span> <span class="n">case</span> <span class="mi">1</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">crate</span><span class="o">::</span><span class="n">front_of_house</span><span class="o">::</span><span class="n">hosting</span><span class="p">;</span>
+</span><span class='line'><span class="n">hosting</span><span class="o">::</span><span class="n">add_to_waitlist</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">#</span> <span class="n">case</span> <span class="mi">2</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">crate</span><span class="o">::</span><span class="n">front_of_house</span><span class="o">::</span><span class="n">hosting</span><span class="o">::</span><span class="n">add_to_waitlist</span><span class="p">;</span>
+</span><span class='line'><span class="n">add_to_waitlist</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这两种方法结果一样，但是阅读起来给人的感觉是不一样的。一般来说推荐前者，因为这样可以明确的知道使用的方法是外部的hosting模块的方法，后者的话则不知道该方法是use进来的，还是本模块定义的。</p>
+
+<h3>名称冲突</h3>
+
+<p>有的时候可能从不同的crate或者mod引入了同名的item，这时候最简单的方式是使用 as 关键字进行重命名。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">fmt</span><span class="p">;</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">io</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">fn</span> <span class="n">function1</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">fmt</span><span class="o">::</span><span class="nb">Result</span> <span class="p">{</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">fn</span> <span class="n">function2</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">io</span><span class="o">::</span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">fmt</span><span class="o">::</span><span class="nb">Result</span><span class="p">;</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">io</span><span class="o">::</span><span class="nb">Result</span> <span class="k">as</span> <span class="n">IoResult</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">fn</span> <span class="n">function1</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">Result</span> <span class="p">{</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">fn</span> <span class="n">function2</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">IoResult</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>re-exporting 再导出</h3>
+
+<p>当使用use关键字将外部item导入到当前scope之后，这个item在当前scope是private的，如果使用 pub use 的话，还能让使用当前mod的第三者，使用在该mod中引入的item。</p>
+
+<p>该机制称为 re-exporting 。</p>
+
+<h2>workspace</h2>
+
+<p>workspace用于管理多个相关的package，不同的package有各自的Cargo.toml，但是整个workspace共享一个Cargo.lock，也只有一个target目录（编译输出）。</p>
+
+<p>虽然workspace内的项目共享一个Cargo.lock，但是他们之间默认不互相依赖，需要显示添加它们之间的依赖关系。而且在一个项目中添加的依赖，在其他项目中如果想使用，还需要再次声明依赖才行。</p>
+
+<p>不过据我观察workspace功能没有什么特别强大之处，不使用该功能也可以同时管理几个Cargo项目，因此这里就不再深入介绍了。</p>
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-01-19 20:45:37 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/01/19/packages-slash-crate-slash-modules-in-rust/"
+	 data-via="OurColorfulDays"
+	 data-counturl="http://liubin.org/blog/2021/01/19/packages-slash-crate-slash-modules-in-rust/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>

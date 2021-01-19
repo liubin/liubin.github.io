@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
+<loc>http://liubin.org/blog/2021/01/19/packages-slash-crate-slash-modules-in-rust/</loc>
+<lastmod>2021-01-19T20:45:37+08:00</lastmod>
+</url>
+<url>
 <loc>http://liubin.org/blog/2021/01/18/something-about-k8s-mutatingwebhook/</loc>
 <lastmod>2021-01-18T17:03:56+08:00</lastmod>
 </url>
@@ -148,14 +152,5 @@
 </url>
 <url>
 <loc>http://liubin.org/about/</loc>
-</url>
-<url>
-<loc>http://liubin.org/posts/2/</loc>
-</url>
-<url>
-<loc>http://liubin.org/posts/3/</loc>
-</url>
-<url>
-<loc>http://liubin.org/posts/4/</loc>
 </url>
 </urlset>
