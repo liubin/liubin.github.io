@@ -1,0 +1,293 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>安装老版本的 Kubernetes - 自言自语</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="安装老版本的 Kubernetes 记得前些日子看过一个报告，说是私有部署中公司内部用的 Kubernetes ，要比社区版延迟有 17 个月。所以，在很多公司，安装一个老版本的 Kubernetes ，可能还真是一个日常操作。 不过不光 Kubernetes 有版本问题，连它的安装工具 &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/01/28/install-old-version-k8s">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="自言自语"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">自言自语</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">安装老版本的 Kubernetes</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>记得前些日子看过一个报告，说是私有部署中公司内部用的 Kubernetes ，要比社区版延迟有 17 个月。所以，在很多公司，安装一个老版本的 Kubernetes ，可能还真是一个日常操作。</p>
+
+<p>不过不光 Kubernetes 有版本问题，连它的安装工具 kubeadm 也是有版本要求的，要想安装指定版本的 Kubernetes ，还得安装指定版本的 kubeadm 。</p>
+
+<p>这里以在 Ubuntu 下为例，记录一下如何安装一个 1.16 版本的 Kubernetes。</p>
+
+<p>可以使用 <code>apt-cache</code> 命令查看支持的 Kubernetes 版本。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># apt-cache madison kubectl | grep 1.16
+</span><span class='line'>   kubectl | 1.16.15-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.14-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.13-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.12-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.11-01 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.11-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.10-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.9-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.8-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.7-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.6-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.5-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.4-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.3-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.2-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.1-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.0-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages</span></code></pre></td></tr></table></div></figure>
+
+
+<p>所以我们可以选择一个最大的数字来作为版本号安装。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># apt install -y kubelet=1.16.15-00 kubeadm=1.16.15-00 kubectl=1.16.15-00
+</span><span class='line'>
+</span><span class='line'>... ...
+</span><span class='line'>
+</span><span class='line'>Setting up kubelet (1.16.15-00) ...
+</span><span class='line'>Setting up kubectl (1.16.15-00) ...
+</span><span class='line'>Setting up kubeadm (1.16.15-00) ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后再使用 kubeadm 安装指定版本的 Kubernetes：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># kubeadm init --cri-socket /run/containerd/containerd.sock \
+</span><span class='line'>    --pod-network-cidr=10.244.0.0/16 \
+</span><span class='line'>    --apiserver-advertise-address 192.168.2.147 \
+</span><span class='line'>    --kubernetes-version v1.16.0</span></code></pre></td></tr></table></div></figure>
+
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-01-28 14:56:13 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/01/28/install-old-version-k8s/"
+	 data-via="OurColorfulDays"
+	 data-counturl="http://liubin.org/blog/2021/01/28/install-old-version-k8s/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>

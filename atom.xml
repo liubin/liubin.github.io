@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-01-19T11:56:20+08:00</updated>
+  <updated>2021-01-28T15:03:08+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,89 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[安装老版本的 Kubernetes]]></title>
+    <link href="http://liubin.org/blog/2021/01/28/install-old-version-k8s/"/>
+    <updated>2021-01-28T14:56:13+08:00</updated>
+    <id>http://liubin.org/blog/2021/01/28/install-old-version-k8s</id>
+    <content type="html"><![CDATA[<p>记得前些日子看过一个报告，说是私有部署中公司内部用的 Kubernetes ，要比社区版延迟有 17 个月。所以，在很多公司，安装一个老版本的 Kubernetes ，可能还真是一个日常操作。</p>
+
+<p>不过不光 Kubernetes 有版本问题，连它的安装工具 kubeadm 也是有版本要求的，要想安装指定版本的 Kubernetes ，还得安装指定版本的 kubeadm 。</p>
+
+<p>这里以在 Ubuntu 下为例，记录一下如何安装一个 1.16 版本的 Kubernetes。</p>
+
+<p>可以使用 <code>apt-cache</code> 命令查看支持的 Kubernetes 版本。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># apt-cache madison kubectl | grep 1.16
+</span><span class='line'>   kubectl | 1.16.15-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.14-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.13-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.12-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.11-01 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.11-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl | 1.16.10-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.9-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.8-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.7-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.6-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.5-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.4-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.3-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.2-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.1-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages
+</span><span class='line'>   kubectl |  1.16.0-00 | https://apt.kubernetes.io kubernetes-xenial/main amd64 Packages</span></code></pre></td></tr></table></div></figure>
+
+
+<p>所以我们可以选择一个最大的数字来作为版本号安装。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># apt install -y kubelet=1.16.15-00 kubeadm=1.16.15-00 kubectl=1.16.15-00
+</span><span class='line'>
+</span><span class='line'>... ...
+</span><span class='line'>
+</span><span class='line'>Setting up kubelet (1.16.15-00) ...
+</span><span class='line'>Setting up kubectl (1.16.15-00) ...
+</span><span class='line'>Setting up kubeadm (1.16.15-00) ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后再使用 kubeadm 安装指定版本的 Kubernetes：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># kubeadm init --cri-socket /run/containerd/containerd.sock \
+</span><span class='line'>    --pod-network-cidr=10.244.0.0/16 \
+</span><span class='line'>    --apiserver-advertise-address 192.168.2.147 \
+</span><span class='line'>    --kubernetes-version v1.16.0</span></code></pre></td></tr></table></div></figure>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Rust 学习笔记：package/crate/module]]></title>
@@ -3422,118 +3505,6 @@ PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/d
 <p>今年春末夏初，出了几件大事，不同类型、地区，基本都涉及到了人的安全问题，而且出现时机衔接如此紧密，这也是导致我分心的原因，所以整个4、5月都是在浑浑噩噩中度过。</p>
 
 <p>想想4月的阅读情况，再想想现在已经是5月底，不知道如何清除初夏带来的心魔。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[如何使用 git diff 来对比Office文档？]]></title>
-    <link href="http://liubin.org/blog/2016/04/26/how-to-use-git-to-diff-office-documents/"/>
-    <updated>2016-04-26T12:51:35+08:00</updated>
-    <id>http://liubin.org/blog/2016/04/26/how-to-use-git-to-diff-office-documents</id>
-    <content type="html"><![CDATA[<p>我们知道用 <code>git diff</code> 命令比较文本文件还是比较容易的，Office文档的修改能比较么？</p>
-
-<p>答案是可以的。下面我们就来看一下如何对Office文档进行比较。例子为在OS X上使用tika来将Office文本化之后再进行比较。</p>
-
-<ul>
-<li>安装tika</li>
-</ul>
-
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>brew install tika</span></code></pre></td></tr></table></div></figure>
-
-
-<p>​
-这可能需要一些时间，如果你的网速不快的话。</p>
-
-<ul>
-<li>创建脚本</li>
-</ul>
-
-
-<p>然后编辑一条用于比较Office文档的命令</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># 文件名 ~/bin/diffoffice
-</span><span class='line'>
-</span><span class='line'>#!/bin/sh
-</span><span class='line'>tika -t "$1"</span></code></pre></td></tr></table></div></figure>
-
-
-<p>并将文件设置为可执行权限</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>chmod +x ~/bin/diffoffice</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>编辑 git 配置文件</li>
-</ul>
-
-
-<p>编辑 <code>~/.gitconfig</code> 文件</p>
-
-<p>添加如下内容：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>[diff "office"]
-</span><span class='line'>  binary = true
-</span><span class='line'>  textconv = ~/bin/diffoffice</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>编辑代码仓库的属性文件</li>
-</ul>
-
-
-<p>在代码仓库的根目录下，创建 <code>.gitattributes</code> 文件，其内容如下：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>*.pptx diff=office
-</span><span class='line'>*.docx diff=office
-</span><span class='line'>*.xlsx diff=office</span></code></pre></td></tr></table></div></figure>
-
-
-<p>上面操作完成之后，就可以对Office的“二进制文件”进行对比了。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ git diff keynote.pptx
-</span><span class='line'>
-</span><span class='line'>... ...
-</span><span class='line'>
-</span><span class='line'>index 68a6a9a..bf108f9 100644
-</span><span class='line'>--- a/20160423-docker-monitoring/keynote.pptx
-</span><span class='line'>+++ b/20160423-docker-monitoring/keynote.pptx
-</span><span class='line'>@@ -175,7 +175,7 @@ SaaS
-</span><span class='line'> 采集
-</span><span class='line'> 存储
-</span><span class='line'> 展示
-</span><span class='line'>-报警（动作）
-</span><span class='line'>+报警（事件处理）
-</span><span class='line'> </span></code></pre></td></tr></table></div></figure>
-
-
-
 ]]></content>
   </entry>
   
