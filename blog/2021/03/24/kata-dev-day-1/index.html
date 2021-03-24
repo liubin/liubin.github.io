@@ -1,0 +1,708 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>成为 Kata Containers 开发者 Day 1 - 自言自语</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="成为 Kata Containers 开发者 Day 1 这一系列文章主要是介绍开始 Kata Containers 的开发，这是其中第一部分，主要是看如何来安装开发环境。在这系列教程中，主要是以在 macOS 为宿主机，使用 VirtualBox + Vagrant + Ubuntu &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/03/24/kata-dev-day-1">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="自言自语"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">自言自语</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">成为 Kata Containers 开发者 Day 1</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>这一系列文章主要是介绍开始 Kata Containers 的开发，这是其中第一部分，主要是看如何来安装开发环境。在这系列教程中，主要是以在 macOS 为宿主机，使用 VirtualBox + Vagrant + Ubuntu 为例来进行说明。</p>
+
+<h2>安装虚拟机</h2>
+
+<h3>安装 VirtualBox</h3>
+
+<p>到<a href="https://www.virtualbox.org/wiki/Downloads">官网</a>下载安装。</p>
+
+<h3>安装 Vagrant</h3>
+
+<p>到<a href="https://www.vagrantup.com/downloads.html">官网</a>下载安装。</p>
+
+<p>这时候需要确保命令行中可以使用 <code>vagrant</code> 命令。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ vagrant  version
+</span><span class='line'>==&gt; vagrant: A new version of Vagrant is available: 2.2.14 (installed version: 2.2.7)!
+</span><span class='line'>==&gt; vagrant: To upgrade visit: https://www.vagrantup.com/downloads.html</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>创建虚拟机</h3>
+
+<p>首先创建一个工作目录：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ mkdir kata-box
+</span><span class='line'>$ cd kata-box</span></code></pre></td></tr></table></div></figure>
+
+
+<p>创建 Vagrant 配置文件：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>cat <span class="s">&lt;&lt;EOF &gt; Vagrantfile</span>
+</span><span class='line'><span class="s">Vagrant.configure(&quot;2&quot;) do |config|</span>
+</span><span class='line'><span class="s">  # 磁盘大小，30 GB比较保守</span>
+</span><span class='line'><span class="s">  config.disksize.size = &#39;30GB&#39;</span>
+</span><span class='line'><span class="s">  config.vm.box = &quot;bento/ubuntu-20.04&quot;</span>
+</span><span class='line'><span class="s">  # 主机名，选择自己喜欢的</span>
+</span><span class='line'><span class="s">  config.vm.hostname=&quot;kata-box&quot;</span>
+</span><span class='line'><span class="s">  config.vm.network &quot;private_network&quot;, ip: &quot;192.168.33.19&quot;</span>
+</span><span class='line'><span class="s">  config.vm.provider &quot;virtualbox&quot; do |vb|</span>
+</span><span class='line'><span class="s">    # 虚拟机的资源，当然是越大越好。</span>
+</span><span class='line'><span class="s">    vb.cpus = 2</span>
+</span><span class='line'><span class="s">    vb.memory = &quot;4096&quot;</span>
+</span><span class='line'><span class="s">    # 开启嵌套虚拟化，即在虚拟机中再运行虚拟机（QEMU等）。</span>
+</span><span class='line'><span class="s">    vb.customize [&quot;modifyvm&quot;, :id, &quot;--nested-hw-virt&quot;, &quot;on&quot;]</span>
+</span><span class='line'><span class="s">  end</span>
+</span><span class='line'><span class="s">end</span>
+</span><span class='line'><span class="s">EOF</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>配置文件编辑完之后，就可以启动虚拟机了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>vagrant up
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>第一次启动会比较慢，完全依赖于你的网速，因为初次启动需要从网络下载虚拟机镜像，即上面的 <code>bento/ubuntu-20.04</code> ，还会安装 GuestAdditions（ Vagrant 用于管理虚拟机的 guest OS ） ，这也是很耗时的一步。</p>
+
+<p>如果启动没有问题，就可以通过 ssh 登录到虚拟机了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>vagrant ssh
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>以后，我们每次进到 kata-box 目录，都可以直接通过 vagrant 命令来管理虚拟机。</p>
+
+<p>在 guest OS 中，通过检查内核模块看是否启用了kvm：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>lsmod <span class="p">|</span> grep kvm
+</span><span class='line'>kvm_intel             <span class="m">282624</span>  0
+</span><span class='line'>kvm                   <span class="m">663552</span>  <span class="m">1</span> kvm_intel
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>安装开发环境</h2>
+
+<p>Kata Containers 使用了 Golang 和 Rust 两种开发语言，分别对应 <code>runtime</code> 和 <code>agent</code> 两个子模块。<code>runtime</code> 主要和 <code>contaienrd</code> 等交互，实现了 <code>shimv2</code> 协议，负责 sandbox/containers 的管理。<code>agent</code> 运行在虚拟机（guest）内，通过 <a href="https://github.com/containerd/ttrpc-rust"><code>ttrpc</code></a> 协议和runtime交互。</p>
+
+<p>以下操作均在虚拟机中进行。</p>
+
+<p>最好提前设置好代理，如果想在线安装的话。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nb">export </span><span class="nv">http_proxy</span><span class="o">=</span>http://xxx
+</span><span class='line'><span class="nb">export </span><span class="nv">https_proxy</span><span class="o">=</span>http://yyy
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>安装 Golang</h3>
+
+<p>安装最新版即可，这里都是用的 root 用户。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># wget https://golang.org/dl/go1.16.2.linux-amd64.tar.gz</span>
+</span><span class='line'><span class="c"># rm -rf /usr/local/go &amp;&amp; tar -C /usr/local -xzf go1.16.2.linux-amd64.tar.gz</span>
+</span><span class='line'><span class="c"># export PATH=$PATH:/usr/local/go/bin</span>
+</span><span class='line'><span class="c"># go version</span>
+</span><span class='line'>go version go1.16.2 linux/amd64
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意要把上面的 PATH 更新到 <code>$HOME/.profile</code> 或相应文件里。</p>
+
+<h3>安装 Rust</h3>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># curl --proto &#39;=https&#39; --tlsv1.2 -sSf https://sh.rustup.rs | sh</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果安装失败或者很慢，可能是需要设置代理。这条命令会安装 cargo 等 Rust 所需要的各种工具，也需要一定耗时。</p>
+
+<p>确认 cargo 是否安装成功：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># source $HOME/.cargo/env</span>
+</span><span class='line'><span class="c"># cargo -V</span>
+</span><span class='line'>cargo 1.50.0 <span class="o">(</span>f04e7fab7 2021-02-04<span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>安装 Kata Containers 2.0</h2>
+
+<h3>安装 Kata Containers 2.0</h3>
+
+<p>这里使用直接从 GitHub 下载最新压缩包的方式安装。别问我为什么，貌似 Ubuntu 上还没有 2.0 的安装包，即通过 apt 来安装。</p>
+
+<p>下载并解压缩：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># wget https://github.com/kata-containers/kata-containers/releases/download/2.0.1/kata-static-2.0.1-x86_64.tar.xz</span>
+</span><span class='line'><span class="c"># tar -C / -Jxvf kata-static-2.0.1-x86_64.tar.xz </span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Kata 相关文件都会被解压到 /opt/kata/ 下面。Kata 的配置文件在 /opt/kata/share/defaults/kata-containers/ 下面，每种 hypervisor 都有一个对应的文件，默认使用 QEMU 。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ls -tl /opt/kata/share/defaults/kata-containers/
+</span><span class='line'>total 60
+</span><span class='line'>-rw-r--r-- <span class="m">1</span> <span class="m">1001</span> lpadmin  <span class="m">9686</span> Jan <span class="m">19</span> 20:07 configuration-acrn.toml
+</span><span class='line'>-rw-r--r-- <span class="m">1</span> <span class="m">1001</span> lpadmin  <span class="m">9315</span> Jan <span class="m">19</span> 20:07 configuration-clh.toml
+</span><span class='line'>-rw-r--r-- <span class="m">1</span> <span class="m">1001</span> lpadmin <span class="m">14948</span> Jan <span class="m">19</span> 20:07 configuration-fc.toml
+</span><span class='line'>-rw-r--r-- <span class="m">1</span> <span class="m">1001</span> lpadmin <span class="m">19703</span> Jan <span class="m">19</span> 20:07 configuration-qemu.toml
+</span><span class='line'>lrwxrwxrwx <span class="m">1</span> <span class="m">1001</span> lpadmin    <span class="m">23</span> Jan <span class="m">19</span> 20:07 configuration.toml -&gt; configuration-qemu.toml
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>安装 containerd</h3>
+
+<p>只有 Kata Containers 还不能单独工作，必须要有高层的 runtime 配合才行，比如 containerd 或者 CRI-O 。</p>
+
+<p>这里使用传统方法来安装 containerd 。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>apt-get update <span class="o">&amp;&amp;</span> apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+</span><span class='line'><span class="nv">$ </span>curl -fsSL https://download.docker.com/linux/ubuntu/gpg <span class="p">|</span> apt-key add -
+</span><span class='line'><span class="nv">$ </span>add-apt-repository <span class="se">\</span>
+</span><span class='line'>    <span class="s2">&quot;deb [arch=amd64] https://download.docker.com/linux/ubuntu \</span>
+</span><span class='line'><span class="s2">    $(lsb_release -cs) \</span>
+</span><span class='line'><span class="s2">    stable&quot;</span>
+</span><span class='line'><span class="nv">$ </span>apt-get update <span class="o">&amp;&amp;</span> apt-get install -y containerd.io
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后生成默认的配置文件，并重启 containerd：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>containerd config default &gt; /etc/containerd/config.toml
+</span><span class='line'><span class="nv">$ </span>systemctl daemon-reload
+</span><span class='line'><span class="nv">$ </span>systemctl restart containerd
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>安装 CNI</h3>
+
+<h4>安装 CNI</h4>
+
+<p>没办法，一切都是为 K8s 服务。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>mkdir /go
+</span><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">GOPATH</span><span class="o">=</span>/go
+</span><span class='line'><span class="nv">$ </span>git clone https://github.com/containernetworking/plugins.git <span class="nv">$GOPATH</span>/src/github.com/containernetworking/plugins
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>build：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">cd</span> <span class="nv">$GOPATH</span>/src/github.com/containernetworking/plugins
+</span><span class='line'><span class="nv">$ </span>./build_linux.sh
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>部署：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>mkdir -p /opt/cni/bin
+</span><span class='line'><span class="nv">$ </span>cp bin/* /opt/cni/bin/
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h4>配置 CNI</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>mkdir -p /etc/cni/net.d
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>cat &gt; /etc/cni/net.d/10-mynet.conf <span class="s">&lt;&lt;EOF</span>
+</span><span class='line'><span class="s">{</span>
+</span><span class='line'><span class="s">  &quot;cniVersion&quot;: &quot;0.2.0&quot;,</span>
+</span><span class='line'><span class="s">  &quot;name&quot;: &quot;mynet&quot;,</span>
+</span><span class='line'><span class="s">  &quot;type&quot;: &quot;bridge&quot;,</span>
+</span><span class='line'><span class="s">  &quot;bridge&quot;: &quot;cni0&quot;,</span>
+</span><span class='line'><span class="s">  &quot;isGateway&quot;: true,</span>
+</span><span class='line'><span class="s">  &quot;ipMasq&quot;: true,</span>
+</span><span class='line'><span class="s">  &quot;ipam&quot;: {</span>
+</span><span class='line'><span class="s">    &quot;type&quot;: &quot;host-local&quot;,</span>
+</span><span class='line'><span class="s">    &quot;subnet&quot;: &quot;172.19.0.0/24&quot;,</span>
+</span><span class='line'><span class="s">    &quot;routes&quot;: [</span>
+</span><span class='line'><span class="s">      { &quot;dst&quot;: &quot;0.0.0.0/0&quot; }</span>
+</span><span class='line'><span class="s">    ]</span>
+</span><span class='line'><span class="s">  }</span>
+</span><span class='line'><span class="s">}</span>
+</span><span class='line'><span class="s">EOF</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>配置 containerd</h3>
+
+<p>为 containerd 添加 Kata 运行时。这需要编辑 <code>/etc/containerd/config.toml</code> 文件，在合适的位置添加下面的内容（注意配置项目的嵌套关系）。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># diff /etc/containerd/config.toml /etc/containerd/config.toml.orig </span>
+</span><span class='line'>90,93d89
+</span><span class='line'>&lt;         <span class="o">[</span>plugins.<span class="s2">&quot;io.containerd.grpc.v1.cri&quot;</span>.containerd.runtimes.kata<span class="o">]</span>
+</span><span class='line'>&lt;           <span class="nv">runtime_type</span> <span class="o">=</span> <span class="s2">&quot;io.containerd.kata.v2&quot;</span>
+</span><span class='line'>&lt;           <span class="nv">pod_annotations</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;io.kata-containers.*&quot;</span><span class="o">]</span>
+</span><span class='line'>&lt;           <span class="nv">privileged_without_host_devices</span> <span class="o">=</span> <span class="nb">true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后重启 containerd：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>systemctl restart containerd
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>验证 Kata Containers + containerd 是否正常工作</h3>
+
+<p>可以使用 containerd 自带的 ctr 命令来创建容器，这个命令类似 Docker 的客户端命令。</p>
+
+<p>下载镜像：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ctr image pull docker.io/library/busybox:latest
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>启动容器：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ctr run --runtime io.containerd.run.kata.v2 -t --rm docker.io/library/busybox:latest hello sh
+</span><span class='line'>ctr: runtime <span class="s2">&quot;io.containerd.run.kata.v2&quot;</span> binary not installed <span class="s2">&quot;containerd-shim-kata-v2&quot;</span>: file does not exist: unknown
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>莫慌，因为我们的 Kata containers 不是标准安装，所以 containerd 没有找到我们的 runtime binary 文件。</p>
+
+<p>链接一下即可。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ln -s /opt/kata/bin/containerd-shim-kata-v2 /usr/local/bin/containerd-shim-kata-v2
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后就可以启动使用了 Kata Containres 的容器了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>ctr run --runtime io.containerd.run.kata.v2 -t --rm docker.io/library/busybox:latest hello sh
+</span><span class='line'>/ <span class="c"># </span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>新开一个窗口，通过 ps 命令就可以看到 qemu 虚拟机在运行了。</p>
+
+<h2>安装 crictl 工具</h2>
+
+<h3>安装 crictl 二进制文件</h3>
+
+<p><a href="https://github.com/kubernetes-sigs/cri-tools">crictl</a> 是支持 CRI 协议的命令行工具，可以进行Pod、Container的管理。</p>
+
+<p>安装也很简单：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ VERSION</span><span class="o">=</span><span class="s2">&quot;v1.20.0&quot;</span>
+</span><span class='line'><span class="nv">$ </span>wget https://github.com/kubernetes-sigs/cri-tools/releases/download/<span class="nv">$VERSION</span>/crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz
+</span><span class='line'><span class="nv">$ </span>sudo tar zxvf crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz -C /usr/local/bin
+</span><span class='line'><span class="nv">$ </span>rm -f crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>配置 crictl</h3>
+
+<p>为了能正常使用 crictl 命令，需要创建 crictl 命令用的配置文件：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># cat &gt; /etc/crictl.yaml &lt;&lt;EOF</span>
+</span><span class='line'>runtime-endpoint: unix:///var/run/containerd/containerd.sock
+</span><span class='line'>image-endpoint: unix:///var/run/containerd/containerd.sock
+</span><span class='line'>timeout: 10
+</span><span class='line'>debug: <span class="nb">false</span>
+</span><span class='line'>EOF
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>验证 crictl</h3>
+
+<p>使用 crictl 需要手工先下载 2 个镜像。</p>
+
+<ul>
+<li>crictl pull k8s.gcr.io/pause:3.1</li>
+<li>crictl pull busybox:latest</li>
+</ul>
+
+
+<p>上面的 k8s.gcr.io/pause:3.1 是 Pod 中 的 pause 容器的镜像，创建 Pod 的时候需要。busybox:latest 是容器运行的镜像。crictl 不会在运行创建或容器的时候自动下载镜像，所以需要提前手工下载。</p>
+
+<p>镜像下载之后就可以创建 Pod 和容器，并启动容器。</p>
+
+<p>创建 pod：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># pod=`crictl runp -r kata sandbox.yaml`</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>查看 pod：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># crictl pods</span>
+</span><span class='line'>POD ID              CREATED             STATE               NAME                NAMESPACE           ATTEMPT             RUNTIME
+</span><span class='line'>d3e1a1567602e       <span class="m">24</span> seconds ago      Ready               busybox-sandbox     default             <span class="m">1</span>                   kata
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>创建容器：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># cnt=`crictl create $pod container.yaml sandbox.yaml`</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>启动容器：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># crictl start $cnt</span>
+</span><span class='line'>25222afa5327a5c4f11aee9c615df019fc39d9134700135606cdc3f49f113d7d
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>查看运行中的容器：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># crictl ps</span>
+</span><span class='line'>CONTAINER           IMAGE               CREATED             STATE               NAME                ATTEMPT             POD ID
+</span><span class='line'>25222afa5327a       busybox:latest      <span class="m">15</span> seconds ago      Running             busybox             <span class="m">0</span>                   d3e1a1567602e
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>停止并删除 pod：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># crictl stopp $pod</span>
+</span><span class='line'>Stopped sandbox d3e1a1567602e12335dc0f772774f96f4ef66736c0a98d9dd0ab14164292c4e9
+</span><span class='line'>
+</span><span class='line'><span class="c"># crictl rmp $pod</span>
+</span><span class='line'>Removed sandbox d3e1a1567602e12335dc0f772774f96f4ef66736c0a98d9dd0ab14164292c4e9
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>常用 vagrant 命令</h2>
+
+<ul>
+<li>vagrant up： 启动虚拟机</li>
+<li>vagrant halt：关机</li>
+<li>vagrant reload：重启</li>
+<li>vagrant ssh：登录虚拟机，用户都是vagrant来管理，不用自己操心</li>
+<li>vagrant destroy：删除虚拟机，危险操作。</li>
+</ul>
+
+
+<h2>小结</h2>
+
+<p>这一章，介绍了如何使用 Vagrant + VirtualBox 创建虚拟机，在虚拟机中安装 Kata Containers 2.0，并通过 crictl 工具来创建兼容 K8s 的 Pod。</p>
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-03-24 15:36:59 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/03/24/kata-dev-day-1/"
+	 data-via="OurColorfulDays"
+	 data-counturl="http://liubin.org/blog/2021/03/24/kata-dev-day-1/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
