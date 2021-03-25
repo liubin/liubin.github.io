@@ -17,7 +17,7 @@ categories:
 
 Kata Containers 代码托管在 GitHub 上，这是它的主页： https://github.com/kata-containers 。
 
-目前 Kata Containers 有两个版本：1.x 和 2.0 ，1.x 基本主要处于维护阶段，新功能都在 2.0 上开发。
+目前 Kata Containers 有两个版本：1.x 和 2.0 ，1.x 基本处于维护阶段，新功能都在 2.0 上开发。
 
 根据 Kata Containers 版本的不同，代码仓库也有些不一样。
 
