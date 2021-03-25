@@ -1,0 +1,643 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>Hello Rust async/await - 自言自语</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="Hello Rust async/await Rust 对 async/await 的支持越来越成熟了，在一些场景下相对于线程等模型能显著提高效率。 这里我们来简单了解下怎么在 Rust 最快速的入手异步编程。 Hello world async/await 在 Rust 中，异步编程都抽象为 &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/03/25/hello-rust-async">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="自言自语"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">自言自语</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/OurColorfulDays">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">Hello Rust async/await</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>Rust 对 async/await 的支持越来越成熟了，在一些场景下相对于线程等模型能显著提高效率。</p>
+
+<p>这里我们来简单了解下怎么在 Rust 最快速的入手异步编程。</p>
+
+<h2>Hello world async/await</h2>
+
+<p>在 Rust 中，异步编程都抽象为 Future trait，类似 JavaScript 中的 Promise 。在最近的 Rust 中，直接使用 async 关键字即可创建 Future 对象。</p>
+
+<p>async 关键字可以用于创建如下类型的 Future：</p>
+
+<ul>
+<li>定义函数：<code>async fn</code></li>
+<li>定义 block： <code>async {}</code></li>
+</ul>
+
+
+<p>Future 不会立即执行，要想执行 Future 定义的函数，需要：</p>
+
+<ul>
+<li>使用 <code>await</code></li>
+<li>或者在异步运行时中为该 Future 创建 task</li>
+</ul>
+
+
+<p>创建异步任务，可以选择如下方式：</p>
+
+<ul>
+<li>使用 <code>block_on</code></li>
+<li>使用 <code>spawn</code></li>
+</ul>
+
+
+<h2>使用 async/await 关键字</h2>
+
+<p>这里我们以 tokio 为例来看一些简单的入门示例，来加深一下对这几个概念的理解。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">world</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">String</span> <span class="p">{</span>
+</span><span class='line'>    <span class="s">&quot;world&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">()</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">hello</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">String</span> <span class="p">{</span>
+</span><span class='line'>  <span class="c1">// 使用 .await 关键字调用 world() 函数</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">w</span> <span class="o">=</span> <span class="n">world</span><span class="p">().</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">format</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hello {} async from function&quot;</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="c1">// 创建运行时</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">rt</span> <span class="o">=</span> <span class="n">tokio</span><span class="o">::</span><span class="n">runtime</span><span class="o">::</span><span class="n">Runtime</span><span class="o">::</span><span class="n">new</span><span class="p">().</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span class='line'>    <span class="c1">// 使用 block_on 调用 async 函数</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">rt</span><span class="p">.</span><span class="n">block_on</span><span class="p">(</span><span class="n">hello</span><span class="p">());</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">,</span> <span class="n">msg</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 使用 block_on 调用 async block</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">_</span> <span class="o">=</span> <span class="n">rt</span><span class="p">.</span><span class="n">block_on</span><span class="p">(</span><span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hello world async from block&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">});</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在这个例子中，hello 和 world 函数都使用了 async 关键字，表示该函数要以异步的方式执行。两个函数的返回值本来为 String，但是加了 async 关键字后，这两个函数的最终的签名会在内部表示为 <code>fn hello() -&gt; impl Future&lt;Output=String&gt;</code>。即返回值是一个 Future 类型，这个 Future 执行后，会返回 String 类型的结果。</p>
+
+<p>这里我们使用了两种方法执行 Future。</p>
+
+<p>在 hello 函数中，使用了 <code>world().await</code> 来调用 world 函数，并等待该函数返回，其结果不是 Future 类型，而是 Future 关联的 Output 类型，在这里即 String。</p>
+
+<p>除了直接使用 await 关键字，我们还使用了 <code>tokio::runtime::Runtime::new()</code> 创建了 tokio 运行时，并在其中运行我们的 Future ，即 <code>rt.block_on(hello())</code> 和 <code>rt.block_on(async {})</code> 这两处。</p>
+
+<p>对于 async block，也可以直接调用 await：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hello world async&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}.</span><span class="n">await</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其实，tokio 提供了一个非常方便的注解（或称属性），方便我们在 main 函数中执行 Future 任务。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">hello</span><span class="p">().</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">,</span> <span class="n">msg</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hello world async from block&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="p">.</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>只需要在 main 上面加上 <code>#[tokio::main]</code> ，前面加上 async 关键字，即可在其内部直接执行 await 方法，而不必使用 block_on 或者 spawn 方法。</p>
+
+<h2>使用 spawn</h2>
+
+<p>前面的例子直接执行了 Future 任务，我们也可以使用 spawn 来创建 Future 的任务，然后让任务并行执行，并获取任务的执行结果。</p>
+
+<p>spawn 会启动一个异步任务，并返回 JoinHandle 类型的结果。这个任务虽然启动，但是 spawn 不保证（等待）它会正常执行完成。考虑如下代码：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">tokio</span><span class="o">::</span><span class="n">time</span><span class="o">::</span><span class="p">{</span><span class="n">sleep</span><span class="p">,</span> <span class="n">Duration</span><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">tokio</span><span class="o">::</span><span class="nb">spawn</span><span class="p">(</span><span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>        <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hard work finished&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">});</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mission started&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>执行上面的代码，我们只能看到 <code>mission started</code> 打印出来，而不会看到异步任务的输出，这是因为在异步任务输出语句执行之前，main 函数就结束了，进程将会退出，异步任务中的打印语句将不会有机会执行。</p>
+
+<p>这时候，我们需要使用 JoinHandle 来确保该任务执行完成。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">tokio</span><span class="o">::</span><span class="n">time</span><span class="o">::</span><span class="p">{</span><span class="n">sleep</span><span class="p">,</span> <span class="n">Duration</span><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">jh</span> <span class="o">=</span> <span class="n">tokio</span><span class="o">::</span><span class="nb">spawn</span><span class="p">(</span><span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>        <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hard work finished&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">});</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mission started&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">_</span> <span class="o">=</span> <span class="n">jh</span><span class="p">.</span><span class="n">await</span><span class="p">.</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里我们只需要拿到 spawn 的 JoinHandle ，并使用 await，即可以等待该任务结束，从而确保在所有工作完成后，再退出 main 函数。</p>
+
+<p>JoinHandle 也可以用于获取异步任务的返回值，这里我们看一个 <a href="https://docs.rs/tokio/1.4.0/tokio/task/struct.JoinHandle.html">官方文档</a> 的示例：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">tokio</span><span class="o">::</span><span class="n">task</span><span class="p">;</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">std</span><span class="o">::</span><span class="n">io</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">io</span><span class="o">::</span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">join_handle</span><span class="o">:</span> <span class="n">task</span><span class="o">::</span><span class="n">JoinHandle</span><span class="o">&lt;</span><span class="nb">Result</span><span class="o">&lt;</span><span class="kt">i32</span><span class="p">,</span> <span class="n">io</span><span class="o">::</span><span class="n">Error</span><span class="o">&gt;&gt;</span> <span class="o">=</span> <span class="n">tokio</span><span class="o">::</span><span class="nb">spawn</span><span class="p">(</span><span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nb">Ok</span><span class="p">(</span><span class="mi">5</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">result</span> <span class="o">=</span> <span class="n">join_handle</span><span class="p">.</span><span class="n">await</span><span class="o">??</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="mi">8</span><span class="p">);</span>
+</span><span class='line'>    <span class="nb">Ok</span><span class="p">(())</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们也可以用类似 golang 中的 chan 的机制来实现不同的异步任务之间的通信：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">tokio</span><span class="o">::</span><span class="n">sync</span><span class="o">::</span><span class="n">oneshot</span><span class="p">;</span>
+</span><span class='line'><span class="kn">use</span> <span class="n">tokio</span><span class="o">::</span><span class="n">time</span><span class="o">::</span><span class="p">{</span><span class="n">sleep</span><span class="p">,</span> <span class="n">Duration</span><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">rx</span><span class="p">)</span> <span class="o">=</span> <span class="n">oneshot</span><span class="o">::</span><span class="n">channel</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">tokio</span><span class="o">::</span><span class="nb">spawn</span><span class="p">(</span><span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>        <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hard work finished&quot;</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">tx</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="s">&quot;ping&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">()).</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span class='line'>    <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mission started&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">_</span> <span class="o">=</span> <span class="n">rx</span><span class="p">.</span><span class="n">await</span><span class="p">.</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mission completed&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面代码的输出结果为：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">mission</span> <span class="n">started</span>
+</span><span class='line'><span class="n">hard</span> <span class="n">work</span> <span class="n">finished</span>
+</span><span class='line'><span class="n">mission</span> <span class="n">completed</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到，在 rx.await 的时候，main 函数会等待，直到异步任务结束之后，通过 <code>tx.send</code> 发送消息给了这个 chan ，main 函数才继续执行下面的步骤，打印了 &ldquo;mission completed&rdquo; 之后退出。</p>
+
+<h2>等待多个异步任务</h2>
+
+<p>有很多时候，我们可能会在开始启动多个异步任务，并等待所有异步任务执行完成。</p>
+
+<p>tolio 提供了 <code>tokio::join!</code> 宏来实现该功能。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">tokio</span><span class="o">::</span><span class="n">time</span><span class="o">::</span><span class="p">{</span><span class="n">sleep</span><span class="p">,</span> <span class="n">Duration</span><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">f1</span> <span class="o">=</span> <span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>        <span class="mi">1</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">f2</span> <span class="o">=</span> <span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">50</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>        <span class="s">&quot;hello&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">()</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">)</span><span class="o">:</span> <span class="p">(</span><span class="kt">i32</span><span class="p">,</span> <span class="n">String</span><span class="p">)</span> <span class="o">=</span> <span class="n">tokio</span><span class="o">::</span><span class="n">join</span><span class="o">!</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">);</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;r1:{}</span><span class="se">\n</span><span class="s">r2:{}&quot;</span><span class="p">,</span> <span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 简单等待前面的异步任务结束</span>
+</span><span class='line'>    <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">1000</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>要注意，<code>tokio::join!</code> 只有所有的异步任务都结束的时候才会返回。</p>
+
+<p>如果想同时启动几个任务，只需要一个返回就继续进行后续处理的话，可以使用 select 宏。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kn">use</span> <span class="n">tokio</span><span class="o">::</span><span class="n">time</span><span class="o">::</span><span class="p">{</span><span class="n">sleep</span><span class="p">,</span> <span class="n">Duration</span><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">test_select</span><span class="p">(</span><span class="n">t1</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span> <span class="n">t2</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span> <span class="n">timeout</span><span class="o">:</span> <span class="kt">u64</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">f1</span> <span class="o">=</span> <span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="n">t1</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>        <span class="mi">1</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">f2</span> <span class="o">=</span> <span class="n">async</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="n">t2</span><span class="p">)).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>        <span class="s">&quot;hello&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">()</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">timeout</span> <span class="o">=</span> <span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_millis</span><span class="p">(</span><span class="n">timeout</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">tokio</span><span class="o">::</span><span class="n">select</span><span class="o">!</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">_</span> <span class="o">=</span> <span class="n">timeout</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>            <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;got timeout!&quot;</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="n">v</span> <span class="o">=</span> <span class="n">f1</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>            <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;got r1: {}&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="n">v</span> <span class="o">=</span> <span class="n">f2</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>            <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;got r2: {}&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">// got first task result</span>
+</span><span class='line'>    <span class="n">test_select</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">500</span><span class="p">).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>    <span class="c1">// got second task result</span>
+</span><span class='line'>    <span class="n">test_select</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'>    <span class="c1">// timeout</span>
+</span><span class='line'>    <span class="n">test_select</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">).</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面的程序执行结果如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">got</span> <span class="n">r1</span><span class="o">:</span> <span class="mi">1</span>
+</span><span class='line'><span class="n">got</span> <span class="n">r2</span><span class="o">:</span> <span class="n">hello</span>
+</span><span class='line'><span class="n">got</span> <span class="n">timeout</span><span class="o">!</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>首先，我们在 test_select 方法中，定义了另外两个异步任务，分别返回整数型和字符串类型的值，并且分别设置了不同的 sleep 时间。我们分 3 次调用了这个方法：</p>
+
+<ul>
+<li>test_select(100, 200, 500).await;</li>
+<li>test_select(200, 100, 500).await;</li>
+<li>test_select(200, 100, 50).await;</li>
+</ul>
+
+
+<p>其中前两个参数是两个异步任务的 sleep 时间，第三个参数是超时时间。从这三次调用所使用的参数来看，第三次超时时间小于两个异步任务的 sleep 时间，所以会打印超时的信息。</p>
+
+<h2>小结</h2>
+
+<p>这里我们只是简单入门了一下基于 tokio 的异步任务编程模型，其实 tokio 还提供了很多非常有用的库函数，等待我们在以后继续深挖。</p>
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-03-25 19:26:43 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/03/25/hello-rust-async/"
+	 data-via="OurColorfulDays"
+	 data-counturl="http://liubin.org/blog/2021/03/25/hello-rust-async/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
