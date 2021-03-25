@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-03-24T17:39:31+08:00</updated>
+  <updated>2021-03-25T15:56:37+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -14,11 +14,253 @@
 
   
   <entry>
+    <title type="html"><![CDATA[成为 Kata Containers 开发者 Day 2]]></title>
+    <link href="http://liubin.org/blog/2021/03/25/kata-dev-day-2/"/>
+    <updated>2021-03-25T14:01:50+08:00</updated>
+    <id>http://liubin.org/blog/2021/03/25/kata-dev-day-2</id>
+    <content type="html"><![CDATA[<p>上一篇文章中介绍了如何使用VirtualBox + Vagrant 构建一台基于 Ubuntu 的虚拟机，并在里面安装了 containerd + Kata Containers 2.0，同时安装好了开发环境，包括 Golang 和 Rust 。不过我们还没有进行过任何开发活动，这也是我们从这篇文章开始将要接触到的内容。</p>
+
+<p>在本篇文章中，我们将会主要讲述如下一些内容：</p>
+
+<ul>
+<li>Kata Containers 仓库介绍</li>
+<li>如何编译 runtime 和 agent 两个组件</li>
+</ul>
+
+
+<h2>Kata Containers 仓库介绍</h2>
+
+<p>Kata Containers 代码托管在 GitHub 上，这是它的主页： <a href="https://github.com/kata-containers">https://github.com/kata-containers</a> 。</p>
+
+<p>目前 Kata Containers 有两个版本：1.x 和 2.0 ，1.x 基本主要出于维护阶段，新功能都在 2.0 上开发。</p>
+
+<p>根据 Kata Containers 版本的不同，代码仓库也有些不一样。</p>
+
+<h3>Kata Containers 1.x</h3>
+
+<p><strong>Note：</strong>本系列文章以 Kata Containers 2.0 为对象进行说明，对 1.x 的说明仅供了解。</p>
+
+<p>在 Kata Containers 1.x 中，涉及到的组件比较多，主要有以下几个：</p>
+
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>语言</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/kata-containers/runtime">runtime</a></td>
+<td>Golang</td>
+<td>runtime/shimv2</td>
+</tr>
+<tr>
+<td><a href="https://github.com/kata-containers/agent">kata-agent</a></td>
+<td>Golang</td>
+<td>运行在 guest 中的 agent，和 runtime 通过 gRPC 协议通信，负责 guest 内容器的管理</td>
+</tr>
+<tr>
+<td><a href="https://github.com/kata-containers/proxy">kata-proxy</a></td>
+<td>Golang</td>
+<td>运行在 guest 中的 agent</td>
+</tr>
+<tr>
+<td><a href="https://github.com/kata-containers/shim">kata-shim</a></td>
+<td>Golang</td>
+<td>运行在 host 中，负责 guest 中进程的 I/O 拷贝和信号处理</td>
+</tr>
+<tr>
+<td><a href="https://github.com/kata-containers/documentation">documentation</a></td>
+<td>文档</td>
+<td>开发、使用文档</td>
+</tr>
+<tr>
+<td><a href="https://github.com/kata-containers/packaging">packaging</a></td>
+<td>文档、脚本</td>
+<td>构建内核、安装包、发布新版本</td>
+</tr>
+<tr>
+<td><a href="https://github.com/kata-containers/osbuilder">osbuilder</a></td>
+<td>文档、脚本</td>
+<td>构建 guest OS 镜像</td>
+</tr>
+</tbody>
+</table>
+
+
+<h3>Kata Containers 2.0</h3>
+
+<p>从上面的仓库介绍来说，2.0 在开发上主要有以下几个重大的变更点：</p>
+
+<ul>
+<li>agent 使用 Rust 重写</li>
+<li>只支持 shimv2，因此少了 proxy 和 shim 组件</li>
+</ul>
+
+
+<p>在 Kata Containers 2.0 中，核心组件只剩下两个：runtime 和 agent ，且都在<a href="https://github.com/kata-containers/kata-containers">kata-containers</a> 这个 repo 下。</p>
+
+<p>这个 repo 的目录和文件有如下几个可以拿出来先提前说明一下的（开发中经常会修改或参考的）：</p>
+
+<ul>
+<li>versions.yaml：记录了测试、构建所需要的软件版本信息</li>
+<li>ci：CI 测试脚本（主要依赖的其实是 <a href="https://github.com/kata-containers/tests">tests</a> 仓库）。</li>
+<li>docs：文档信息，对应 1.x 的 documentation 仓库。</li>
+<li>tools：原来的 packaging 和 osbuilder 挪到了这里。</li>
+<li>src：核心组件的源代码。</li>
+</ul>
+
+
+<h4>src 目录介绍</h4>
+
+<p>kata-containers/src 下有如下几个项目的代码：</p>
+
+<ul>
+<li>agent： agent 代码</li>
+<li>runtime： runtime（shimv2）代码</li>
+<li>trace-forwarder：可选，一个用于将 guest 内的 trace 通过 vsock 转发出来的组件。</li>
+<li>kata-monitor：可选，运行在主机中，运行一些 shimv2 协议之外的管理接口。</li>
+</ul>
+
+
+<h3>其他仓库</h3>
+
+<p>除了上面的主要代码仓库之外，作为一个颇具规模的开源软件，Kata Containers 还有一些其他的仓库需要了解下。</p>
+
+<h4>community</h4>
+
+<p><a href="https://github.com/kata-containers/community">community</a> 里面记录的是如何进行项目管理，包括治理委员会的组成和选举，以及开发者和贡献者的管理等内容。</p>
+
+<h4>tests</h4>
+
+<p><a href="https://github.com/kata-containers/tests">tests</a> 是非常重要的一个仓库，所有关于测试的代码都在这里，我们提交的每个 PR ，都会通过 CI 进行测试，而测试的主体代码都在这个仓库里。</p>
+
+<h2>Kata Containers 开发流程</h2>
+
+<p>Kata Containers 社区通过 PR 的方式来修改软件，也就是任何提交，都需要通过创建 PR、review 后，合并到主分支。</p>
+
+<p>在提交代码之前，你还需要先 <a href="https://github.com/kata-containers/kata-containers/issues/new/choose">创建一个 issue</a>， 来介绍你为什么要做这次提交。基本来说 issue 有两种类型： bug 和 feature（enhancement）。不管是哪种类型，都需要描述问题的背景，以及如何解决，这样可以方便其他开发人员理解该问题，提高 review 代码的速度，这也是 PR 能今早合并的一个前提条件。</p>
+
+<p>Issue 有了后，就可以在本地修改代码、测试，如果测试通过，就可以提交代码了。</p>
+
+<p>提交代码的时候，对 commit message 的要求比较严格，一般来说是需要按照这样的格式来填写的：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>subsystem: One line change summary
+</span><span class='line'>
+</span><span class='line'>More detailed explanation of your changes (why and how)
+</span><span class='line'>that spans as many lines as required.
+</span><span class='line'>
+</span><span class='line'>Fixes: #1234
+</span><span class='line'>
+</span><span class='line'>Signed-off-by: Contributors Name &lt;contributor@foo.com&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>即，commit message 包含 4 部分：</p>
+
+<ul>
+<li>title： 由 subsystem: title 组成</li>
+<li>body： 具体的说明，比如为了解决什么问题，如何处理，注意事项，参考资料等</li>
+<li>Fixes：需要指明这个 PR 是为了解决哪个 issue</li>
+<li>Signed-off-by：这个可以通过 git commit -s 来自动生成。</li>
+</ul>
+
+
+<p>关于 commit message，我们会在后面的实例中再次进行说明。</p>
+
+<p>代码提交、push 到 GitHub 后，就可以到 GitHub 上创建 PR 了，这部分可以参考 GitHub 的官方文档，这里不做说明，假设你了解该如何去做。如果你有 gitlab 的使用经验，应该可以很快入手。</p>
+
+<p>这里列出的只是 Kata Containers 开发中比较重要的点，具体的一些注意事项，比如 git config 的配置，代码格式的检查等，我们都会在后面的系列文章中逐步进行详细的说明。</p>
+
+<h2>编译 Kata Containers 组件</h2>
+
+<h3>Fork Kata Containers 仓库</h3>
+
+<p>首先，你需要在 GitHub 上 fork Kata Containers 的代码仓库，然后把自己 fork 的仓库下载到本地。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ git clone git@github.com:{your-github-username}/kata-containers.git $GOPATH/src/github.com/kata-containers/kata-containers</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>编译 runtime 组件</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ cd $GOPATH/src/github.com/kata-containers/kata-containers/src/runtime
+</span><span class='line'>$ make</span></code></pre></td></tr></table></div></figure>
+
+
+<p>第一次 make 的时候大概率会需要安装 yq 命令：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>INFO: yq was not found, installing it</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果安装失败，则可能需要配置下网络代理。</p>
+
+<p>如果一切正常，构建会比较快，你可以在当前文件夹下看到如下的一些二进制文件：</p>
+
+<ul>
+<li>containerd-shim-kata-v2</li>
+<li>kata-monitor</li>
+<li>kata-netmon</li>
+<li>kata-runtime</li>
+</ul>
+
+
+<p>我们的大部分开发工作，基本都会围绕着 containerd-shim-kata-v2 进行。</p>
+
+<p>如果想使用自己编译的 containerd-shim-kata-v2 代替系统的 containerd-shim-kata-v2， 可以做一个符号链接即可：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># ln -s $GOPATH/src/github.com/kata-containers/kata-containers/src/runtime/containerd-shim-kata-v2 /usr/local/bin/containerd-shim-kata-v2</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>编译 agent 组件</h3>
+
+<p>和 runtime 组件不同，agent 采用 Rust 编写，所有依赖的库都没有被以 vendor 的形式放到代码仓库里，在构建的时候，需要从网络上下载，所以初次构建 agent 会比较慢，所耗时间，还和宿主机的配置有关。</p>
+
+<p>在编译 agent 之前，需要先安装 x86_64-unknown-linux-musl 用于静态链接（默认链接方式）。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ rustup target add x86_64-unknown-linux-musl</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后就可以编译 agent 了。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ cd $GOPATH/src/github.com/kata-containers/kata-containers/src/agent
+</span><span class='line'>$ make</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在我的 2C4G 虚拟机中，这个构建过程花费了近 6 分钟的时间。不过这只是第一次构建的耗时而已，只要你不执行 make clean ，如果只是简单修改代码后再构建，耗时应该会比这个低一些。</p>
+
+<p>编译后的 kata-agent 文件在 target/x86_64-unknown-linux-musl/release/ 下面，这个文件需要在 guest OS 中运行，所以我们编译完了之后还不能直接使用，而必须要把它放到 guest OS 的镜像之中，不过这里我们暂时还不打算立刻介绍如何去做，等到后面有机会的时候，再做具体的详细说明。</p>
+
+<h2>小结</h2>
+
+<p>这篇文章给大家介绍了要想参与 Kata Containers 的开发，都会需要解除哪些代码仓库，大致的开发流程，也介绍了如何编译 runtime 和 agent 组件。在下一章，我们将会看到如何做一些具体的修改，并进行测试。</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[成为 Kata Containers 开发者 Day 1]]></title>
     <link href="http://liubin.org/blog/2021/03/24/kata-dev-day-1/"/>
     <updated>2021-03-24T15:36:59+08:00</updated>
     <id>http://liubin.org/blog/2021/03/24/kata-dev-day-1</id>
-    <content type="html"><![CDATA[<p>这一系列文章主要是介绍开始 Kata Containers 的开发，这是其中第一部分，主要是看如何来安装开发环境。在这系列教程中，主要是以在 macOS 为宿主机，使用 VirtualBox + Vagrant + Ubuntu 为例来进行说明。</p>
+    <content type="html"><![CDATA[<p>在平时闲聊或者吃饭的时候，隔壁同学谈到对 Kata Containers 也很感兴趣，问如何才能参与下或者学习下呢？确实现在 Kata Containers 社区版基本都是英文资料，而且也缺乏比较基础的入门资料，这也成为了这一系列文章的契机。</p>
+
+<p>这一系列文章主要是介绍如何开始参与到 Kata Containers 的开发，这是其中第一部分，主要是看如何来安装开发环境。在这系列教程中，主要是以在 macOS 为宿主机，使用 VirtualBox + Vagrant + Ubuntu 为例来进行说明。</p>
 
 <h2>安装虚拟机</h2>
 
@@ -3519,401 +3761,6 @@
 <p>要有张有弛，控制节奏。就像跑马拉松，首先要上路，不能上来就找不到方向；其次要坚持，创业不是短跑，用尽全力会倒在强弩之末。</p>
 
 <p>不过遗憾的是，途客圈没有完成下一轮融资，不得不被合并了。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Docker 1.12.0将要发布的新功能]]></title>
-    <link href="http://liubin.org/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0/"/>
-    <updated>2016-06-17T18:27:03+08:00</updated>
-    <id>http://liubin.org/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0</id>
-    <content type="html"><![CDATA[<p>按计划，6/14 是1.12.0版本的 <a href="https://github.com/docker/docker/wiki">feature冻结</a> 的日子，再有两个星期Docker 1.12.0也该发布了。这里列出来的新功能，都是已经合并到主分支的功能，不出意外，下一个版本的Docker应该是能体验到了。</p>
-
-<p>下周2016 DockerCon也该开始了，好像也有一场专门来讲Docker新特性的，不过在这之前，我们就可以抢先一步，浏览一下这些新功能、新特性。尤其是前两个，都是比较吸引人的功能。</p>
-
-<h2>Swarmkit集成</h2>
-
-<p>前几天Docker刚刚发布了 <a href="https://github.com/docker/swarmkit">Swarmkit</a> ，也就是Swarm V2。</p>
-
-<p>同时，在这个版本的Docker中，Swarm/Swarmkit 相关命令也被整合到了Docker子命令中。这可能算得上是1.12.0版本中最大的变更点了。</p>
-
-<p><a href="https://github.com/docker/docker/pull/23361">这个PR（Add dependency to docker/swarmkit）</a> 有600个文件变动。
-除了传统的image和container对象，这个PR增加了task和service等资源类型。</p>
-
-<p>相关几个子PR包括 <a href="https://github.com/docker/docker/pull/23362">23362</a> 、<a href="https://github.com/docker/docker/pull/23363">23363</a> 、 <a href="https://github.com/docker/docker/pull/23364">23364</a>。</p>
-
-<p>使用新的Docker命令，可以这样直接创建Swarm集群：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker swarm init --listen-addr 192.168.99.100:2377
-</span><span class='line'>Swarm initialized: current node (09fm6su6c24qn) is now a manager.</span></code></pre></td></tr></table></div></figure>
-
-
-<p>查看节点：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker node ls
-</span><span class='line'>ID              NAME      MEMBERSHIP  STATUS  AVAILABILITY  MANAGER STATUS  LEADER
-</span><span class='line'>09fm6su6c24q *  manager1  Accepted    Ready   Active        Reachable       Yes</span></code></pre></td></tr></table></div></figure>
-
-
-<p>然后这样来部署一个新的service：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service create --scale 1 --name helloworld alpine ping docker.com
-</span><span class='line'>2zs4helqu64f3k3iuwywbk49w
-</span><span class='line'>
-</span><span class='line'>$ docker service ls
-</span><span class='line'>ID            NAME        SCALE  IMAGE   COMMAND
-</span><span class='line'>2zs4helqu64f  helloworld  1      alpine  ping docker.com</span></code></pre></td></tr></table></div></figure>
-
-
-<p>需要scale了？没关系，也可以在Docker中直接完成：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service update --scale 5 helloworld
-</span><span class='line'>helloworld
-</span><span class='line'>
-</span><span class='line'>$ docker service tasks helloworld
-</span><span class='line'>ID                         NAME          SERVICE     IMAGE   DESIRED STATE  LAST STATE          NODE
-</span><span class='line'>1n6wif51j0w840udalgw6hphg  helloworld.1  helloworld  alpine  RUNNING        RUNNING 2 minutes   manager1
-</span><span class='line'>dfhsosk00wxfb7j0cazp3fmhy  helloworld.2  helloworld  alpine  RUNNING        RUNNING 15 seconds  worker2
-</span><span class='line'>6cbedbeywo076zn54fnwc667a  helloworld.3  helloworld  alpine  RUNNING        RUNNING 15 seconds  worker1
-</span><span class='line'>7w80cafrry7asls96lm2tmwkz  helloworld.4  helloworld  alpine  RUNNING        RUNNING 10 seconds  worker1
-</span><span class='line'>bn67kh76crn6du22ve2enqg5j  helloworld.5  helloworld  alpine  RUNNING        RUNNING 10 seconds  manager1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>在一台机器上使用 <code>docker ps</code> :</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker ps
-</span><span class='line'>
-</span><span class='line'>CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
-</span><span class='line'>910669d5e188        alpine:latest       "ping docker.com"   10 seconds ago      Up 10 seconds                           helloworld.5.bn67kh76crn6du22ve2enqg5j
-</span><span class='line'>a0b6c02868ca        alpine:latest       "ping docker.com"   2 minutes  ago      Up 2 minutes                            helloworld.1.1n6wif51j0w840udalgw6hphg
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>我们也可以这样使用 <code>dcoekr service</code> 子命令。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service create --scale 3 --name redis --update-delay 10s --update-parallelism 1 redis:3.0.6
-</span><span class='line'>
-</span><span class='line'>69uh57k8o03jtqj9uvmteodbb
-</span><span class='line'>$ docker service tasks redis
-</span><span class='line'>ID                         NAME     SERVICE  IMAGE        LAST STATE          DESIRED STATE  NODE
-</span><span class='line'>3wfqsgxecktpwoyj2zjcrcn4r  redis.1  redis    redis:3.0.6  RUNNING 13 minutes  RUNNING        worker2
-</span><span class='line'>8lcm041z3v80w0gdkczbot0gg  redis.2  redis    redis:3.0.6  RUNNING 13 minutes  RUNNING        worker1
-</span><span class='line'>d48skceeph9lkz4nbttig1z4a  redis.3  redis    redis:3.0.6  RUNNING 12 minutes  RUNNING        manager1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>总之，新的Docker和Swarm结合在一起，管理集群和服务将会更方便。</p>
-
-<h2>插件管理（Plugin repository，experimental版）</h2>
-
-<p>PR地址： <a href="https://github.com/docker/docker/pull/23446">https://github.com/docker/docker/pull/23446</a></p>
-
-<p>插件管理功能可能算是第二大变更点了。很多软件都支持插件机制，大家比较熟悉的从Wordpress到ElasticSearch等，都支持在软件内部通过plugin功能安装、管理插件。</p>
-
-<p>Docker最近也增加了一些网络和卷管理的插件功能，这次还在体验版中增加了插件（基于容器）管理功能，可以通过 <code>docker plugin</code> 命令来管理插件。除了提供了一个统一的插件管理入口，还可以对插件的生命周期进行更好的管理，Docker君，我的插件写的比较不专业，请罩着我点。</p>
-
-<p>这是一个大概的使用示意，通过 <code>docker plugin install</code> 可以安装插件， <code>docker plugin ls</code> 可以列出当前安装的插件：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker plugin install aragunathan/no-remove
-</span><span class='line'>Plugin "aragunathan/no-remove:latest" requested the following privileges:
-</span><span class='line'> - Networking: host
-</span><span class='line'> - Mounting host path: /data
-</span><span class='line'>Do you grant the above permissions? [y/N] y</span></code></pre></td></tr></table></div></figure>
-
-
-<p>查看插件列表：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker plugin ls
-</span><span class='line'>NAME                    VERSION             ACTIVE
-</span><span class='line'>aragunathan/no-remove   latest              true</span></code></pre></td></tr></table></div></figure>
-
-
-<p>目前 <code>docker plugin</code> 支持如下子命令：</p>
-
-<ul>
-<li>plugin ls</li>
-<li>plugin enable</li>
-<li>plugin inspect</li>
-<li>plugin install</li>
-<li>plugin rm</li>
-</ul>
-
-
-<h2>增加 <code>overlay2</code> 存储驱动（PR#22126 Overlay multiple lower directory support）</h2>
-
-<p><a href="https://github.com/docker/docker/pull/22126">这个PR</a> 增加一个新的名为 <code>overlay2</code> 的驱动，以解决Docker在存储优化方面的不足，充分利用4.0内核的 <code>lower directories</code> 新特性，解决inode耗尽等问题。</p>
-
-<p>这个PR中的描述也提到了新旧overlay驱动的性能对比数据，有兴趣的可以参考一下。</p>
-
-<h2>Live restore</h2>
-
-<p><a href="https://github.com/docker/docker/pull/23213">这个PR</a> 最大的好处就是提供了对daemonless容器的支持，即使daemon宕了，容器也不会受影响。</p>
-
-<p>使用方法就是在启动 <code>dockerd</code> 的时候，增加 <code>--live-restore</code> 标志。</p>
-
-<p>你是不是特别喜欢这个功能？</p>
-
-<h2>Healthcheck</h2>
-
-<p><code>docker run</code> 和 <code>Dockerfile</code> 新增加的 <a href="https://github.com/docker/docker/pull/23218">健康检查功能</a>。</p>
-
-<p>比如在 <code>docker run</code> 中，可以这样：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker run --name=test -d \
-</span><span class='line'>    --health-cmd='stat /etc/passwd || exit 1' \
-</span><span class='line'>    --health-interval=2s \
-</span><span class='line'>    busybox sleep 1d</span></code></pre></td></tr></table></div></figure>
-
-
-<p>查看健康状态，返回 <code>healthy</code>：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ sleep 2; docker inspect --format='' test
-</span><span class='line'>healthy</span></code></pre></td></tr></table></div></figure>
-
-
-<p>故意删除 <code>/etc/passwd</code> 文件：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker exec test rm /etc/passwd</span></code></pre></td></tr></table></div></figure>
-
-
-<p>再次查看节点健康状态：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ sleep 2; docker inspect --format='' test
-</span><span class='line'>{
-</span><span class='line'>  "Status": "unhealthy",
-</span><span class='line'>  "FailingStreak": 3,
-</span><span class='line'>  "Log": [
-</span><span class='line'>    {
-</span><span class='line'>      "Start": "2016-05-25T17:22:04.635478668Z",
-</span><span class='line'>      "End": "2016-05-25T17:22:04.7272552Z",
-</span><span class='line'>      "ExitCode": 0,
-</span><span class='line'>      "Output": "  File: /etc/passwd\n  Size: 334       \tBlocks: 8          IO Block: 4096   regular file\nDevice: 32h/50d\tInode: 12          Links: 1\nAccess: (0664/-rw-rw-r--)  Uid: (    0/    root)   Gid: (    0/    root)\nAccess: 2015-12-05 22:05:32.000000000\nModify: 2015..."
-</span><span class='line'>    },
-</span><span class='line'>    {
-</span><span class='line'>      "Start": "2016-05-25T17:22:06.732900633Z",
-</span><span class='line'>      "End": "2016-05-25T17:22:06.822168935Z",
-</span><span class='line'>      "ExitCode": 0,
-</span><span class='line'>      "Output": "  File: /etc/passwd\n  Size: 334       \tBlocks: 8          IO Block: 4096   regular file\nDevice: 32h/50d\tInode: 12          Links: 1\nAccess: (0664/-rw-rw-r--)  Uid: (    0/    root)   Gid: (    0/    root)\nAccess: 2015-12-05 22:05:32.000000000\nModify: 2015..."
-</span><span class='line'>    },
-</span><span class='line'>    {
-</span><span class='line'>      "Start": "2016-05-25T17:22:08.823956535Z",
-</span><span class='line'>      "End": "2016-05-25T17:22:08.897359124Z",
-</span><span class='line'>      "ExitCode": 1,
-</span><span class='line'>      "Output": "stat: can't stat '/etc/passwd': No such file or directory\n"
-</span><span class='line'>    }
-</span><span class='line'>  ]
-</span><span class='line'>}
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>其他改进</h2>
-
-<p>除了上述能单独拿出来的，要么比较重量级，要么非常实用的功能，Docker还有很多其他方面的改进。这里我们简单看看其中的一些。</p>
-
-<h3><code>dockerd</code> 和 <code>docker</code> 二进制文件分离</h3>
-
-<p><code>docker daemon</code> 改为了 <code>dockerd</code> ，这样以后就需要使用两个可执行程序了。</p>
-
-<p>PR： <a href="https://github.com/docker/docker/pull/22386">https://github.com/docker/docker/pull/22386</a></p>
-
-<h3>为 <code>btrfs</code> 存储驱动增加容器 <code>rootfs</code> 的限额功能</h3>
-
-<p>类似这样，可以在Docker守护进程或者容器级别设置根文件系统的大小：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker daemon --storage-opt btrfs.min_space=xx
-</span><span class='line'>$ docker run --storage-opt size=xx</span></code></pre></td></tr></table></div></figure>
-
-
-<p>PR1：<a href="https://github.com/docker/docker/pull/19651">https://github.com/docker/docker/pull/19651</a>
-PR2：<a href="https://github.com/docker/docker/pull/19367">https://github.com/docker/docker/pull/19367</a></p>
-
-<h3><code>docker search</code> 增加 <code>--limit</code> 和 <code>filter</code> 参数</h3>
-
-<ul>
-<li><code>--limit</code> 参数</li>
-</ul>
-
-
-<p><code>docker search</code> 命令增加了一个 <code>--limit</code> 参数，可以设置查找镜像的返回结果个数。这个参数的默认值为25，可以接受的范围是0-100（实际上好像服务端最多只能返回100条记录）。</p>
-
-<p>PR：<a href="https://github.com/docker/docker/pull/23107">https://github.com/docker/docker/pull/23107</a></p>
-
-<ul>
-<li><code>--filter</code> 参数</li>
-</ul>
-
-
-<p>比如可以指定只返回官方镜像，或者返回一定数量star的镜像：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker search --filter is-official=true ubuntu
-</span><span class='line'>
-</span><span class='line'>$ docker search --filter stars=30 ubuntu
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>PR：<a href="https://github.com/docker/docker/pull/22369">https://github.com/docker/docker/pull/22369</a></p>
-
-<h3><code>docker ps</code> 命令增加 <code>--filter network=xxx</code>参数</h3>
-
-<p>只列出指定网络模式的容器：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker run -d --net=bridge --name=onbridgenetwork busybox top
-</span><span class='line'>$ docker run -d --net=none --name=onnonenetwork busybox top
-</span><span class='line'>
-</span><span class='line'>$ docker ps --filter network=bridge </span></code></pre></td></tr></table></div></figure>
-
-
-<p>PR： <a href="https://github.com/docker/docker/pull/23300">https://github.com/docker/docker/pull/23300</a></p>
-
-<h3><code>pid</code> 支持指定其他容器的pid</h3>
-
-<p>在之前的版本中，<code>pid</code> 参数只支持 <code>host</code> 模式，现在也可以和其他容器共享PID命名空间了。这也可能是一个比较实用的功能。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker run --name my-redis -d redis
-</span><span class='line'>
-</span><span class='line'>$ # 在其他容器中使用strace进行调试
-</span><span class='line'>
-</span><span class='line'>$ docker run --it --pid=container:my-redis bash
-</span><span class='line'>$ strace -p 1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>PR： <a href="https://github.com/docker/docker/pull/22481">https://github.com/docker/docker/pull/22481</a></p>
-
-<h3><code>docker network ls</code> 新增了两种过滤类型</h3>
-
-<p><code>docker network ls</code> 也增加了两种类型的过滤</p>
-
-<ul>
-<li>按驱动类型过滤</li>
-</ul>
-
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker network ls --filter driver=bridge
-</span><span class='line'>NETWORK ID          NAME                DRIVER
-</span><span class='line'>db9db329f835        test1               bridge
-</span><span class='line'>f6e212da9dfd        test2               bridge</span></code></pre></td></tr></table></div></figure>
-
-
-<p>PR： <a href="https://github.com/docker/docker/pull/22319">https://github.com/docker/docker/pull/22319</a></p>
-
-<ul>
-<li>按label过滤</li>
-</ul>
-
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker network ls -f "label=usage"
-</span><span class='line'>NETWORK ID          NAME                DRIVER
-</span><span class='line'>db9db329f835        test1               bridge              
-</span><span class='line'>f6e212da9dfd        test2               bridge</span></code></pre></td></tr></table></div></figure>
-
-
-<p>PR: <a href="https://github.com/docker/docker/pull/21495">https://github.com/docker/docker/pull/21495</a></p>
-
-<h3>CLI子命令重构</h3>
-
-<p>很多Docker 子命令都采用 <a href="https://github.com/spf13/cobra">cobra</a> 对CLI进行了重构，应该不算是什么大的改动。</p>
-
-<h2>总结</h2>
-
-<p>当然，还有类似小的一些改进，这里并没有都列出来，到时候大家看一下参考手册就能见到了，也许很多功能大家根本就不会用到：-）</p>
-
-<p>到这里我们简单的就浏览了一下新版本的Docker中将会搭载的新功能，如果你觉得哪些是你想要的，就等着Docker 1.12.0的发布吧。</p>
 ]]></content>
   </entry>
   
