@@ -98,6 +98,9 @@ async fn main() {
 
 只需要在 main 上面加上 `#[tokio::main]` ，前面加上 async 关键字，即可在其内部直接执行 await 方法，而不必使用 block_on 或者 spawn 方法。
 
+
+**Tip:** `async` 关键字可以创建一个 Future ，与之相对，`.await` 则会销毁（解构）这个 Future. 因此，我们也可以说这两个关键字互相消解，`async { foo.await }` 就相当于 `foo`。
+
 ## 使用 spawn
 
 前面的例子直接执行了 Future 任务，我们也可以使用 spawn 来创建 Future 的任务，然后让任务并行执行，并获取任务的执行结果。
