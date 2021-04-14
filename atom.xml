@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-04-09T19:26:15+08:00</updated>
+  <updated>2021-04-14T22:18:07+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,525 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[关于 K8s 的 Secret 并不安全这件事]]></title>
+    <link href="http://liubin.org/blog/2021/04/14/k8s-secrets-secret/"/>
+    <updated>2021-04-14T15:56:47+08:00</updated>
+    <id>http://liubin.org/blog/2021/04/14/k8s-secrets-secret</id>
+    <content type="html"><![CDATA[<p>K8s 提供了 Secret 资源供我们来保存、设置一些敏感信息，比如 API endpoint 地址，各种用户密码或 token 之类的信息。在没有使用 K8s 的时候，这些信息可能是通过配置文件或者环境变量在部署的时候设置的。</p>
+
+<p>不过，Secret 其实并不安全，稍微用 kubectl 查看过 Secret 的人都知道，我们可以非常方便的看到 Secret 的原文，只要有相关的权限即可，尽管它的内容是 base64 编码的，这基本上等同于明文。</p>
+
+<p>所以说，K8s 原生的 Secret 是非常简单的，不是特别适合在大型公司里直接使用，对 RBAC 的挑战也比较大，很多不该看到明文信息的人可能都能看到。</p>
+
+<p>尤其是现在很多公司采用了所谓的 GitOps 理念，很多东西都需要放到 VCS，比如 git 中，这一问题就更日益突出，因为 VCS 也得需要设置必要的权限。</p>
+
+<h2>问题</h2>
+
+<p>简单来说，大概有几个地方都可以让不应该看到 Secret 内容的人获得 Secret 内容：</p>
+
+<ul>
+<li>etcd 存储</li>
+<li>通过 API server</li>
+<li>在 node 上直接查看文件</li>
+</ul>
+
+
+<p>这里我们以这个例子来看一下 Secret 在 K8s 中的使用情况。</p>
+
+<p>Secret 定义， 用户名和密码分别为 <code>admin</code> 和 <code>hello-secret</code>：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>apiVersion: v1
+</span><span class='line'>kind: Secret
+</span><span class='line'>metadata:
+</span><span class='line'>  name: mysecret
+</span><span class='line'>type: Opaque
+</span><span class='line'>data:
+</span><span class='line'>  username: YWRtaW4=
+</span><span class='line'>  password: aGVsbG8tc2VjcmV0Cg==
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pod 定义，这里我们将 Secret 作为 volume mount 到容器中。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>apiVersion: v1
+</span><span class='line'>kind: Pod
+</span><span class='line'>metadata:
+</span><span class='line'>  name: mypod
+</span><span class='line'>spec:
+</span><span class='line'>  containers:
+</span><span class='line'>  - name: mypod
+</span><span class='line'>    image: docker.io/containerstack/alpine-stress
+</span><span class='line'>    command:
+</span><span class='line'>      - top
+</span><span class='line'>    volumeMounts:
+</span><span class='line'>    - name: foo
+</span><span class='line'>      mountPath: "/etc/foo"
+</span><span class='line'>      readOnly: true
+</span><span class='line'>  volumes:
+</span><span class='line'>  - name: foo
+</span><span class='line'>    secret:
+</span><span class='line'>      secretName: mysecret</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pod 启动后，我们可以到容器中来查看 Secret 作为 volume mount 到容器后的文件内容。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ kubectl exec -it mypod sh
+</span><span class='line'>/ # cd /etc/foo/
+</span><span class='line'>/etc/foo # ls -tal
+</span><span class='line'>total 4
+</span><span class='line'>drwxr-xr-x    1 root     root          4096 Apr 14 08:55 ..
+</span><span class='line'>drwxrwxrwt    3 root     root           120 Apr 14 08:55 .
+</span><span class='line'>drwxr-xr-x    2 root     root            80 Apr 14 08:55 ..2021_04_14_08_55_54.401661151
+</span><span class='line'>lrwxrwxrwx    1 root     root            31 Apr 14 08:55 ..data -&gt; ..2021_04_14_08_55_54.401661151
+</span><span class='line'>lrwxrwxrwx    1 root     root            15 Apr 14 08:55 password -&gt; ..data/password
+</span><span class='line'>lrwxrwxrwx    1 root     root            15 Apr 14 08:55 username -&gt; ..data/username
+</span><span class='line'>/etc/foo # ls -tal ..2021_04_14_08_55_54.401661151
+</span><span class='line'>total 8
+</span><span class='line'>drwxr-xr-x    2 root     root            80 Apr 14 08:55 .
+</span><span class='line'>drwxrwxrwt    3 root     root           120 Apr 14 08:55 ..
+</span><span class='line'>-rw-r--r--    1 root     root            13 Apr 14 08:55 password
+</span><span class='line'>-rw-r--r--    1 root     root             5 Apr 14 08:55 username
+</span><span class='line'>/etc/foo # cat password
+</span><span class='line'>hello-secret
+</span><span class='line'>/etc/foo # </span></code></pre></td></tr></table></div></figure>
+
+
+<h3>etcd 存储</h3>
+
+<p>API server 中的资源都保存在 etcd 中，我们可以直接从文件看到相关内容：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># hexdump -C /var/lib/etcd/member/snap/db | grep -A 5 -B 5 hello
+</span><span class='line'>00043640  12 00 1a 07 64 65 66 61  75 6c 74 22 00 2a 24 32  |....default".*$2|
+</span><span class='line'>00043650  35 66 37 35 38 30 38 2d  37 33 31 33 2d 34 38 64  |5f75808-7313-48d|
+</span><span class='line'>00043660  39 2d 39 61 38 65 2d 38  61 35 66 66 32 32 63 64  |9-9a8e-8a5ff22cd|
+</span><span class='line'>00043670  64 35 39 32 00 38 00 42  08 08 98 dc da 83 06 10  |d592.8.B........|
+</span><span class='line'>00043680  00 7a 00 12 19 0a 08 70  61 73 73 77 6f 72 64 12  |.z.....password.|
+</span><span class='line'>00043690  0d 68 65 6c 6c 6f 2d 73  65 63 72 65 74 0a 12 11  |.hello-secret...|
+</span><span class='line'>000436a0  0a 08 75 73 65 72 6e 61  6d 65 12 05 61 64 6d 69  |..username..admi|
+</span><span class='line'>000436b0  6e 1a 06 4f 70 61 71 75  65 1a 00 22 00 00 00 00  |n..Opaque.."....|
+</span><span class='line'>000436c0  00 00 00 08 95 5f 00 00  00 00 00 00 00 00 0a 37  |....._.........7|
+</span><span class='line'>000436d0  2f 72 65 67 69 73 74 72  79 2f 73 65 72 76 69 63  |/registry/servic|
+</span><span class='line'>000436e0  65 73 2f 65 6e 64 70 6f  69 6e 74 73 2f 6b 75 62  |es/endpoints/kub|</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到，基本 yaml 中的内容都是明文存放的，而且是进行 base64 解码之后的内容。</p>
+
+<p>使用下面的命令也可以获得类似的结果。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ ETCDCTL_API=3 etcdctl get --prefix /registry/secrets/default/mysecret | hexdump -C</span></code></pre></td></tr></table></div></figure>
+
+
+<p>etcd 本来存储的是明文数据，这个好像已经从 1.7 开始支持 <a href="https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/">加密存储</a> 了，而且直接访问 etcd 从物理上来说也不是那么容易。</p>
+
+<h3>API server</h3>
+
+<p>通过 API server 则简单的多，只要有权限就可以从任何节点上通过访问 API server 来得到 secret 的明文内容。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ kubectl get secret mysecret -o yaml
+</span><span class='line'>
+</span><span class='line'>apiVersion: v1
+</span><span class='line'>data:
+</span><span class='line'>  password: aGVsbG8tc2VjcmV0Cg==
+</span><span class='line'>  username: YWRtaW4=
+</span><span class='line'>kind: Secret
+</span><span class='line'>metadata:
+</span><span class='line'>  creationTimestamp: "2021-04-14T08:55:52Z"
+</span><span class='line'>  name: mysecret
+</span><span class='line'>  namespace: default
+</span><span class='line'>  resourceVersion: "2196"
+</span><span class='line'>  selfLink: /api/v1/namespaces/default/secrets/mysecret
+</span><span class='line'>  uid: 25f75808-7313-48d9-9a8e-8a5ff22cdd59
+</span><span class='line'>type: Opaque
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>节点上</h3>
+
+<p>在节点上也可以看到 Secret 文件的内容。</p>
+
+<p>查找 foo volume 的挂载点：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># mount | grep foo
+</span><span class='line'>tmpfs on /var/lib/kubelet/pods/280451e8-512b-489c-b5dd-df2b1a3c9b29/volumes/kubernetes.io~secret/foo type tmpfs (rw,relatime)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>查看这个 volume 下面的文件内容：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># ls -tal /var/lib/kubelet/pods/280451e8-512b-489c-b5dd-df2b1a3c9b29/volumes/kubernetes.io~secret/foo
+</span><span class='line'>total 4
+</span><span class='line'>drwxrwxrwt 3 root root  120 4月  14 16:55 .
+</span><span class='line'>drwxr-xr-x 2 root root   80 4月  14 16:55 ..2021_04_14_08_55_54.401661151
+</span><span class='line'>lrwxrwxrwx 1 root root   31 4月  14 16:55 ..data -&gt; ..2021_04_14_08_55_54.401661151
+</span><span class='line'>lrwxrwxrwx 1 root root   15 4月  14 16:55 password -&gt; ..data/password
+</span><span class='line'>lrwxrwxrwx 1 root root   15 4月  14 16:55 username -&gt; ..data/username
+</span><span class='line'>drwxr-xr-x 4 root root 4096 4月  14 16:55 ..
+</span><span class='line'>
+</span><span class='line'># cat /var/lib/kubelet/pods/280451e8-512b-489c-b5dd-df2b1a3c9b29/volumes/kubernetes.io~secret/foo/password
+</span><span class='line'>hello-secret</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>第三方方案</h2>
+
+<p>针对上面提到的可能泄露 Secret 的几点，大概解决方案不难想到如下几种：</p>
+
+<ul>
+<li>etcd 加密</li>
+<li>API server 严格进行权限设计</li>
+<li>强化 node 节点用户权限管理和系统安全</li>
+</ul>
+
+
+<p>不过，要相关确保 Secret 的绝对安全，上面这几种方案都是必须，缺一不可，缺少了那一个都相当于在墙上留了一个洞。</p>
+
+<p>社区和公有云提供商都有一些产品和方案，我们可以参考一下。</p>
+
+<p>Secretの暗号化には､下記の様なツールを使う事が多いと認識しています｡</p>
+
+<ul>
+<li><a href="https://github.com/shyiko/kubesec">shyiko/kubesec</a>: Secure Secret management for Kubernetes (with gpg, Google Cloud KMS and AWS KMS backends)</li>
+<li><a href="https://github.com/bitnami-labs/sealed-secrets">bitnami-labs/sealed-secrets</a>: A Kubernetes controller and tool for one-way encrypted Secrets</li>
+<li><a href="https://www.vaultproject.io/docs/platform/k8s">Vault by HashiCorp</a></li>
+<li><a href="https://github.com/mozilla/sops">mozilla/sops</a></li>
+<li><a href="https://github.com/external-secrets/kubernetes-external-secrets">Kubernetes External Secrets</a></li>
+<li><a href="https://github.com/Soluto/kamus">Kamus</a></li>
+</ul>
+
+
+<h3>shyiko/kubesec</h3>
+
+<p>kubesec 只对 Secret 中数据进行加密/解密，支持如下 key 管理服务或软件：</p>
+
+<ul>
+<li>AWS Key Management Service</li>
+<li>Google Cloud KMS</li>
+<li>GnuPG</li>
+</ul>
+
+
+<h3>bitnami-labs/sealed-secrets</h3>
+
+<p>Bitnami 在 K8s 领域也是一家人人知晓的公司，输出了很多技术和最佳实践。</p>
+
+<p><img src="http://liubin.org/images/2021/sealed-secrets.png" alt="" /></p>
+
+<p><em>本图来自 <a href="https://engineering.bitnami.com/articles/sealed-secrets.html">Sealed Secrets: Protecting your passwords before they reach Kubernetes</a></em></p>
+
+<p>SealeSecret 将 secret 资源整个加密保存为 <code>SealedSecret</code> 资源，而解密只能由该集群中的 controller 进行。</p>
+
+<p>SealeSecret 提供了一个 kubeseal 工具来对 secret 资源进行加密，这个过程需要一个公开 key（公钥），这个公开 key 就是从 SealeSecret controller 拿到的。</p>
+
+<p>不过，只从从说明文档来看， SealeSecret controller 加密解密所依赖的 key，也是通过普通的 Secret 来保存的，这难道不是一个问题？同时也增加了 SealeSecret controller 的运维成本。</p>
+
+<h3>mozilla/sops</h3>
+
+<p>严格来说， sops 跟 K8s 并没有什么必然关系，它只是一个支持 YAML/JSON/ENV/INI 等文件格式的加密文件编辑器，它支持 AWS KMS, GCP KMS, Azure Key Vault, age, 和 PGP 等服务与应用。</p>
+
+<p>如果有有兴趣可以看它的<a href="https://github.com/mozilla/sops">主页</a>。</p>
+
+<h3>Kubernetes External Secrets</h3>
+
+<p>Kubernetes External Secrets 是知名域名服务提供商 godaddy 开发的开源软件，它可以直接将保存在外部 KMS 中的机密信息传给 K8s 。目前支持的 KSM 包括：</p>
+
+<ul>
+<li>AWS Secrets Manager</li>
+<li>AWS System Manager</li>
+<li>Hashicorp Vault</li>
+<li>Azure Key Vault</li>
+<li>GCP Secret Manager</li>
+<li>Alibaba Cloud KMS Secret Manager</li>
+</ul>
+
+
+<p>它通过自定义 controller 和 CRD 来实现，具体架构图如下：</p>
+
+<p><img src="http://liubin.org/images/2021/kubernetes-external-secrets-architecture.png" alt="" /></p>
+
+<p>具体来说用户需要创建一个 ExternalSecret 类型的资源，来将外部 KMS 的数据映射到 K8s 的 Secret 上。</p>
+
+<p>不过，这个中方式大概只有两点好处：</p>
+
+<ul>
+<li>统一 key 的管理，或者沿用既有 key 资产</li>
+<li>key 信息不想放到 VCS 等</li>
+</ul>
+
+
+<p>对于防止 Sercet 信息泄露，作用不大，因为其明文资源还是可以在 API server/etcd 上看到。</p>
+
+<p>或者说，External Secrets 真正做的事情，也就是从外部 KMS 中的 key ，映射成 K8s 中的 Secret 资源而已，对保证在 K8s 集群中数据的安全性用处不大。</p>
+
+<h3>Kamus</h3>
+
+<p>Kamus 同样提供了加密 key 的方法（一个命令行工具），同时只有通过 K8s 中的 controller 才能对这个 key 进行解密。不过它 保存在 K8s 中的 Secret 是加密的状态，用户不能像 External Secrets 那样直接获得 Secret 的明文内容。</p>
+
+<p>Kamus 由 3 个组件组成，分别是：</p>
+
+<ul>
+<li>Encrypt API</li>
+<li>Decrypt API</li>
+<li>Key Management System (KMS)</li>
+</ul>
+
+
+<p>KMS 是一个外部加密服务的封装，目前支持如下服务：
+- AES
+- AWS KMS
+- Azure KeyVault
+- Google Cloud KMS</p>
+
+<p>Kamus 以 service account 为单位对 secret 进行加密，之后 Pod 会通过 service account 来请求 Kamus 的解密服务来对该 secret 进行解密。</p>
+
+<p>对 K8s 来说，解密 secret 可以通过 init container 来实现：定义一个 基于内存的 emptyDir ，业务容器和 init 容器使用同一个 volume， init 容器解密后，将数据存放到该 volume 下，之后业务容器就可以使用解密后的 secret 数据了。</p>
+
+<p><img src="http://liubin.org/images/2021/kamus-pod.png" alt="" /></p>
+
+<h3>Vault by HashiCorp</h3>
+
+<p>HashiCorp 公司就不多说，在云计算/DevOps领域也算是数一数二的公司了。</p>
+
+<p>Vault 本身就是一个 KMS 类似的服务，用于管理机密数据。对于 K8s 的原生 secret ，大概提供了如下两种方式的支持：</p>
+
+<ul>
+<li><a href="https://www.vaultproject.io/docs/platform/k8s/injector">Agent Sidecar Injector/vault-k8s</a></li>
+<li><a href="https://www.vaultproject.io/docs/platform/k8s/csi">Vault CSI Provider</a></li>
+</ul>
+
+
+<h4>Agent Sidecar Injector</h4>
+
+<p>这种方式和上面的 Kamus 类似，也是需要两个组件：</p>
+
+<ul>
+<li>Mutation webhook：负责修改 pod 定义，注入init/sidecar</li>
+<li>agent-sidecar：负责获取和解密数据，将数据保存到指定的 volume/路径下</li>
+</ul>
+
+
+<p>Vault agent sidecar injector 不仅提供了 init container 来初始化 secret ，还通过 sidecar 来定期更新 secret ，这样就非常接近原生 secret 的实现了。</p>
+
+<p>应用程序则只需要在文件系统上读取指定的文件就可以了，而不必关系如何从外部获取加密信息。</p>
+
+<p>这是官方 blog 中的一个示例：</p>
+
+<p>Pod 信息：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>spec:
+</span><span class='line'>  template:
+</span><span class='line'>    metadata:
+</span><span class='line'>      annotations:
+</span><span class='line'>        vault.hashicorp.com/agent-inject: "true"
+</span><span class='line'>        vault.hashicorp.com/agent-inject-secret-helloworld: "secrets/helloworld"
+</span><span class='line'>        vault.hashicorp.com/role: "myapp"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个定义中，<code>vault-k8s</code> 会对该 pod 注入 <code>vault agent</code>，并使用 <code>secrets/helloworld</code> 来初始化。Pod 运行后，可以在 <code>/vault/secrets</code> 下找到一个名为 <code>helloworld</code> 的文件。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ kubectl exec -ti app-XXXXXXXXX -c app -- cat /vault/secrets/helloworld
+</span><span class='line'>data: map[password:foobarbazpass username:foobaruser]
+</span><span class='line'>metadata: map[created_time:2019-12-16T01:01:58.869828167Z deletion_time: destroyed:false version:1]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>当然这个数据是raw data，没有经过格式化。如果想指定输出到文件中的格式，可以使用 vault 的模板功能。</p>
+
+<h4>Vault CSI Provider</h4>
+
+<p>这部分可以参考下面的社区方案部分。</p>
+
+<h2>社区方案</h2>
+
+<p>当然，社区没有理由意识不到原生 secret 的问题，因此社区也有 <a href="https://github.com/kubernetes-sigs/secrets-store-csi-driver">Kubernetes Secrets Store CSI Driver</a> ，一种通过 CSI 接口将 Secret 集成到 K8s 的方案。</p>
+
+<p>Secrets Store CSI driver（<code>secrets-store.csi.k8s.io</code>）可以让 K8s mount 多个 secret 以 volume 的形式，从外部 KMS mount 到 Pod 里。</p>
+
+<p>要想使用 Secrets Store CSI Driver ，大致过程如下:</p>
+
+<ul>
+<li>定义 SecretProviderClass</li>
+</ul>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>apiVersion: secrets-store.csi.x-k8s.io/v1alpha1
+</span><span class='line'>kind: SecretProviderClass
+</span><span class='line'>metadata:
+</span><span class='line'>  name: my-provider
+</span><span class='line'>spec:
+</span><span class='line'>  provider: vault   # accepted provider options: azure or vault or gcp
+</span><span class='line'>  parameters:       # provider-specific parameters</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>为 Pod 配置 Volume</li>
+</ul>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>kind: Pod
+</span><span class='line'>apiVersion: v1
+</span><span class='line'>metadata:
+</span><span class='line'>  name: secrets-store-inline
+</span><span class='line'>spec:
+</span><span class='line'>  containers:
+</span><span class='line'>  - image: k8s.gcr.io/e2e-test-images/busybox:1.29
+</span><span class='line'>    name: busybox
+</span><span class='line'>    command:
+</span><span class='line'>    - "/bin/sleep"
+</span><span class='line'>    - "10000"
+</span><span class='line'>    volumeMounts:
+</span><span class='line'>    - name: secrets-store-inline
+</span><span class='line'>      mountPath: "/mnt/secrets-store"
+</span><span class='line'>      readOnly: true
+</span><span class='line'>  volumes:
+</span><span class='line'>    - name: secrets-store-inline
+</span><span class='line'>      csi:
+</span><span class='line'>        driver: secrets-store.csi.k8s.io
+</span><span class='line'>        readOnly: true
+</span><span class='line'>        volumeAttributes:
+</span><span class='line'>          secretProviderClass: "my-provider"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pod 启动之后，就可以确认解密后的数据了：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ kubectl exec secrets-store-inline -- ls /mnt/secrets-store/
+</span><span class='line'>foo</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>总结</h2>
+
+<p>上面的总结都是基于互联网公开的资料而来，并没有经过亲身体验，因此有些地方可能理解有误，要想深入了解还需要自己亲手确认最好。</p>
+
+<p>不过总体来说，社区这种方案可能最简单，部署也不是很麻烦，只是这就和原生的 secret 基本没什么关系了。。。</p>
+
+<p>Vault 方案也很成熟，值得关注。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Hello Rust async/await]]></title>
@@ -3565,582 +4084,6 @@
 <p>具体的话可以找来这本书看看。</p>
 
 <p>总之，这不是一本特别差的书。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[初试Docker swarm]]></title>
-    <link href="http://liubin.org/blog/2016/06/21/try-new-docker-swarm/"/>
-    <updated>2016-06-21T20:41:42+08:00</updated>
-    <id>http://liubin.org/blog/2016/06/21/try-new-docker-swarm</id>
-    <content type="html"><![CDATA[<p>DockerCon 2016今天凌晨开始了，Docker公司的CEO和CTO都做了慷慨激昂的演讲（其实是我瞎想象的，没听，只是看了一些别人整理的 highlight ）。</p>
-
-<p>同时，1.12 RC2也出来了，很多 <a href="http://liubin.org/blog/2016/06/17/whats-new-in-docker-1-dot-12-dot-0/">新功能</a> 已经可以试用了， 这里我们就来试一下 <code>docker swarm</code> 命令吧，这也是 <code>swarm</code> 成为Docker子命令的第一个版本。</p>
-
-<p>测试环境：</p>
-
-<ul>
-<li>OS：OS X</li>
-<li>Docker：1.12.0-rc2</li>
-<li>Docker Machine：0.8.0-rc1</li>
-</ul>
-
-
-<p>系统构成：</p>
-
-<ul>
-<li>master 1台</li>
-<li>worker 2台</li>
-</ul>
-
-
-<h2>升级Docker</h2>
-
-<p>使用Docker for Mac升级Docker很简单，这里不多说了；升级之后确认一下是最新版的Docker就可以了。</p>
-
-<h2>创建3台Docker主机</h2>
-
-<p>首先，使用Docker Machine创建3台主机，一台名为 <code>manager1</code> ，其余两台为 <code>worker1</code> 和 <code>worker2</code> ：</p>
-
-<p>创建master节点：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine create --driver virtualbox manager1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>创建2个worker节点：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine create --driver virtualbox worker1
-</span><span class='line'>$ docker-machine create --driver virtualbox worker2</span></code></pre></td></tr></table></div></figure>
-
-
-<p>之后可以确认一下3台机器是否创建成功，以及ta们的IP地址：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine ls
-</span><span class='line'>NAME       ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
-</span><span class='line'>manager1   -        virtualbox   Running   tcp://192.168.99.100:2376           v1.12.0-rc2   
-</span><span class='line'>worker1    -        virtualbox   Running   tcp://192.168.99.101:2376           v1.12.0-rc2   
-</span><span class='line'>worker2    -        virtualbox   Running   tcp://192.168.99.102:2376           v1.12.0-rc2   
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>创建Swarm集群</h2>
-
-<p>首先，切换到 <code>manager1</code> 主机，使用 <code>docker swarm init</code> 命令创建一个集群：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ eval $(docker-machine env manager1)
-</span><span class='line'>
-</span><span class='line'>$ docker swarm init --listen-addr 192.168.99.100:2377
-</span><span class='line'>Swarm initialized: current node (alq8w7fi34f41j3z4ise1vkd7) is now a manager.</span></code></pre></td></tr></table></div></figure>
-
-
-<p>使用 <code>docker info</code> 确认一下当前节点信息，可以看到Swarm属性部分：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker info
-</span><span class='line'>... ...
-</span><span class='line'>Swarm: active
-</span><span class='line'> NodeID: alq8w7fi34f41j3z4ise1vkd7
-</span><span class='line'> IsManager: Yes
-</span><span class='line'> Managers: 1
-</span><span class='line'> Nodes: 1
-</span><span class='line'> CACertHash: sha256:7a9d0eb1621afe2be07c5fd405b8f038c76be3a8dc7b2c73944a2d1ab9dffd76
-</span><span class='line'>
-</span><span class='line'>... ...</span></code></pre></td></tr></table></div></figure>
-
-
-<p>在2台worker节点上，通过  <code>docker swarm join</code> 命令加入到刚才创建的集群中：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ eval $(docker-machine env worker1)
-</span><span class='line'>$ docker swarm join 192.168.99.100:2377
-</span><span class='line'>This node joined a Swarm as a worker.
-</span><span class='line'>$ docker info
-</span><span class='line'>... ...
-</span><span class='line'>Swarm: active
-</span><span class='line'> NodeID: 4l2a9ebgmcpwqlo0roye0n6m5
-</span><span class='line'> IsManager: No
-</span><span class='line'>... ...</span></code></pre></td></tr></table></div></figure>
-
-
-<p>回到 <code>manager1</code> 节点，确认一下集群中节点的个数和状态。在 <code>MANAGER STATUS</code> 属性中，可以看到谁是Leader：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ eval $(docker-machine env manager1)
-</span><span class='line'>$ docker node ls
-</span><span class='line'>ID                           NAME      MEMBERSHIP  STATUS  AVAILABILITY  MANAGER STATUS
-</span><span class='line'>4l2a9ebgmcpwqlo0roye0n6m5    worker1   Accepted    Ready   Active        
-</span><span class='line'>alq8w7fi34f41j3z4ise1vkd7 *  manager1  Accepted    Ready   Active        Leader
-</span><span class='line'>e0khh79c6owm0e14mli602q0a    worker2   Accepted    Ready   Active        </span></code></pre></td></tr></table></div></figure>
-
-
-<h2>创建nginx服务</h2>
-
-<p>首先，创建一个覆盖网络：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker network create -d overlay ngx_net
-</span><span class='line'>8kiv8muduf60f66rs99ufo25f</span></code></pre></td></tr></table></div></figure>
-
-
-<p>然后使用这个覆盖网络，创建nginx服务：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service create --name nginx --replicas 1 --network ngx_net -p 80:80/tcp nginx
-</span><span class='line'>78cmmh8ef4qcwmjjzgn3k45ch</span></code></pre></td></tr></table></div></figure>
-
-
-<p>这样，就创建了一个具有一个副本（ <code>--replicas 1</code> ）的 <code>nginx</code> 服务，使用镜像 <code>nginx</code> 。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
-</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE           DESIRED STATE  NODE
-</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Preparing 9 seconds  Running        manager1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>注意上面的 <code>STATE</code> 字段中刚开始的服务状态为 <code>Preparing</code>，需要等一会才能变为 <code>Running</code> 状态，其中最费时间的应该是下载镜像的过程。</p>
-
-<p>过一会再查看服务状态，就可以看到状态已经变为 <code>Running</code> 了，这是可以通过 <code>http://192.168.99.100/</code> 查看 Nginx服务。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
-</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE              DESIRED STATE  NODE
-</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running About a minute  Running        manager1
-</span><span class='line'>
-</span><span class='line'># 通过curl查看服务是否正常运行
-</span><span class='line'>$ curl http://192.168.99.100/
-</span><span class='line'>...
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>对服务进行扩展（scale）</h2>
-
-<p>当然，如果只是通过service启动容器，swarm也算不上什么新鲜东西了。Service还提供了复制（类似k8s里的副本）功能。可以通过 <code>docker service scale</code> 命令来设置服务中容器的副本数：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service scale nginx=5
-</span><span class='line'>nginx scaled to 5</span></code></pre></td></tr></table></div></figure>
-
-
-<p>和创建服务一样，增加scale数之后，将会创建新的容器，这些新启动的容器也会经历从准备到运行的过程，过一分钟左右，服务应该就会启动完成，这时候可以再来看一下 <code>nginx</code> 服务中的容器（task）：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
-</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE         DESIRED STATE  NODE
-</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running 5 minutes  Running        manager1
-</span><span class='line'>co0re9u7infoo9qiegm6yiqcn  nginx.2  nginx    nginx  Running 2 minutes  Running        worker1
-</span><span class='line'>19dvayah8fjz3vykrl2oi12uu  nginx.3  nginx    nginx  Running 2 minutes  Running        worker1
-</span><span class='line'>d8okdip767972p083tix4dk7d  nginx.4  nginx    nginx  Running 2 minutes  Running        manager1
-</span><span class='line'>9rq59mf6bq5m411y6gdzb5pq6  nginx.5  nginx    nginx  Running 2 minutes  Running        worker2</span></code></pre></td></tr></table></div></figure>
-
-
-<p>可以看到，之前 <code>nginx</code> 容器只在 <code>manager1</code> 上有一个实例，而现在又增加了4个实例。</p>
-
-<p>我们可以在 <code>manager1</code> 上查看一下这台主机上运行的容器：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker ps
-</span><span class='line'>CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
-</span><span class='line'>4bbc02bc426e        nginx:latest        "nginx -g 'daemon off"   4 minutes ago       Up 4 minutes        80/tcp, 443/tcp     nginx.4.d8okdip767972p083tix4dk7d
-</span><span class='line'>1eda6f7d3029        nginx:latest        "nginx -g 'daemon off"   5 minutes ago       Up 5 minutes        80/tcp, 443/tcp     nginx.1.394by1b72i44a44jms2xwk6ud</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>容器异常停止时的处理</h2>
-
-<p>如果一个服务中的一个任务突然终止了，Docker会怎么处理？这里我们就来模拟某一容器异常终止的情况。</p>
-
-<p>在操作之前，我们在另一个窗口，准备好使用 <code>tail -f /var/log/docker.log</code> 命令来查看Docker守护进程的日志。</p>
-
-<p>我们通过 <code>docker rm -f</code> 来删除一个容器（<code>4b</code> 表示的是我们第一个启动的 <code>4bbc02bc426e</code> 容器）：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker rm -f 4b
-</span><span class='line'>4b
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>回到Docker守护进程的日志查看窗口，我们会看到类似这样的日志（有删减），从日志中，我们可以看到旧容器（id为 <code>4bbc02bc426e</code> ，task id为 <code>d8okdip767972p083tix4dk7d</code>）的删除和新容器（task id为 <code>cumjdktbadaxca66rt4hi63na</code>）的调度过程（删除了日志中的时间戳和日志级别等非重要信息，但保留了日志的时间顺序）：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># 调用删除容器的API
-</span><span class='line'>msg="Calling DELETE /v1.24/containers/4b?force=1" 
-</span><span class='line'>
-</span><span class='line'># d8的任务从RUNNING变为了FAILED状态
-</span><span class='line'>msg="state changed" module=taskmanager state.desired=RUNNING state.transition="RUNNING-&gt;FAILED" task.id=d8okdip767972p083tix4dk7d 
-</span><span class='line'>
-</span><span class='line'># 将旧任务停止
-</span><span class='line'>msg=assigned module=agent task.desiredstate=SHUTDOWN task.id=d8okdip767972p083tix4dk7d 
-</span><span class='line'>
-</span><span class='line'># 分配到新的节点，创建新的任务id： cumj
-</span><span class='line'>msg="Assigning to node e0khh79c6owm0e14mli602q0a" task.id=cumjdktbadaxca66rt4hi63na 
-</span><span class='line'>
-</span><span class='line'># 旧任务状态更新为FAILED
-</span><span class='line'>msg="(*Agent).UpdateTaskStatus" module=agent task.id=d8okdip767972p083tix4dk7d 
-</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="FAILED-&gt;FAILED" task.id=d8okdip767972p083tix4dk7d 
-</span><span class='line'>
-</span><span class='line'># 新任务从ASSIGNED变为接受状态
-</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="ASSIGNED-&gt;ACCEPTED" task.id=cumjdktbadaxca66rt4hi63na 
-</span><span class='line'>
-</span><span class='line'># 准备运行新任务
-</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="ACCEPTED-&gt;PREPARING" task.id=cumjdktbadaxca66rt4hi63na 
-</span><span class='line'>
-</span><span class='line'># 运行新任务
-</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="PREPARING-&gt;STARTING" task.id=cumjdktbadaxca66rt4hi63na 
-</span><span class='line'>
-</span><span class='line'># 新任务启动完成
-</span><span class='line'>msg="task status updated" method="(*Dispatcher).processTaskUpdates" module=dispatcher state.transition="STARTING-&gt;RUNNING" task.id=cumjdktbadaxca66rt4hi63na 
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>从上面的日志我们不难看出，一个任务的生命周期的前半生，大概就是 <code>ASSIGNED</code> -> <code>ACCEPTED</code> -> <code>PREPARING</code> -> <code>STARTING</code> -> <code>RUNNING</code> 。</p>
-
-<p>在 <code>manager1</code>主机上，我们看到这个容器已经删除了， <code>ps</code> 只能看到一个容器：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker ps
-</span><span class='line'>CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
-</span><span class='line'>1eda6f7d3029        nginx:latest        "nginx -g 'daemon off"   6 minutes ago       Up 6 minutes        80/tcp, 443/tcp     nginx.1.394by1b72i44a44jms2xwk6ud</span></code></pre></td></tr></table></div></figure>
-
-
-<p>再来查看一下 <code>nginx</code> 服务的任务列表，可以看到新创建的任务 <code>cumjdktbadaxca66rt4hi63na</code> 被调度到了 <code>worker2</code> 上运行：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
-</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE          DESIRED STATE  NODE
-</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running 8 minutes   Running        manager1
-</span><span class='line'>co0re9u7infoo9qiegm6yiqcn  nginx.2  nginx    nginx  Running 5 minutes   Running        worker1
-</span><span class='line'>19dvayah8fjz3vykrl2oi12uu  nginx.3  nginx    nginx  Running 5 minutes   Running        worker1
-</span><span class='line'>cumjdktbadaxca66rt4hi63na  nginx.4  nginx    nginx  Running 32 seconds  Running        worker2
-</span><span class='line'>9rq59mf6bq5m411y6gdzb5pq6  nginx.5  nginx    nginx  Running 5 minutes   Running        worker2</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>删除一个节点？</h2>
-
-<p>不难想象，如果一个节点都宕机了，则Docker应该会将在该节点运行的容器，调度到其他节点，以满足指定数量的副本保持运行状态。</p>
-
-<p>下面我们就来模拟一下这种场景。</p>
-
-<p>首先，我们删除一个节点 <code>worker2</code>：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker-machine rm worker2
-</span><span class='line'>About to remove worker2
-</span><span class='line'>Are you sure? (y/n): y
-</span><span class='line'>Successfully removed worker2</span></code></pre></td></tr></table></div></figure>
-
-
-<p>删除之后，Docker就会开始重新调度，最终调度结束（&lt; 1分钟）后，再查看该服务的任务状态，应该如下面这样，有5个 <code>nginx</code> 容器在剩下的两台机器上运行：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service tasks nginx
-</span><span class='line'>ID                         NAME     SERVICE  IMAGE  LAST STATE          DESIRED STATE  NODE
-</span><span class='line'>394by1b72i44a44jms2xwk6ud  nginx.1  nginx    nginx  Running 22 minutes  Running        manager1
-</span><span class='line'>co0re9u7infoo9qiegm6yiqcn  nginx.2  nginx    nginx  Running 19 minutes  Running        worker1
-</span><span class='line'>19dvayah8fjz3vykrl2oi12uu  nginx.3  nginx    nginx  Running 19 minutes  Running        worker1
-</span><span class='line'>991v97eg9q1hnnzxda6c9mmv7  nginx.4  nginx    nginx  Running 20 seconds  Running        manager1
-</span><span class='line'>e9yztfmy5luaxnadz80e5j8nl  nginx.5  nginx    nginx  Running 20 seconds  Running        manager1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>除了上面用到的一些命令， <code>docker service</code> 还有以下一些子命令：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service --help
-</span><span class='line'>
-</span><span class='line'>Usage:    docker service COMMAND
-</span><span class='line'>
-</span><span class='line'>Manage Docker services
-</span><span class='line'>
-</span><span class='line'>Options:
-</span><span class='line'>      --help   Print usage
-</span><span class='line'>
-</span><span class='line'>Commands:
-</span><span class='line'>  create      Create a new service
-</span><span class='line'>  inspect     Inspect a service
-</span><span class='line'>  tasks       List the tasks of a service
-</span><span class='line'>  ls          List services
-</span><span class='line'>  rm          Remove a service
-</span><span class='line'>  scale       Scale one or multiple services
-</span><span class='line'>  update      Update a service
-</span><span class='line'>
-</span><span class='line'>Run 'docker service COMMAND --help' for more information on a command.</span></code></pre></td></tr></table></div></figure>
-
-
-<p>比如我们可以用 <code>docker service inspect</code> 来获得 <code>nginx</code> 服务的详情信息：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-<span class='line-number'>68</span>
-<span class='line-number'>69</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker service inspect nginx
-</span><span class='line'>[
-</span><span class='line'>    {
-</span><span class='line'>        "ID": "78cmmh8ef4qcwmjjzgn3k45ch",
-</span><span class='line'>        "Version": {
-</span><span class='line'>            "Index": 32
-</span><span class='line'>        },
-</span><span class='line'>        "CreatedAt": "2016-06-21T08:31:21.427244594Z",
-</span><span class='line'>        "UpdatedAt": "2016-06-21T08:33:50.75625288Z",
-</span><span class='line'>        "Spec": {
-</span><span class='line'>            "Name": "nginx",
-</span><span class='line'>            "TaskTemplate": {
-</span><span class='line'>                "ContainerSpec": {
-</span><span class='line'>                    "Image": "nginx"
-</span><span class='line'>                },
-</span><span class='line'>                "Resources": {
-</span><span class='line'>                    "Limits": {},
-</span><span class='line'>                    "Reservations": {}
-</span><span class='line'>                },
-</span><span class='line'>                "RestartPolicy": {
-</span><span class='line'>                    "Condition": "any",
-</span><span class='line'>                    "MaxAttempts": 0
-</span><span class='line'>                },
-</span><span class='line'>                "Placement": {}
-</span><span class='line'>            },
-</span><span class='line'>            "Mode": {
-</span><span class='line'>                "Replicated": {
-</span><span class='line'>                    "Replicas": 5
-</span><span class='line'>                }
-</span><span class='line'>            },
-</span><span class='line'>            "UpdateConfig": {},
-</span><span class='line'>            "Networks": [
-</span><span class='line'>                {
-</span><span class='line'>                    "Target": "8kiv8muduf60f66rs99ufo25f"
-</span><span class='line'>                }
-</span><span class='line'>            ],
-</span><span class='line'>            "EndpointSpec": {
-</span><span class='line'>                "Mode": "vip",
-</span><span class='line'>                "Ports": [
-</span><span class='line'>                    {
-</span><span class='line'>                        "Protocol": "tcp",
-</span><span class='line'>                        "TargetPort": 80,
-</span><span class='line'>                        "PublishedPort": 80
-</span><span class='line'>                    }
-</span><span class='line'>                ]
-</span><span class='line'>            }
-</span><span class='line'>        },
-</span><span class='line'>        "Endpoint": {
-</span><span class='line'>            "Spec": {},
-</span><span class='line'>            "Ports": [
-</span><span class='line'>                {
-</span><span class='line'>                    "Protocol": "tcp",
-</span><span class='line'>                    "TargetPort": 80,
-</span><span class='line'>                    "PublishedPort": 80
-</span><span class='line'>                }
-</span><span class='line'>            ],
-</span><span class='line'>            "VirtualIPs": [
-</span><span class='line'>                {
-</span><span class='line'>                    "NetworkID": "e9et32s47olva4e0uisamdqao",
-</span><span class='line'>                    "Addr": "10.255.0.6/16"
-</span><span class='line'>                },
-</span><span class='line'>                {
-</span><span class='line'>                    "NetworkID": "8kiv8muduf60f66rs99ufo25f",
-</span><span class='line'>                    "Addr": "10.0.0.2/24"
-</span><span class='line'>                }
-</span><span class='line'>            ]
-</span><span class='line'>        }
-</span><span class='line'>    }
-</span><span class='line'>]</span></code></pre></td></tr></table></div></figure>
-
-
-<p>也可以通过 <code>docker service rm nginx</code> 命令，删除 <code>nginx</code> 服务（现在的版本删除服务前没有警告提示，请小心操作）。</p>
-
-<h2>总结</h2>
-
-<p>上手很简单，Docker swarm可以非常方便的创建类似k8s那样带有副本的服务，确保一定数量的容器运行，保证服务的高可用。</p>
-
-<p>然而，光从官方文档来说，功能似乎又有些简单，从生产环境来说，下面这些方面都还有所欠缺（其实从Swarm v1就有这个问题）：</p>
-
-<ul>
-<li>没有配置文件，不好进行版本化管理，不方便部署</li>
-<li>持久存储的缺失。Docker已经支持Volume Driver，k8s等也有存储卷插件在机制，真正的生产环境没有Volume支持估计是很难想象的。</li>
-<li>是否能确保本身的高可用</li>
-<li>调度策略还处于初级阶段</li>
-</ul>
-
-
-<p>不过，正如Docker让容器技术变得平民化一样，Docker Machine和Swarm，也将在各种基础设施上运行Docker和Docker集群变得更加简单，从这一点上来说，其意义也是很大的。</p>
-
-<p>不过在开源社区和商业竞争的角度来看，Docker Swarm将会走向何方呢？</p>
 ]]></content>
   </entry>
   
