@@ -4,7 +4,7 @@
   <title><![CDATA[自言自语]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-04-14T22:18:07+08:00</updated>
+  <updated>2021-04-15T10:42:52+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -271,8 +271,6 @@
 <p>不过，要相关确保 Secret 的绝对安全，上面这几种方案都是必须，缺一不可，缺少了那一个都相当于在墙上留了一个洞。</p>
 
 <p>社区和公有云提供商都有一些产品和方案，我们可以参考一下。</p>
-
-<p>Secretの暗号化には､下記の様なツールを使う事が多いと認識しています｡</p>
 
 <ul>
 <li><a href="https://github.com/shyiko/kubesec">shyiko/kubesec</a>: Secure Secret management for Kubernetes (with gpg, Google Cloud KMS and AWS KMS backends)</li>
