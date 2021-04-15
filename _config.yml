@@ -3,7 +3,7 @@
 # ----------------------- #
 
 url: http://liubin.org
-title: 自言自语
+title: 人间指南
 subtitle: 一个软件工程师的自言自语
 author: bin liu
 simple_search: https://www.google.com/search
@@ -79,7 +79,7 @@ github_sort: updated
 github_direction: desc
 
 # Twitter
-twitter_user: OurColorfulDays
+twitter_user: liubuneng
 twitter_tweet_button: true
 
 # Google +1
