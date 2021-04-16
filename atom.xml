@@ -4,7 +4,7 @@
   <title><![CDATA[人间指南]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-04-15T10:49:16+08:00</updated>
+  <updated>2021-04-16T17:21:12+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,110 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[async/await 内部是怎么实现的]]></title>
+    <link href="http://liubin.org/blog/2021/04/15/async-slash-await-internal/"/>
+    <updated>2021-04-15T16:50:22+08:00</updated>
+    <id>http://liubin.org/blog/2021/04/15/async-slash-await-internal</id>
+    <content type="html"><![CDATA[<p>同事问 Rust aysnc/await 是怎么实现的呢，在 await 的地方停住，之后又在继续的时候继续恢复（当前线程/coroutine）的执行，也是用了 yield/generator 这样的东西？</p>
+
+<p>简单的试了下，猜测大概是这样吧。</p>
+
+<p>如下代码：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">say_world</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;hello world&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#[tokio::main]</span>
+</span><span class='line'><span class="n">async</span> <span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">op</span> <span class="o">=</span> <span class="n">say_world</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">op</span><span class="p">.</span><span class="n">await</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>使用 nightly 的 <code>rustc</code> “编译”：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="err">$</span> <span class="n">cargo</span> <span class="n">rustc</span> <span class="o">--</span> <span class="o">-</span><span class="n">Z</span> <span class="n">unpretty</span><span class="o">=</span><span class="n">hir</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>下面是输出结果，这里只显示了 <code>main()</code> 函数相关处理后的代码（修改过格式后）：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">tokio</span><span class="o">::</span><span class="n">runtime</span><span class="o">::</span><span class="n">Builder</span><span class="o">::</span><span class="n">new_multi_thread</span><span class="p">().</span><span class="n">enable_all</span><span class="p">().</span><span class="n">build</span><span class="p">().</span><span class="n">unwrap</span><span class="p">().</span><span class="n">block_on</span><span class="p">(</span><span class="cp">#[lang = </span><span class="s">&quot;from_generator&quot;</span><span class="cp">]</span><span class="p">(</span><span class="o">|</span><span class="k">mut</span> <span class="n">_task_context</span><span class="o">|</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">op</span> <span class="o">=</span> <span class="n">say_world</span><span class="p">();</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">op</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>        <span class="k">mut</span> <span class="n">pinned</span> <span class="o">=&gt;</span> <span class="k">loop</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">match</span> <span class="k">unsafe</span>
+</span><span class='line'>                  <span class="p">{</span>
+</span><span class='line'>                      <span class="cp">#[lang = </span><span class="s">&quot;poll&quot;</span><span class="cp">]</span><span class="p">(</span><span class="cp">#[lang = </span><span class="s">&quot;new_unchecked&quot;</span><span class="cp">]</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">pinned</span><span class="p">),</span>
+</span><span class='line'>                                       <span class="cp">#[lang = </span><span class="s">&quot;get_context&quot;</span><span class="cp">]</span><span class="p">(</span><span class="n">_task_context</span><span class="p">))</span>
+</span><span class='line'>                  <span class="p">}</span>
+</span><span class='line'>                <span class="p">{</span>
+</span><span class='line'>                    <span class="cp">#[lang = </span><span class="s">&quot;Ready&quot;</span><span class="cp">]</span> <span class="p">{</span>
+</span><span class='line'>                    <span class="mi">0</span><span class="o">:</span> <span class="n">result</span>
+</span><span class='line'>                    <span class="p">}</span> <span class="o">=&gt;</span>
+</span><span class='line'>                    <span class="k">break</span> <span class="n">result</span><span class="p">,</span>
+</span><span class='line'>                    <span class="cp">#[lang = </span><span class="s">&quot;Pending&quot;</span><span class="cp">]</span> <span class="p">{</span> <span class="p">}</span> <span class="o">=&gt;</span>
+</span><span class='line'>                    <span class="p">{</span>
+</span><span class='line'>                    <span class="p">}</span>
+</span><span class='line'>                <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="n">_task_context</span> <span class="o">=</span> <span class="p">(</span><span class="kr">yield</span><span class="p">());</span>
+</span><span class='line'>        <span class="p">},</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'><span class="p">}))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>抛去那么多 attribute ，大概流程就是不挺的 loop ，查看 Future（这里的 <code>op</code>） 是否 ready。如果已经是 ready 的状态，那么就会对该结果进行处理，然后退出；否则（Pending的状态）就继续等待，让 runtime 调度其他 task 。</p>
+
+<p>Future 在 tokio 里就“是”一个 task（确切说是 future.await？），tokio runtime 负责调度 task ，task 有些像 goroutine，不过 Rust 本身不自带 runtime 的实现。</p>
+
+<p>计划再确认下 tokio 的实现，看看它到底是怎么做的。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[关于 K8s 的 Secret 并不安全这件事]]></title>
@@ -3961,127 +4065,6 @@
 <p>家庭是什么，虽然有各种分工，有人负责赚钱，养家糊口，有人复杂相夫教子把持家务，但任何人之间的真诚交流都是必不可少的，即使对小孩子也是，更何况已经是成人的高中生？</p>
 
 <p>孩子除了学习，心理的健康也是不得不关注的。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[2016年6月读书记录]]></title>
-    <link href="http://liubin.org/blog/2016/07/09/06-reading/"/>
-    <updated>2016-07-09T23:06:52+08:00</updated>
-    <id>http://liubin.org/blog/2016/07/09/06-reading</id>
-    <content type="html"><![CDATA[<p>度过5月低潮，6月的阅读时间又升上来了，本月基本上以微信读书为主。至于是什么原因呢？可能是因为一本书读起来就不想放下，一直读下去，直到读完。</p>
-
-<p>6月一共阅读了6本，分别是《消费心理十四讲》、《袁腾飞讲先秦上古春秋》、《中国为什么有前途》、《白夜行》、《最神奇的经济学定律》和《国学讲演录》</p>
-
-<h2>《白夜行》</h2>
-
-<p><img src="https://img3.doubanio.com/lpic/s4610502.jpg" alt="白夜行" /></p>
-
-<p>推荐指数：★★★★★</p>
-
-<p>这可能是东野圭吾在国内最著名的小说之一了，也被翻拍成了影视作品。</p>
-
-<p>作为侦探小说，情节还算不错。</p>
-
-<p>我的感觉是，人生的长河，你总能找到同路人，相同的家庭环境，类似的遭遇或者不幸；不管是旋涡、阻挡，亦或是激流之后一湾浅滩的平静。每个人的人生都不同，但是总有重复相同经历的人。</p>
-
-<h2>《袁腾飞讲先秦上古春秋》</h2>
-
-<p><img src="https://img3.doubanio.com/lpic/s28013690.jpg" alt="袁腾飞讲先秦上古春秋" /></p>
-
-<p>推荐指数：★★★★★</p>
-
-<p>这是一本历史书，从人文之初、轩辕黄帝一直讲到了春秋晚期，包括三代夏商周的更迭，以及春秋时期各诸侯的争霸。
-对于长久不学习历史的人来说，算是一个很好的补足，对已经遗忘的、在初中、高中所学历史的补足。我们的传统文化还是很悠久和博大精深的，我觉得无论年纪大小，都应该读一下。</p>
-
-<p>龙的传人：</p>
-
-<p>伏羲和女娲结婚时，女娲才16岁，比伏羲小15岁。伏羲龙身，女娲蛇身，因此后代被称为龙的传人。</p>
-
-<p>炎黄子孙：</p>
-
-<p>炎帝和黄帝同为华夏部落，所以我们也成为炎黄子孙。</p>
-
-<h2>《中国为什么有前途》</h2>
-
-<p><img src="https://img3.doubanio.com/lpic/s28562483.jpg" alt="中国为什么有前途" /></p>
-
-<p>推荐指数：★★★★★</p>
-
-<p>罗胖从政治、历史、经济和宗教等方面，针对各种消极、自卑和唱衰言论，东拉西扯、引经据典外加自己缜密的推断，论述了他眼中的中国为什么有前途。</p>
-
-<p>尽管这一观点我不是很同意。</p>
-
-<p>作为一个70年代出生，经历了30多年的改革开放，生活水平大幅提高，事业有成的罗胖，得出此结论并不奇怪，乐观派没什么不好，乐观派才能干成事。</p>
-
-<p>然而现实实际是如何？近期的南海问题、韩国萨德、吃KFC成卖国贼等等，哪一个不是引起轩然大波，吸引力全社会各个阶层的关注甚至撕b？</p>
-
-<p>我只是觉得，没朋友很孤独，尽管国家之间的友谊，更多时候是利害关系的外衣。</p>
-
-<p>我们的朋友真的不多。</p>
-
-<h2>《国学讲演录》</h2>
-
-<p><img src="https://img3.doubanio.com/lpic/s28306721.jpg" alt="国学讲演录" /></p>
-
-<p>推荐指数：★★★★★</p>
-
-<p>本书作者是南怀瑾高足魏承思，是一本由讲稿整理而成的书，讨论了国学的概念、定义、范围，还对诸子百家学说进行了详细的介绍。包括儒、释、道，还有墨家和法家，以及魏晋、隋唐的佛学、宋明理学等。同时，也对四书五经、诸子学说与二十四史等经史子集进行了深入的说明，是对我们中学所学历史的丰富补充。</p>
-
-<p>总之，对于像学习一下中国传统文化、国学的人来说，都可以说算的上一本非常好的入门，内容浅显易懂而又详实饱满，张杰组织和条理也都很清楚。</p>
-
-<h2>《最神奇的经济学定律》</h2>
-
-<p><img src="https://img3.doubanio.com/lpic/s6179345.jpg" alt="最神奇的经济学定律" /></p>
-
-<p>推荐指数：★★★★☆</p>
-
-<p>这不是晦涩难懂、偏重理论的一本关于经济学的书，而是结合了具体事例，分析了各种现象，并给出了各种适用场景和建议告诉我们在现实世界中，在哪里以及如何应用这些定律。</p>
-
-<p>同时本书也引用了很多历史典故、有趣的事例等。</p>
-
-<p>比如美国航天飞机火箭助推器的宽度，为什么是现在这个值么？答案就是：</p>
-
-<blockquote><p>现代铁路两条铁轨之间的标准距离是4.85英尺。原来，早期的铁路是由建电车的人所设计的，而4．85英尺正是电车所用的轮距标准。那么，电车的标准又是从哪里来的呢？最先造电车的人以前是造马车的，所以电车的标准是沿用马车的轮距标准。马车又为什么要用这个轮距标准呢？英国马路辙迹的宽度是4．85英尺，所以，如果马车用其他轮距，它的轮子很快会在英国的老路上撞坏。这些辙迹又是从何而来的呢？从古罗马人那里来的。因为整个欧洲，包括英国的长途老路都是由罗马人为它的军队所铺设的，而4．85英尺正是罗马战车的宽度。任何其他轮宽的战车在这些路上行驶的话，轮子的寿命都不会很长。罗马人为什么以4．85英尺作为战车的轮距宽度呢？原因很简单，这是牵引一辆战车的两匹马屁股的宽度。故事到此还没有结束。美国航天飞机燃料箱的两旁有两个火箭推进器，因为这些推进器造好之后要用火车运送，路上又要通过一些隧道，而这些隧道的宽度只比火车轨道宽一点，因此火箭助推器的宽度是由铁轨的宽度所决定的。
-所以，最后的结论是：路径依赖导致了美国航天飞机火箭助推器的宽度，竟然是两千年前便由两匹马屁股的宽度所决定。</p></blockquote>
-
-<p>当然，本书不是讲故事，也还是介绍了很多经济学专门知识的，比如凯恩斯对宏观经济的看法、基尼系数等。</p>
-
-<h2>《消费心理十四讲》</h2>
-
-<p><img src="https://img1.doubanio.com/lpic/s27184788.jpg" alt="消费心理十四讲" /></p>
-
-<p>推荐指数：★★★☆☆</p>
-
-<p>本书主要讲的是如何让品牌深入人心，如何吸引顾客的注意力和兴趣、满足顾客、把商品卖给顾客。</p>
-
-<p>书中介绍了购物时人的心理的各个阶段：</p>
-
-<ul>
-<li>1.注意目标</li>
-<li>2.引起兴趣</li>
-<li>3.产生购买欲望</li>
-<li>4.信任</li>
-<li>5.决定购买</li>
-<li>6.满足</li>
-</ul>
-
-
-<p>围绕这几个阶段，作者在各个章节展开了详细的叙述，比如如何吸引用户的兴趣，如何取得用户的信任，如何影响用户做决定等等。</p>
-
-<p>其中关于群体效应的章节中，作者介绍哦啊了潮流产生和发展的几个阶段和特征，我觉得挺有意思的：</p>
-
-<ul>
-<li>1.潮流开始时一定包含着某些创新元素，即以前没有过的。</li>
-<li>2.潮流最开始兴起的原因是某些人为了表明自己与众不同。</li>
-<li>3.潮流的下一个特征——模仿，其他人会模仿最初的尝试者。</li>
-<li>4.模仿阶段之后，曾经拥有新装备的潮流发起个体，即最初的尝试者不再突出。</li>
-</ul>
-
-
-<p>具体的话可以找来这本书看看。</p>
-
-<p>总之，这不是一本特别差的书。</p>
 ]]></content>
   </entry>
   
