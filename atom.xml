@@ -4,7 +4,7 @@
   <title><![CDATA[人间指南]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-04-16T20:05:44+08:00</updated>
+  <updated>2021-11-05T17:22:10+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,463 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[初试 Nydus]]></title>
+    <link href="http://liubin.org/blog/2021/11/05/nydus-intro/"/>
+    <updated>2021-11-05T16:49:13+08:00</updated>
+    <id>http://liubin.org/blog/2021/11/05/nydus-intro</id>
+    <content type="html"><![CDATA[<p><a href="https://github.com/dragonflyoss/image-service">Nydus</a> 是一个镜像加速方案，用于解决大规模集群中镜像部署的性能问题。</p>
+
+<p>在多数情况下，镜像尽管很大，但是里面的文件不一定全会在容器运行中使用。尤其是 Docker 多层镜像机制中，即使在上层被删除的文件，在底层还是存在的，拉取镜像的时候，这部分数据也会造成无谓的浪费。</p>
+
+<p>最大的问题在于，容器必须在镜像下载到本地之后，才能启动容器。如果镜像没有优化，会大幅度降低镜像启动速度。 Nydus 的想法是容器启动时并不真正的把所有文件都下载到本地，而是在容器真的读取该文件时，才会从网络下载该文件（块），这样就可以减少容器启动的时间。</p>
+
+<p>这篇文章不打算深入了解它的结构，只是先体验一下它是如何管理镜像的。</p>
+
+<p>Nydus 采用 RAFS 文件系统，以 FUSE 形式提供给容器运行时使用。Nydus 数据分为两类：</p>
+
+<ul>
+<li>bootstrap：RAFS 的 metadata</li>
+<li>blob：存储真正的数据块</li>
+</ul>
+
+
+<h2>转换镜像</h2>
+
+<p>我们这里使用了一个非常简单的 2 层的镜像：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># Dockerfile
+</span><span class='line'>FROM docker.io/library/alpine:latest
+</span><span class='line'>ADD readme.txt /</span></code></pre></td></tr></table></div></figure>
+
+
+<p>基于这个 Dockerfile 构建后 push 到 Docker Hub.</p>
+
+<p>然后可以使用 <code>nydusify</code> 命令将标准的 OCI 镜像转换为 Nydus 格式的镜像：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># nydusify convert \</span>
+</span><span class='line'>  --source docker.io/liubin/nydus:two-layers <span class="se">\</span>
+</span><span class='line'>  --target liubin/nydus:two-layers-nydus <span class="se">\</span>
+</span><span class='line'>  -log-level debug
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>该命令会将源镜像转换成 Nydus 的格式，并存储到 liubin/nydus:two-layers-nydus 中。</p>
+
+<p>Nydus 的 blob 存储可以选择 Registry 和阿里云 OSS 两种方式。默认使用 Image Retistry。</p>
+
+<p>默认情况下临时文件会保存到 <code>./tmp</code> 下面：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># tree tmp/</span>
+</span><span class='line'>tmp/
+</span><span class='line'>├── blobs
+</span><span class='line'>├── bootstraps
+</span><span class='line'>│   ├── 1-sha256:a0d0a0d46f8b52473982a3c466318f479767577551a53ffc9074c9fa7035982e
+</span><span class='line'>│   ├── 1-sha256:a0d0a0d46f8b52473982a3c466318f479767577551a53ffc9074c9fa7035982e-output.json
+</span><span class='line'>│   ├── 2-sha256:f2afd747bba4e4e1ae68a143d8f610cc44ae712e988a50ef47c9dfb2fddbc290
+</span><span class='line'>│   └── 2-sha256:f2afd747bba4e4e1ae68a143d8f610cc44ae712e988a50ef47c9dfb2fddbc290-output.json
+</span><span class='line'>├── conversion_metrics.prom
+</span><span class='line'>└── <span class="nb">source</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>tmp/bootstraps/2-sha256\:f2afd747bba4e4e1ae68a143d8f610cc44ae712e988a50ef47c9dfb2fddbc290-output.json</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;blobs&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>    <span class="s2">&quot;66127347ad6d346cef12a6fdef2bb4ca611ff0f918b235136453da45bba83da9&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="s2">&quot;0bb9d4bf5810ee24b997ce82186a6ec43c3b6e89ba0e1c8e9288157bb704cdd1&quot;</span>
+</span><span class='line'>  <span class="p">],</span>
+</span><span class='line'>  <span class="nt">&quot;trace&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;consumed_time&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;apply layers&quot;</span><span class="p">:</span> <span class="mf">6.585999926755903e-06</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;build rafs&quot;</span><span class="p">:</span> <span class="mf">0.0015352850314229727</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;dump bootstrap and blob&quot;</span><span class="p">:</span> <span class="mf">0.0024188628885895014</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;load nodes from local directory&quot;</span><span class="p">:</span> <span class="mf">3.126099909422919e-05</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;load nodes from parent&quot;</span><span class="p">:</span> <span class="mf">0.001709955045953393</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;total build time&quot;</span><span class="p">:</span> <span class="mf">0.005979558918625116</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;validate bootstrap out of band&quot;</span><span class="p">:</span> <span class="mf">0.002757467096671462</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;write all nodes to blob including hashing&quot;</span><span class="p">:</span> <span class="mf">0.0011135309468954802</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;write all nodes to bootstrap&quot;</span><span class="p">:</span> <span class="mf">0.0011579629499465227</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="nt">&quot;registered_events&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;blob compressed size&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;egid&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;euid&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;loading files from directory&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;loading files from parent&quot;</span><span class="p">:</span> <span class="mi">1125</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>验证镜像</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># nydusify check \</span>
+</span><span class='line'>  --source docker.io/liubin/nydus:two-layers <span class="se">\</span>
+</span><span class='line'>  --target liubin/nydus:two-layers-nydus
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>该命令会下载 OCI 镜像和 Nydus 镜像的 metadata 等数据，我们可以通过对比这两种不同类型的镜像的文件看一下看一下 Nydus 是如何保存镜像的。</p>
+
+<p>默认情况下该命令会将结果都写到 <code>./output</code> 文件：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># tree output/</span>
+</span><span class='line'>output/
+</span><span class='line'>├── fs
+</span><span class='line'>│   ├── nydus_api.sock
+</span><span class='line'>│   ├── nydus_blobs
+</span><span class='line'>│   ├── nydusd_config.json
+</span><span class='line'>│   ├── nydus_mounted
+</span><span class='line'>│   └── source_mounted
+</span><span class='line'>├── nydus_bootstrap
+</span><span class='line'>├── nydus_bootstrap_debug.json
+</span><span class='line'>├── nydus_config.json
+</span><span class='line'>├── nydus_manifest.json
+</span><span class='line'>├── oci_config.json
+</span><span class='line'>└── oci_manifest.json
+</span><span class='line'>
+</span><span class='line'><span class="m">4</span> directories, <span class="m">8</span> files
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们这里只来看一下 OCI 和 Nydus 两种镜像的 manifest 文件。</p>
+
+<p>首先看一下 OCI 的：</p>
+
+<p><code>oci_manifest.json</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;schemaVersion&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;config&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.docker.container.image.v1+json&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:85f3e7735ea66cc3df14a38419b199913b84d616298fb38d1a4a5c92cf885d49&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;size&quot;</span><span class="p">:</span> <span class="mi">1674</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;layers&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:a0d0a0d46f8b52473982a3c466318f479767577551a53ffc9074c9fa7035982e&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;size&quot;</span><span class="p">:</span> <span class="mi">2814446</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:f2afd747bba4e4e1ae68a143d8f610cc44ae712e988a50ef47c9dfb2fddbc290&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;size&quot;</span><span class="p">:</span> <span class="mi">123</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>oci_config.json</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;created&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-11-05T07:39:26.692325137Z&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;amd64&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;os&quot;</span><span class="p">:</span> <span class="s2">&quot;linux&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;config&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;Env&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>      <span class="s2">&quot;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span>
+</span><span class='line'>    <span class="p">],</span>
+</span><span class='line'>    <span class="nt">&quot;Cmd&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>      <span class="s2">&quot;/bin/sh&quot;</span>
+</span><span class='line'>    <span class="p">]</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;rootfs&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;layers&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;diff_ids&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>      <span class="s2">&quot;sha256:e2eb06d8af8218cfec8210147357a68b7e13f7c485b991c288c2d01dc228bb68&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="s2">&quot;sha256:f66394ac63df4047b5f85b83ace284471b145ca9d0c029e204318c5641b3fa43&quot;</span>
+</span><span class='line'>    <span class="p">]</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;history&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;created&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-08-27T17:19:45.553092363Z&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;created_by&quot;</span><span class="p">:</span> <span class="s2">&quot;/bin/sh -c #(nop) ADD file:aad4290d27580cc1a094ffaf98c3ca2fc5d699fe695dfb8e6e9fac20f1129450 in / &quot;</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;created&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-08-27T17:19:45.758611523Z&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;created_by&quot;</span><span class="p">:</span> <span class="s2">&quot;/bin/sh -c #(nop)  CMD [\&quot;/bin/sh\&quot;]&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;empty_layer&quot;</span><span class="p">:</span> <span class="kc">true</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;created&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-11-05T07:39:26.692325137Z&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;created_by&quot;</span><span class="p">:</span> <span class="s2">&quot;/bin/sh -c #(nop) ADD file:d46e26bb98315616de9963c6399d128eabb29c54472e7633417d95a13ee6a287 in / &quot;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们可以看到 OCI 镜像的 manifest 中有两层文件，每一层都是 <code>application/vnd.docker.image.rootfs.diff.tar.gzip</code> 类型，也是 Docker Hub 存储的 Blob。</p>
+
+<p>再来看一下 Nydus 的镜像 manifest ：</p>
+
+<p><code>nydus_manifest.json</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;schemaVersion&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;config&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.oci.image.config.v1+json&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:2f47f937739061383e02392a922b317f8865a7cb0d49643a8bf0c042380bcc34&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;size&quot;</span><span class="p">:</span> <span class="mi">447</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;layers&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.oci.image.layer.nydus.blob.v1&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:66127347ad6d346cef12a6fdef2bb4ca611ff0f918b235136453da45bba83da9&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;size&quot;</span><span class="p">:</span> <span class="mi">3687032</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;annotations&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;containerd.io/snapshot/nydus-blob&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.oci.image.layer.nydus.blob.v1&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:0bb9d4bf5810ee24b997ce82186a6ec43c3b6e89ba0e1c8e9288157bb704cdd1&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;size&quot;</span><span class="p">:</span> <span class="mi">17</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;annotations&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;containerd.io/snapshot/nydus-blob&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">},</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.oci.image.layer.v1.tar+gzip&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:8ca1c17af7e6230b522cea7e12ff7262a63331a09ae895cfb5fca3b6d1631a45&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;size&quot;</span><span class="p">:</span> <span class="mi">17819</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;annotations&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;containerd.io/snapshot/nydus-blob-ids&quot;</span><span class="p">:</span> <span class="s2">&quot;[\&quot;66127347ad6d346cef12a6fdef2bb4ca611ff0f918b235136453da45bba83da9\&quot;,\&quot;0bb9d4bf5810ee24b997ce82186a6ec43c3b6e89ba0e1c8e9288157bb704cdd1\&quot;]&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;containerd.io/snapshot/nydus-bootstrap&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">],</span>
+</span><span class='line'>  <span class="nt">&quot;annotations&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;nydus.trace.nydusify-version&quot;</span><span class="p">:</span> <span class="s2">&quot;2f10c409cb302eb63e29363e330bc00e89a39c8b.20211027.0608&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;nydus.trace.source-digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:00e2afc814fb9c3c48858dc5b17758e49ca2619f2bdd544c6f9810c397d83137&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;nydus.trace.source-reference&quot;</span><span class="p">:</span> <span class="s2">&quot;docker.io/liubin/nydus:two-layers&quot;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>nydus_config.json</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;created&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-11-05T07:39:26.692325137Z&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;amd64&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;os&quot;</span><span class="p">:</span> <span class="s2">&quot;linux&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;config&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;Env&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>      <span class="s2">&quot;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span>
+</span><span class='line'>    <span class="p">],</span>
+</span><span class='line'>    <span class="nt">&quot;Cmd&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>      <span class="s2">&quot;/bin/sh&quot;</span>
+</span><span class='line'>    <span class="p">]</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;rootfs&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;layers&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;diff_ids&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>      <span class="s2">&quot;sha256:66127347ad6d346cef12a6fdef2bb4ca611ff0f918b235136453da45bba83da9&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="s2">&quot;sha256:0bb9d4bf5810ee24b997ce82186a6ec43c3b6e89ba0e1c8e9288157bb704cdd1&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="s2">&quot;sha256:227fce4a699330352477cc3569e37459151e4e6cde2a38c5248c58053be34c9d&quot;</span>
+</span><span class='line'>    <span class="p">]</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>从 <code>nydus_manifest.json</code> 文件我们可以看到以下一些变化：</p>
+
+<ul>
+<li>OCI 的 2 层镜像变成了 3 层，这是因为多了一层 <code>"containerd.io/snapshot/nydus-bootstrap": "true"</code> 的 bootstrap 层</li>
+<li>Blob 层类型为 <code>application/vnd.oci.image.layer.nydus.blob.v1</code> ，且增加了一个 <code>"containerd.io/snapshot/nydus-blob": "true"</code> 的 annotation。</li>
+<li>bootstrap 层里 <code>containerd.io/snapshot/nydus-blob-ids</code> 保存了它所依赖的 Blobs。</li>
+</ul>
+
+
+<p>今天的了解就到这里为止，下次再见。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Rust async/await 内部是怎么实现的]]></title>
@@ -4147,53 +4604,6 @@
 <p>这也能算本书？附录占了多一半，在kindle上看的，大概只用了30分钟左右吧。</p>
 
 <p>不推荐。而推荐下面的《穿越百年中东》一书。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[2016年7月读书记录]]></title>
-    <link href="http://liubin.org/blog/2016/08/05/07-reading/"/>
-    <updated>2016-08-05T23:46:34+08:00</updated>
-    <id>http://liubin.org/blog/2016/08/05/07-reading</id>
-    <content type="html"><![CDATA[<p>7月大概是比较忙的原因吧，读完的只有3本，一本是东野圭吾的《梦幻花》，kindle上看着价格还不错就买了；还有一本是最近比较火的管理类，杰克•韦尔奇的《商业的本质》。《无声告白》也是在kindle上看的。</p>
-
-<h2>《梦幻花》</h2>
-
-<p><img src="https://img1.doubanio.com/lpic/s27980309.jpg" alt="梦幻花" /></p>
-
-<p>推荐指数：★★★★☆</p>
-
-<p>其实仔细想想，情节也很“日式”，每个人都坚信着自己的“义务”或者“责任”，为了家族或者宿命而“不得不”背负的责任。这有点类似家臣的意思，即一代为臣，世代效忠主人，而上一代人所肩负的责任，也会被下一代继承和发扬，面对现实，不去逃避，而是努力去解决。</p>
-
-<p>作为悬疑小说，推理方面的吸引力一般。最后找到真正的杀人凶手有点虎头蛇尾的感觉，就那么几十个字带过，而之前的各种推理、假设和怀疑还是挺吸引人的；而凶手的暴露太突然了，有点意犹未尽的感觉。</p>
-
-<h2>《商业的本质》</h2>
-
-<p><img src="https://img3.doubanio.com/lpic/s28504660.jpg" alt="商业的本质" /></p>
-
-<p>推荐指数：★★★★★</p>
-
-<p>我一贯认为，成功（至少在金钱方面）和市面管理类书籍之间没有任何关系：即使你熟记了所有经管类、个人传记类的成功案例，你也很难成功；成功的人，很多地方都不符合这些书中所提到的观点、方式或者经验。</p>
-
-<p>凡是能写成书的，大都是因为“成功了，屁都是经验”。当然，这本书也不例外。</p>
-
-<p>那我为什么还要读这类的书？至少对我来说，可以找一下和成功人士的共同语言，提高一下自己的“品格”，还有就是能多些谈资，学习更多的经验。所以说，多少还是要读一些的。</p>
-
-<p>首先这本书的中文名翻译就有问题，英文名应该是《The real life MBA》吧，所以，这本书只有不到一半的内容是关于商业的东西，比如成本、销售或者市场等，而更多的是像在讲管理，比如如何构建团队、提高领导力和构建自己的职业生涯等。</p>
-
-<h2>《无声告白》</h2>
-
-<p><img src="https://img3.doubanio.com/lpic/s28109182.jpg" alt="无声告白" /></p>
-
-<p>推荐指数：★★★★★</p>
-
-<p>母亲在年轻时爱上了爸爸，并不得不放弃了自己的学业。多年以后，母亲当时的理想并未褪去，在老二（莉迪亚本书开篇即死去的高中女孩）出生后不久一个人离家出走想继续学业，无奈后来发现怀了老三，只好回家，不得不放弃了自己的理想，但是，却把自己的希望都寄托给了莉迪亚，对她严加管教、全面指导。</p>
-
-<p>而一家人之间并不是那么“亲密”，人之间关系比较冷淡，父亲按部就班的工作，目前全职主妇，辅导二女儿学习，父母之间，父母和孩子之间，并没有真实真心的交流。莉迪亚只是被动的活着，一切都要听母亲的摆布，而哥哥即将远赴哈佛读大学，也让莉迪亚变得对人生更加不抱希望，在孤独中选择了自杀。</p>
-
-<p>家庭是什么，虽然有各种分工，有人负责赚钱，养家糊口，有人复杂相夫教子把持家务，但任何人之间的真诚交流都是必不可少的，即使对小孩子也是，更何况已经是成人的高中生？</p>
-
-<p>孩子除了学习，心理的健康也是不得不关注的。</p>
 ]]></content>
   </entry>
   

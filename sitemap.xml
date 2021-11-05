@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
+<loc>http://liubin.org/blog/2021/11/05/nydus-intro/</loc>
+<lastmod>2021-11-05T16:49:13+08:00</lastmod>
+</url>
+<url>
 <loc>http://liubin.org/blog/2021/04/15/async-slash-await-internal/</loc>
 <lastmod>2021-04-15T16:50:22+08:00</lastmod>
 </url>
