@@ -1,0 +1,678 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>在 Kata Containers 中使用 SPDK - 人间指南</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="在 Kata Containers 中使用 SPDK 关于如何在 Kata Containers 中使用 SPDK，官方有一个使用说明，只是之前是基于 Docker 的，由于 Kata Containers 已经不直接支持 Docker（或者说反过来 Docker 不支持 Kata &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/11/18/spdk-with-ctr">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="人间指南"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">人间指南</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/liubuneng">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">在 Kata Containers 中使用 SPDK</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>关于如何在 Kata Containers 中使用 SPDK，官方有一个<a href="https://github.com/kata-containers/kata-containers/blob/main/docs/use-cases/using-SPDK-vhostuser-and-kata.md">使用说明</a>，只是之前是基于 Docker 的，由于 Kata Containers 已经不直接支持 Docker（或者说反过来 Docker 不支持 Kata Containers），所以原来的文档需要更新，比如使用 ctr 来演示如何在 Kata Containers 中使用 SPDK 设备。</p>
+
+<p>趁这次更新文档的机会，顺便记录了一些中间的具体过程，但是全部放到 <a href="https://github.com/kata-containers/kata-containers/pull/3055">原文档</a> 中又有些冗余，所以在这里记录一下。</p>
+
+<p>演示示例主要在于 ctr 需要自己准备 rootfs 和 OCI spec （<code>config.json</code>）文档，这里我直接给出了相关脚本，直接使用即可。</p>
+
+<p>首先确保你已经按照官方 <a href="https://github.com/kata-containers/kata-containers/blob/main/docs/use-cases/using-SPDK-vhostuser-and-kata.md">使用说明</a> 准备好了 SPDK 设备。</p>
+
+<h2>创建 rootfs</h2>
+
+<p>使用这个脚本即可，这会使用一个 busybox 镜像作为 rootfs。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>ctr i pull quay.io/prometheus/busybox:latest
+</span><span class='line'>ctr i <span class="nb">export </span>rootfs.tar quay.io/prometheus/busybox:latest
+</span><span class='line'>
+</span><span class='line'><span class="nv">rootfs_tar</span><span class="o">=</span>rootfs.tar
+</span><span class='line'><span class="nv">bundle_dir</span><span class="o">=</span><span class="s2">&quot;./bundle&quot;</span>
+</span><span class='line'>mkdir -p <span class="s2">&quot;${bundle_dir}&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># extract busybox rootfs</span>
+</span><span class='line'><span class="nv">rootfs_dir</span><span class="o">=</span><span class="s2">&quot;${bundle_dir}/rootfs&quot;</span>
+</span><span class='line'>mkdir -p <span class="s2">&quot;${rootfs_dir}&quot;</span>
+</span><span class='line'><span class="nv">layers_dir</span><span class="o">=</span><span class="s2">&quot;$(mktemp -d)&quot;</span>
+</span><span class='line'>tar -C <span class="s2">&quot;${layers_dir}&quot;</span> -pxf <span class="s2">&quot;${rootfs_tar}&quot;</span>
+</span><span class='line'><span class="k">for</span> <span class="o">((</span><span class="nv">i</span><span class="o">=</span>0<span class="p">;</span>i&lt;<span class="k">$(</span>cat <span class="k">${</span><span class="nv">layers_dir</span><span class="k">}</span>/manifest.json <span class="p">|</span> jq -r <span class="s2">&quot;.[].Layers | length&quot;</span><span class="k">)</span><span class="p">;</span>i++<span class="o">))</span><span class="p">;</span> <span class="k">do</span>
+</span><span class='line'>  tar -C <span class="k">${</span><span class="nv">rootfs_dir</span><span class="k">}</span> -xf <span class="k">${</span><span class="nv">layers_dir</span><span class="k">}</span>/<span class="k">$(</span>cat <span class="k">${</span><span class="nv">layers_dir</span><span class="k">}</span>/manifest.json <span class="p">|</span> jq -r <span class="s2">&quot;.[].Layers[${i}]&quot;</span><span class="k">)</span>
+</span><span class='line'><span class="k">done</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>该脚本会使用 ctr 下载镜像，将镜像导出为 tar 文件，这时候 export 出来的还是 blob 格式，不能直接当做 rootfs 使用，需要再将每层解压缩，才能作为 rootfs 使用。</p>
+
+<p>上面的脚本执行后，就可以在本地看到 rootfs 了：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># ./create_rootfs.sh </span>
+</span><span class='line'>quay.io/prometheus/busybox:latest:                                                resolved       <span class="p">|</span>++++++++++++++++++++++++++++++++++++++<span class="p">|</span>
+</span><span class='line'>index-sha256:a56e11cce1c09f50a71290d65733ebe976adc8654395091d5379c7f294cc891e:    <span class="k">done</span>           <span class="p">|</span>++++++++++++++++++++++++++++++++++++++<span class="p">|</span>
+</span><span class='line'>manifest-sha256:de4af55df1f648a334e16437c550a2907e0aed4f0b0edf454b0b215a9349bdbb: <span class="k">done</span>           <span class="p">|</span>++++++++++++++++++++++++++++++++++++++<span class="p">|</span>
+</span><span class='line'>layer-sha256:b45d31ee2d7f9f452678a85b0c837c29e12089f31ee8dbac6c8c24dfa4054a30:    <span class="k">done</span>           <span class="p">|</span>++++++++++++++++++++++++++++++++++++++<span class="p">|</span>
+</span><span class='line'>layer-sha256:aa2a8d90b84cb2a9c422e7005cd166a008ccf22ef5d7d4f07128478585ce35ea:    <span class="k">done</span>           <span class="p">|</span>++++++++++++++++++++++++++++++++++++++<span class="p">|</span>
+</span><span class='line'>config-sha256:765c5b099deb79705ac7f947580453504f7c5d81d38e1e661b397e2648383815:   <span class="k">done</span>           <span class="p">|</span>++++++++++++++++++++++++++++++++++++++<span class="p">|</span>
+</span><span class='line'>elapsed: 1.1 s                                                                    total:   0.0 B <span class="o">(</span>0.0 B/s<span class="o">)</span>
+</span><span class='line'>unpacking linux/amd64 sha256:a56e11cce1c09f50a71290d65733ebe976adc8654395091d5379c7f294cc891e...
+</span><span class='line'><span class="k">done</span>
+</span><span class='line'>root@kant:/tmp/rootfs
+</span><span class='line'><span class="c"># ls </span>
+</span><span class='line'>bundle  create_rootfs.sh  rootfs.tar
+</span><span class='line'>root@kant:/tmp/rootfs# ls bundle/
+</span><span class='line'>rootfs
+</span><span class='line'>root@kant:/tmp/rootfs# ls bundle/rootfs/
+</span><span class='line'>bin  dev  etc  home  lib  root  tmp  usr  var
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>准备 config.json 文件</h2>
+
+<p>将下面的 <code>config.json</code> 文件拷贝到 bundle 下即可，注意其中的 rootfs 要根据自己的实际情况修改。</p>
+
+<p>将 SPDK 设备传递给 Kata Containers 是通过指定 <code>devices</code> 属性实现的。其中 <code>major: 241</code> 是 Kata Containers 约定的 vhost-user-blk 设备的编号，文件模式 420 即 8 进制的 644。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="s2">&quot;linux&quot;</span><span class="err">:</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;devices&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>      <span class="nt">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;/dev/vda&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;major&quot;</span><span class="p">:</span> <span class="mi">241</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;minor&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;fileMode&quot;</span><span class="p">:</span> <span class="mi">420</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;uid&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;gid&quot;</span><span class="p">:</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="p">}]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后就可以启动 Kata Containers 容器了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo ctr run -d --runtime io.containerd.run.kata.v2 --config bundle/config.json spdk_container
+</span><span class='line'><span class="nv">$ </span>sudo ctr t <span class="nb">exec</span> --exec-id <span class="m">1</span> -t spdk_container sh
+</span><span class='line'>/ <span class="c"># ls -l /dev/vda</span>
+</span><span class='line'>brw-r--r--    <span class="m">1</span> root     root      254,   <span class="m">0</span> Jan <span class="m">20</span> 03:54 /dev/vda
+</span><span class='line'>/ <span class="c"># dd if=/dev/vda of=/tmp/ddtest bs=4k count=20</span>
+</span><span class='line'>20+0 records in
+</span><span class='line'>20+0 records out
+</span><span class='line'><span class="m">81920</span> bytes <span class="o">(</span>80.0KB<span class="o">)</span> copied, 0.002996 seconds, 26.1MB/s
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>完整的 <code>config.json</code> 如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+<span class='line-number'>154</span>
+<span class='line-number'>155</span>
+<span class='line-number'>156</span>
+<span class='line-number'>157</span>
+<span class='line-number'>158</span>
+<span class='line-number'>159</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;ociVersion&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0.0-rc2-dev&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;platform&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;os&quot;</span><span class="p">:</span> <span class="s2">&quot;linux&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;arch&quot;</span><span class="p">:</span> <span class="s2">&quot;amd64&quot;</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;process&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;consoleSize&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;height&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;width&quot;</span><span class="p">:</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="nt">&quot;user&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;uid&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;gid&quot;</span><span class="p">:</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="nt">&quot;args&quot;</span><span class="p">:</span> <span class="p">[</span> <span class="s2">&quot;/bin/tail&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;/dev/null&quot;</span> <span class="p">],</span>
+</span><span class='line'>      <span class="nt">&quot;env&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>          <span class="s2">&quot;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;TERM=xterm&quot;</span>
+</span><span class='line'>      <span class="p">],</span>
+</span><span class='line'>      <span class="nt">&quot;cwd&quot;</span><span class="p">:</span> <span class="s2">&quot;/&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;rlimits&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;RLIMIT_NOFILE&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;hard&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;soft&quot;</span><span class="p">:</span> <span class="mi">1024</span>
+</span><span class='line'>      <span class="p">}],</span>
+</span><span class='line'>      <span class="nt">&quot;noNewPrivileges&quot;</span><span class="p">:</span> <span class="kc">true</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;root&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;/tmp/rootfs/bundle/rootfs&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;readonly&quot;</span><span class="p">:</span> <span class="kc">false</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;hostname&quot;</span><span class="p">:</span> <span class="s2">&quot;spdk-test&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;mounts&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>          <span class="nt">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;/proc&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;proc&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;proc&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;/dev&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;tmpfs&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;tmpfs&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;options&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>              <span class="s2">&quot;nosuid&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;strictatime&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;mode=755&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;size=65536k&quot;</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;/dev/pts&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;devpts&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;devpts&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;options&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>              <span class="s2">&quot;nosuid&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;noexec&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;newinstance&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;ptmxmode=0666&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;mode=0620&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;gid=5&quot;</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;/dev/shm&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;tmpfs&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;shm&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;options&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>              <span class="s2">&quot;nosuid&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;noexec&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;nodev&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;mode=1777&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;size=65536k&quot;</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;/dev/mqueue&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;mqueue&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;mqueue&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;options&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>              <span class="s2">&quot;nosuid&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;noexec&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;nodev&quot;</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;/sys&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;sysfs&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;sysfs&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;options&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>              <span class="s2">&quot;nosuid&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;noexec&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;nodev&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;ro&quot;</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;/sys/fs/cgroup&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;cgroup&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="s2">&quot;cgroup&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;options&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>              <span class="s2">&quot;nosuid&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;noexec&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;nodev&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;relatime&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="s2">&quot;ro&quot;</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>  <span class="p">],</span>
+</span><span class='line'>  <span class="nt">&quot;hooks&quot;</span><span class="p">:</span> <span class="p">{},</span>
+</span><span class='line'>  <span class="nt">&quot;linux&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;devices&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>          <span class="nt">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;/dev/vda&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;major&quot;</span><span class="p">:</span> <span class="mi">241</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;minor&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;fileMode&quot;</span><span class="p">:</span> <span class="mi">420</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;uid&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>          <span class="nt">&quot;gid&quot;</span><span class="p">:</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="p">}],</span>
+</span><span class='line'>      <span class="nt">&quot;cgroupsPath&quot;</span><span class="p">:</span> <span class="s2">&quot;kata/spdktest&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;resources&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>          <span class="nt">&quot;devices&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="nt">&quot;namespaces&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>              <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;pid&quot;</span>
+</span><span class='line'>          <span class="p">},</span>
+</span><span class='line'>          <span class="p">{</span>
+</span><span class='line'>              <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;network&quot;</span>
+</span><span class='line'>          <span class="p">},</span>
+</span><span class='line'>          <span class="p">{</span>
+</span><span class='line'>              <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ipc&quot;</span>
+</span><span class='line'>          <span class="p">},</span>
+</span><span class='line'>          <span class="p">{</span>
+</span><span class='line'>              <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;uts&quot;</span>
+</span><span class='line'>          <span class="p">},</span>
+</span><span class='line'>          <span class="p">{</span>
+</span><span class='line'>              <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;mount&quot;</span>
+</span><span class='line'>          <span class="p">}</span>
+</span><span class='line'>      <span class="p">],</span>
+</span><span class='line'>      <span class="nt">&quot;maskedPaths&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/kcore&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/latency_stats&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/timer_list&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/timer_stats&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/sched_debug&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/sys/firmware&quot;</span>
+</span><span class='line'>      <span class="p">],</span>
+</span><span class='line'>      <span class="nt">&quot;readonlyPaths&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/asound&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/bus&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/fs&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/irq&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/sys&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="s2">&quot;/proc/sysrq-trigger&quot;</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-11-18 09:15:52 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/11/18/spdk-with-ctr/"
+	 data-via="liubuneng"
+	 data-counturl="http://liubin.org/blog/2021/11/18/spdk-with-ctr/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
