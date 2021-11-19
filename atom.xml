@@ -4,7 +4,7 @@
   <title><![CDATA[人间指南]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-11-18T09:32:39+08:00</updated>
+  <updated>2021-11-19T16:50:43+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,272 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Array/Slice/Vector in Rust]]></title>
+    <link href="http://liubin.org/blog/2021/11/19/rust-array-slice-vector/"/>
+    <updated>2021-11-19T15:35:15+08:00</updated>
+    <id>http://liubin.org/blog/2021/11/19/rust-array-slice-vector</id>
+    <content type="html"><![CDATA[<p>不管哪种编程语言，最常用的数据类型不外乎数值、字符串以及数组。这里数组是一种泛称，一般指能存放多个元素的集合，当然这里的集合也不是严格的数学定义。</p>
+
+<h2>Array</h2>
+
+<p>先来看数组。</p>
+
+<p>一个 array 是一组相同类型的数据集合，这些数据位于连续的内存块中，且保存在栈上而不是堆上。</p>
+
+<p>以下都是数组的基本使用方式。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span><span class="o">:</span> <span class="p">[</span><span class="kt">i32</span><span class="p">;</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">;</span> <span class="mi">4</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">11</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>主要有 3 种方法创建数组：</p>
+
+<ul>
+<li><code>[V]</code>：直接使用元素值，不指定数组类型，比如 <code>let a = [1, 2, 3, 4]</code></li>
+<li><code>[T; N]</code>：声明一个类型为 T 长度为 N 的数组，比如 <code>let a: [i32; 4]</code></li>
+<li><code>[V; N]</code>：声明一个每个元素值为 V，长度为 N 的数组，比如 <code>let a: [0; 4]</code> 。当然数组的类型为 V 的类型 T。</li>
+</ul>
+
+
+<p>如果我们声明中使用了可变关键字 mut ，则表示该数组的元素值可以被修改：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="k">mut</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">11</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Rust 中数组最大的特点是大小不可变，这对于一些编程语言用户来说能难以理解，也就是说虽然我们能修改数组中某个元素的值，但是不能往里添加元素，或者删除元素。</p>
+
+<p>总结一下就是数组在编译时分配大小，保存在栈上，数组长度不可变，虽然我们能改变数组中某个元素的值。</p>
+
+<h2>Vector</h2>
+
+<p>我们大多数情况下都希望“数组”元素的个数是可变的，这时候可以使用 Vector 类型。</p>
+
+<p>Vector 的使用方式如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">4</span><span class="p">;</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">v</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Vec</span><span class="o">::</span><span class="n">new</span><span class="p">();</span>
+</span><span class='line'>    <span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Vector 主要有两种初始化方式：</p>
+
+<ul>
+<li>使用 <code>vec!</code> 宏</li>
+<li>使用 <code>Vec::new()</code> 方法</li>
+</ul>
+
+
+<p>Vector在内存中由三部分组成：
+- 指向堆地址的指针，因为分配在堆上，所以才能动态修改大小
+- 现有元素个数
+- Vector 的容量（capacity），即一共可以保存多少个元素。</p>
+
+<p>像其他语言一样， Rust 在创建 Vector 的时候，也可以预留一定数量的存储空间，以防止在元素增加时因元素移动、拷贝导致的开销。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="k">mut</span> <span class="n">v</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Vec</span><span class="o">::</span><span class="n">with_capacity</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们可以使用 <code>Vec::with_capacity()</code> 来预分配指定大小的存储空间，然后如果实际元素个数超过这个值时，Vector 的容量会扩展，我们看到当元素个数超过预分配的 3 之后，capacity 涨到了 6。</p>
+
+<p>从上面我们也可以看到，Array 最大的一个限制是它的固定大小。与此相对，Vector 的特点是：</p>
+
+<ul>
+<li>分配在堆上</li>
+<li>可以在运行时动态添加或删除元素</li>
+</ul>
+
+
+<h2>Slice</h2>
+
+<p>我们再来看一下 Slice ，一般语言翻译为切片。Slice 一般是指向 Array 或 Vector 的位置，一般用 <code>&amp;[T]</code> 表示。</p>
+
+<p>我们可以通过使用指向 Array 或 Vector 的 range 来创建 Slice 类型的变量。Slice 在使用的时候和 Array 非常像。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sa</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sv</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">v</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">sa</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">sv</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sa</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">[</span><span class="mf">1.</span><span class="p">.</span><span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">sa</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sa</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">[</span><span class="mf">1.</span><span class="p">.</span><span class="o">=</span><span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">sa</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Slice 在实现上被称作 fat pointer。fat pointer 在内存中保存了两个值：
+- Slice 指向的位置
+- Slice 包含的元素数量</p>
+
+<p>Rust 中，<code>&amp;[T]</code>、<code>&amp;mut [T]</code>,、<code>Box&lt;[T]&gt;</code> 等类型在内存中占有 16 个字节，其中前 8 个字节为指针位置，后 8 个字节为 Slice 包含的元素个数，即长度。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'> <span class="mi">0</span><span class="o">-</span><span class="mi">7</span> <span class="o">|</span> <span class="mi">8</span><span class="o">-</span><span class="mi">15</span>
+</span><span class='line'><span class="o">-----|------</span>
+</span><span class='line'> <span class="n">ptr</span> <span class="o">|</span> <span class="n">len</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>而 <code>Vec&lt;T&gt;</code> 在内存中结构如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'> <span class="mi">0</span><span class="o">-</span><span class="mi">7</span> <span class="o">|</span> <span class="mi">8</span><span class="o">-</span><span class="mi">15</span> <span class="o">|</span> <span class="mi">16</span><span class="o">-</span><span class="mi">23</span>
+</span><span class='line'><span class="o">-----|------|-------</span>
+</span><span class='line'> <span class="n">ptr</span> <span class="o">|</span> <span class="n">cap</span>  <span class="o">|</span>  <span class="n">len</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在内存中 <code>Vec&lt;T&gt;</code> 占用 24 个字节，和 Slice 相比，多了 8 个字节的空间来存储 capacity 属性。</p>
+
+<p>有了静态分配大小的 Array，以及可以动态增减元素的 Vector，为什么还有一个叫做 Slice 的东西呢？按照官方文档的说明，Slice是一个指向底层 Array 或 Vector 的视图，可以实现安全、高效的数据访问而不会发生内存拷贝。一般来说我们都不会直接创建 Slice ，而是从已有的 Array 或 Vector 创建 Slice。</p>
+
+<p>Slice 虽然是一个视图（view），但是也可以通过 <code>&amp;mut [T]</code> 它来修改底层元素：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="k">mut</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">sv</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">v</span><span class="p">;</span>
+</span><span class='line'><span class="n">sv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">9</span><span class="p">;</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="n">sv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>String and <code>&amp;str</code></h2>
+
+<p>最后稍微来介绍一下 String 和 &amp;str 的关系，这有点像 Vector 和 Slice 的对应关系关系。在内存中，&amp;str也包括指向实际数据位置的指针和长度属性。</p>
+
+<p>字符串 Slice 也可以看做是 8 bit 整数 Slice 重新定义的类型，两者的对应关系如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">Byte</span> <span class="n">slice</span> <span class="o">|</span> <span class="err">字符串</span> <span class="n">slice</span>
+</span><span class='line'><span class="o">------------|-------------</span>
+</span><span class='line'> <span class="o">&amp;</span><span class="p">[</span><span class="kt">u8</span><span class="p">]</span>      <span class="o">|</span> <span class="o">&amp;</span><span class="kt">str</span>
+</span><span class='line'> <span class="n">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span>    <span class="o">|</span> <span class="n">String</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[在 Kata Containers 中使用 SPDK]]></title>
@@ -4862,141 +5128,6 @@
 <hr />
 
 <p>上面列出来的只是自己的观点，有些人可能不觉得，甚至很多人都不在乎，不过大叔实在是难以忍受不抱怨工具的开发 ：-）</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Golang中一个不错的处理 JSON 的库 go-dproxy]]></title>
-    <link href="http://liubin.org/blog/2016/10/08/go-dproxy/"/>
-    <updated>2016-10-08T18:11:13+08:00</updated>
-    <id>http://liubin.org/blog/2016/10/08/go-dproxy</id>
-    <content type="html"><![CDATA[<p>Golang 自己就带了 JSON (encoding/json) 处理的库，也有第三方的 <a href="https://github.com/bitly/go-simplejson">simplejson</a> 之类的库，但总是感觉不如Python这样的动态语言方便，在 Python 里，数组和字典的处理都很方便，和 JSON 互转也非常简单。</p>
-
-<p><code>encoding/json</code> 最大的问题是不够灵活，需要预先定义很多的 <code>struct</code> 来进行编解码，这样对于处理结构不定的 JSON 文件非常不方便。</p>
-
-<p>这里介绍一个名为 <a href="https://github.com/koron/go-dproxy">go-dproxy</a> 的库，非常方便和简单，不需要预先定义 <code>struct</code> ，还可以类似 XPath 那样查找。</p>
-
-<p>下面是一个例子：</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-</pre></td><td class='code'><pre><code class='go'><span class='line'><span class="kn">package</span> <span class="nx">main</span>
-</span><span class='line'>
-</span><span class='line'><span class="kn">import</span> <span class="p">(</span>
-</span><span class='line'>  <span class="s">&quot;encoding/json&quot;</span>
-</span><span class='line'>  <span class="s">&quot;fmt&quot;</span>
-</span><span class='line'>  <span class="s">&quot;github.com/koron/go-dproxy&quot;</span>
-</span><span class='line'><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="kd">var</span> <span class="nx">v</span> <span class="kd">interface</span><span class="p">{}</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="nx">json</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{</span>
-</span><span class='line'><span class="s">      &quot;name&quot;: &quot;dproxy&quot;,</span>
-</span><span class='line'><span class="s">  &quot;strings&quot;: [ &quot;a&quot;, &quot;b&quot;, &quot;c&quot; ],</span>
-</span><span class='line'><span class="s">  &quot;numbers&quot;: [ 1,2,3 ],</span>
-</span><span class='line'><span class="s">  &quot;mixs&quot;: [&quot;a&quot;, 1, &quot;b&quot;],</span>
-</span><span class='line'>
-</span><span class='line'><span class="s">  &quot;tags&quot;: {</span>
-</span><span class='line'><span class="s">    &quot;key-1&quot;: &quot;value-1&quot;,</span>
-</span><span class='line'><span class="s">    &quot;key-2&quot;: 100,</span>
-</span><span class='line'><span class="s">    &quot;key-3&quot;: [4,5,6]</span>
-</span><span class='line'><span class="s">  }</span>
-</span><span class='line'><span class="s">}`</span><span class="p">),</span> <span class="o">&amp;</span><span class="nx">v</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1">// s == &quot;dproxy&quot;, got a string.</span>
-</span><span class='line'>  <span class="nx">s</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">).</span><span class="nx">String</span><span class="p">()</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;1. name is %s\n&quot;</span><span class="p">,</span> <span class="nx">s</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1">// err: not matched types: expected=int64 actual=string: name</span>
-</span><span class='line'>  <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">).</span><span class="nx">Int64</span><span class="p">()</span>
-</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;2. err is %s\n&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1">// can be chained. n == 3, got a int64</span>
-</span><span class='line'>  <span class="nx">n</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;numbers&quot;</span><span class="p">).</span><span class="nx">A</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nx">Int64</span><span class="p">()</span>
-</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;3. n is %d\n&quot;</span><span class="p">,</span> <span class="nx">n</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1">// got value-1</span>
-</span><span class='line'>  <span class="nx">s</span><span class="p">,</span> <span class="nx">_</span> <span class="p">=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;tags&quot;</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;key-1&quot;</span><span class="p">).</span><span class="nx">String</span><span class="p">()</span>
-</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;4. key-1 is %s\n&quot;</span><span class="p">,</span> <span class="nx">s</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1">// err.Error() == &quot;not found: data.kustom&quot;, wrong query can be verified.</span>
-</span><span class='line'>  <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;data&quot;</span><span class="p">).</span><span class="nx">M</span><span class="p">(</span><span class="s">&quot;kustom&quot;</span><span class="p">).</span><span class="nx">String</span><span class="p">()</span>
-</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;5. err is %s\n&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1">// n == 5</span>
-</span><span class='line'>  <span class="nx">n</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">dproxy</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">(</span><span class="nx">v</span><span class="p">,</span> <span class="s">&quot;/tags/key-3/1&quot;</span><span class="p">).</span><span class="nx">Int64</span><span class="p">()</span>
-</span><span class='line'>  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;6. n is %d\n&quot;</span><span class="p">,</span> <span class="nx">n</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>或者从 <a href="https://gist.github.com/liubin/5521035cb9dab26e5981549b2cea355a">gist</a> 下载这个文件，执行：</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='go'><span class='line'><span class="err">$</span> <span class="k">go</span> <span class="nx">get</span> <span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="o">/</span><span class="nx">koron</span><span class="o">/</span><span class="k">go</span><span class="o">-</span><span class="nx">dproxy</span>
-</span><span class='line'><span class="err">$</span> <span class="k">go</span> <span class="nx">build</span> <span class="nx">dproxy</span><span class="o">-</span><span class="nx">test</span><span class="p">.</span><span class="k">go</span>
-</span><span class='line'><span class="err">$</span> <span class="p">.</span><span class="o">/</span><span class="nx">dproxy</span><span class="o">-</span><span class="nx">test</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p></p>
-
-<p>即可。</p>
-
-<p>总之，这个库处理JSON应该算是非常简单，希望对你有所帮助。</p>
 ]]></content>
   </entry>
   

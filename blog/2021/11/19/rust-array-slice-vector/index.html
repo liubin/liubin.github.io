@@ -1,0 +1,476 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>Array/Slice/Vector in Rust - 人间指南</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="Array/Slice/Vector in Rust 不管哪种编程语言，最常用的数据类型不外乎数值、字符串以及数组。这里数组是一种泛称，一般指能存放多个元素的集合，当然这里的集合也不是严格的数学定义。 Array 先来看数组。 一个 array 是一组相同类型的数据集合， &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/11/19/rust-array-slice-vector">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="人间指南"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">人间指南</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/liubuneng">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">Array/Slice/Vector in Rust</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>不管哪种编程语言，最常用的数据类型不外乎数值、字符串以及数组。这里数组是一种泛称，一般指能存放多个元素的集合，当然这里的集合也不是严格的数学定义。</p>
+
+<h2>Array</h2>
+
+<p>先来看数组。</p>
+
+<p>一个 array 是一组相同类型的数据集合，这些数据位于连续的内存块中，且保存在栈上而不是堆上。</p>
+
+<p>以下都是数组的基本使用方式。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span><span class="o">:</span> <span class="p">[</span><span class="kt">i32</span><span class="p">;</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">;</span> <span class="mi">4</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">11</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>主要有 3 种方法创建数组：</p>
+
+<ul>
+<li><code>[V]</code>：直接使用元素值，不指定数组类型，比如 <code>let a = [1, 2, 3, 4]</code></li>
+<li><code>[T; N]</code>：声明一个类型为 T 长度为 N 的数组，比如 <code>let a: [i32; 4]</code></li>
+<li><code>[V; N]</code>：声明一个每个元素值为 V，长度为 N 的数组，比如 <code>let a: [0; 4]</code> 。当然数组的类型为 V 的类型 T。</li>
+</ul>
+
+
+<p>如果我们声明中使用了可变关键字 mut ，则表示该数组的元素值可以被修改：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="k">mut</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">11</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Rust 中数组最大的特点是大小不可变，这对于一些编程语言用户来说能难以理解，也就是说虽然我们能修改数组中某个元素的值，但是不能往里添加元素，或者删除元素。</p>
+
+<p>总结一下就是数组在编译时分配大小，保存在栈上，数组长度不可变，虽然我们能改变数组中某个元素的值。</p>
+
+<h2>Vector</h2>
+
+<p>我们大多数情况下都希望“数组”元素的个数是可变的，这时候可以使用 Vector 类型。</p>
+
+<p>Vector 的使用方式如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">4</span><span class="p">;</span> <span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">v</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Vec</span><span class="o">::</span><span class="n">new</span><span class="p">();</span>
+</span><span class='line'>    <span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Vector 主要有两种初始化方式：</p>
+
+<ul>
+<li>使用 <code>vec!</code> 宏</li>
+<li>使用 <code>Vec::new()</code> 方法</li>
+</ul>
+
+
+<p>Vector在内存中由三部分组成：
+- 指向堆地址的指针，因为分配在堆上，所以才能动态修改大小
+- 现有元素个数
+- Vector 的容量（capacity），即一共可以保存多少个元素。</p>
+
+<p>像其他语言一样， Rust 在创建 Vector 的时候，也可以预留一定数量的存储空间，以防止在元素增加时因元素移动、拷贝导致的开销。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="k">mut</span> <span class="n">v</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Vec</span><span class="o">::</span><span class="n">with_capacity</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">v</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">v</span><span class="p">.</span><span class="n">capacity</span><span class="p">());</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们可以使用 <code>Vec::with_capacity()</code> 来预分配指定大小的存储空间，然后如果实际元素个数超过这个值时，Vector 的容量会扩展，我们看到当元素个数超过预分配的 3 之后，capacity 涨到了 6。</p>
+
+<p>从上面我们也可以看到，Array 最大的一个限制是它的固定大小。与此相对，Vector 的特点是：</p>
+
+<ul>
+<li>分配在堆上</li>
+<li>可以在运行时动态添加或删除元素</li>
+</ul>
+
+
+<h2>Slice</h2>
+
+<p>我们再来看一下 Slice ，一般语言翻译为切片。Slice 一般是指向 Array 或 Vector 的位置，一般用 <code>&amp;[T]</code> 表示。</p>
+
+<p>我们可以通过使用指向 Array 或 Vector 的 range 来创建 Slice 类型的变量。Slice 在使用的时候和 Array 非常像。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sa</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sv</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">v</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">sa</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">sv</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sa</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">[</span><span class="mf">1.</span><span class="p">.</span><span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">sa</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">sa</span><span class="o">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">[</span><span class="mf">1.</span><span class="p">.</span><span class="o">=</span><span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">assert_eq</span><span class="o">!</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">sa</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Slice 在实现上被称作 fat pointer。fat pointer 在内存中保存了两个值：
+- Slice 指向的位置
+- Slice 包含的元素数量</p>
+
+<p>Rust 中，<code>&amp;[T]</code>、<code>&amp;mut [T]</code>,、<code>Box&lt;[T]&gt;</code> 等类型在内存中占有 16 个字节，其中前 8 个字节为指针位置，后 8 个字节为 Slice 包含的元素个数，即长度。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'> <span class="mi">0</span><span class="o">-</span><span class="mi">7</span> <span class="o">|</span> <span class="mi">8</span><span class="o">-</span><span class="mi">15</span>
+</span><span class='line'><span class="o">-----|------</span>
+</span><span class='line'> <span class="n">ptr</span> <span class="o">|</span> <span class="n">len</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>而 <code>Vec&lt;T&gt;</code> 在内存中结构如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'> <span class="mi">0</span><span class="o">-</span><span class="mi">7</span> <span class="o">|</span> <span class="mi">8</span><span class="o">-</span><span class="mi">15</span> <span class="o">|</span> <span class="mi">16</span><span class="o">-</span><span class="mi">23</span>
+</span><span class='line'><span class="o">-----|------|-------</span>
+</span><span class='line'> <span class="n">ptr</span> <span class="o">|</span> <span class="n">cap</span>  <span class="o">|</span>  <span class="n">len</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在内存中 <code>Vec&lt;T&gt;</code> 占用 24 个字节，和 Slice 相比，多了 8 个字节的空间来存储 capacity 属性。</p>
+
+<p>有了静态分配大小的 Array，以及可以动态增减元素的 Vector，为什么还有一个叫做 Slice 的东西呢？按照官方文档的说明，Slice是一个指向底层 Array 或 Vector 的视图，可以实现安全、高效的数据访问而不会发生内存拷贝。一般来说我们都不会直接创建 Slice ，而是从已有的 Array 或 Vector 创建 Slice。</p>
+
+<p>Slice 虽然是一个视图（view），但是也可以通过 <code>&amp;mut [T]</code> 它来修改底层元素：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="k">mut</span> <span class="n">v</span> <span class="o">=</span> <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">sv</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="p">[</span><span class="kt">i32</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">v</span><span class="p">;</span>
+</span><span class='line'><span class="n">sv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">9</span><span class="p">;</span>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="n">sv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>String and <code>&amp;str</code></h2>
+
+<p>最后稍微来介绍一下 String 和 &amp;str 的关系，这有点像 Vector 和 Slice 的对应关系关系。在内存中，&amp;str也包括指向实际数据位置的指针和长度属性。</p>
+
+<p>字符串 Slice 也可以看做是 8 bit 整数 Slice 重新定义的类型，两者的对应关系如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">Byte</span> <span class="n">slice</span> <span class="o">|</span> <span class="err">字符串</span> <span class="n">slice</span>
+</span><span class='line'><span class="o">------------|-------------</span>
+</span><span class='line'> <span class="o">&amp;</span><span class="p">[</span><span class="kt">u8</span><span class="p">]</span>      <span class="o">|</span> <span class="o">&amp;</span><span class="kt">str</span>
+</span><span class='line'> <span class="n">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span>    <span class="o">|</span> <span class="n">String</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-11-19 15:35:15 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/11/19/rust-array-slice-vector/"
+	 data-via="liubuneng"
+	 data-counturl="http://liubin.org/blog/2021/11/19/rust-array-slice-vector/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
