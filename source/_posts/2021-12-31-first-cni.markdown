@@ -1,0 +1,213 @@
+---
+layout: post
+title: "CNI 手工验证"
+date: 2021-12-31 14:32:52 +0800
+comments: true
+categories: 
+---
+
+用 K8s 的都不可能会不知道 CNI，但是可能大多数人，大多数时间我们关心的只是安装而已，将二进制放到 `/opt/cni/bin` ，在 `/etc/cni/net.d/` 下创建配置文件，剩下的就交给 K8s 或者 containerd 了，我们不关心也不了解其实现。
+
+
+CNI 全称为 Container Network Interface，是用来定义容器网络的一个 [规范](https://github.com/containernetworking/cni/blob/master/SPEC.md)。[containernetworking/cni](https://github.com/containernetworking/cni) 是一个 CNCF 的 CNI 实现项目，包括基本额 bridge,macvlan等基本网络插件。
+
+这里我们以此为例来简单了解下 CNI 是如何工作的。
+
+
+## 安装 CNI 插件
+
+我们采取自己下载编译的方式来安装 CNI 插件。
+
+```bash
+$ cd $GOPATH/src/github.com/containernetworking/plugins
+$ ./build_linux.sh
+ls bin/
+bandwidth  dhcp      flannel      host-local  loopback  portmap  sbr     tuning  vrf
+bridge     firewall  host-device  ipvlan      macvlan   ptp      static  vlan
+```
+
+`bin/`下面的内容就是编译好的各 CNI 插件。我们也可以放到标准的 `/opt/cni/bin` 下面。
+
+
+## 配置文件
+
+
+我们的示例配置文件为 `/etc/cni/net.d/10-mynet.conf`，内容如下：
+
+```json
+{
+  "cniVersion": "0.4.0",
+  "name": "mynet",
+  "type": "bridge",
+  "bridge": "cni0",
+  "isGateway": true,
+  "ipMasq": true,
+  "ipam": {
+    "type": "host-local",
+    "subnet": "172.19.0.0/24",
+    "routes": [
+      { "dst": "0.0.0.0/0" }
+    ]
+  }
+}
+
+```
+
+不难看出，我们的网络名为 mynet，网络类型为 bridge，这个 bridge 既是网络类型名称，也是网络插件可执行文件的名称。ipam 这里使用了 host-local ，也在上面我们编译后的 bin/ 目录下能找到。
+
+## CNI 插件调用规则
+
+CNI 插件都是直接通过 exec 的方式调用，而不是通过 socket 这样 C/S 方式，所有参数都是通过环境变量、标准输入输出来实现的，具体来说调用规则如下：
+
+- 输入：
+  - 运行参数：环境变量
+  - 网络配置：stdin
+- 输出：
+  - 正常退出： stdout
+  - 异常退出： stderr
+
+### 运行参数
+
+传递给 CNI 插件的参数都通过 CNI_ 开头的环境变量来实现。
+
+- `CNI_COMMAND`: 要执行的操作，包括 `ADD`, `DEL`, `CHECK`, 或 `VERSION`。
+- `CNI_CONTAINERID`: 唯一的容器 ID。
+- `CNI_NETNS`: 网络命名空间。
+- `CNI_IFNAME`: 在容器内创建的网络接口名称。
+- `CNI_ARGS`: 传递给插件本身的额外参数，以 "FOO=BAR;ABC=123" 的格式设置。
+- `CNI_PATH`: 查找 CNI 插件的路径，格式如同 PATH 环境变量，即 Linux 使用 `:` 分割多个路径，Windows 使用 `;` 分割。
+
+### CNI operations
+
+CNI defines 4 operations: `ADD`, `DEL`, `CHECK`, and `VERSION`. These are passed to the plugin via the `CNI_COMMAND` environment variable.
+
+
+### 返回值
+
+按一般 Linux 程序惯例，成功返回 0 ，失败返回非 0，且错误消息为指定格式，示例如下：
+
+
+```json
+{
+  "cniVersion": "1.0.0",
+  "code": 7,
+  "msg": "Invalid Configuration",
+  "details": "Network 192.168.0.0/31 too small to allocate from."
+}
+
+```
+
+## 示例
+
+这里我们来手工创建和删除一些网络接口，来看一下 CNI 是如何工作的。
+
+
+### 添加网络接口
+
+创建一个新的网络命名空间，这里我们以 `ctr-1` 为网络命名空间的名字。
+
+```bash
+$ contid=ctr-1
+$ netnspath=/var/run/netns/$contid
+$ ip netns add $contid
+
+```
+
+设置一些共通的环境变量，这样添加和删除网络设备的时候就不必再设置一遍了。
+
+```bash
+$ export CNI_PATH=$GOPATH/src/github.com/containernetworking/plugins/bin
+$ export PATH=$CNI_PATH:$PATH
+$ export CNI_CONTAINERID=$contid
+$ export CNI_NETNS=$netnspath
+$ export CNI_IFNAME=eth0
+```
+
+下面就可以在指定的命名空间中添加网络设备了。
+
+```bash
+
+$ export CNI_COMMAND=ADD
+
+$ jq -r '.type' /etc/cni/net.d/10-mynet.conf 
+bridge
+
+$ bridge < /etc/cni/net.d/10-mynet.conf
+{
+    "cniVersion": "0.4.0",
+    "interfaces": [
+        {
+            "name": "cni0",
+            "mac": "e6:4b:0e:c8:52:d0"
+        },
+        {
+            "name": "vethb56e47e8",
+            "mac": "de:aa:02:3b:58:a3"
+        },
+        {
+            "name": "eth0",
+            "mac": "36:a4:28:8a:da:e0",
+            "sandbox": "/var/run/netns/ctr-1"
+        }
+    ],
+    "ips": [
+        {
+            "version": "4",
+            "interface": 2,
+            "address": "172.19.0.12/24",
+            "gateway": "172.19.0.1"
+        }
+    ],
+    "routes": [
+        {
+            "dst": "0.0.0.0/0"
+        }
+    ],
+    "dns": {}
+}
+```
+这里我们的网络类型为 `bridge` ，所以调用的二进制文件也是 `bridge`。从 `bridge` 命令的标准输出，我们也可以看到新创建的接口信息，`bridge/host-local` 插件为其分配的 IP 地址是 `172.19.0.12`。
+
+我们也像下面这样验证一下：
+
+```bash
+$ ip netns exec $contid ip addr show
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0@if6: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 36:a4:28:8a:da:e0 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.19.0.12/24 brd 172.19.0.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::34a4:28ff:fe8a:dae0/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+
+### 删除网络接口
+
+
+接着上面的操作，继续来看一下如何删除刚才创建的网络接口。
+
+```bash
+$ export CNI_COMMAND=DEL
+$ bridge < /etc/cni/net.d/10-mynet.conf
+$ echo $?
+0
+```
+
+删除成功的话，标准输出将不会有任何内容，我们可以从返回的状态码来判断是否成功。
+
+再来验证一下指定的网络命名空间中该接口是否已经被成功删除：
+
+```bash
+$ ip netns exec $contid ip addr show
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+```
+
+
+最后测试完了别忘了删除刚才创建的网络命名空间：
+
+```bash
+$ ip netns delete $contid
+```
+
