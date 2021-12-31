@@ -1,0 +1,515 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>CNI 手工验证 - 人间指南</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="CNI 手工验证 用 K8s 的都不可能会不知道 CNI，但是可能大多数人，大多数时间我们关心的只是安装而已，将二进制放到 /opt/cni/bin ，在 /etc/cni/net.d/ 下创建配置文件，剩下的就交给 K8s 或者 containerd 了，我们不关心也不了解其实现。 CNI &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2021/12/31/first-cni">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="人间指南"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">人间指南</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/liubuneng">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">CNI 手工验证</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>用 K8s 的都不可能会不知道 CNI，但是可能大多数人，大多数时间我们关心的只是安装而已，将二进制放到 <code>/opt/cni/bin</code> ，在 <code>/etc/cni/net.d/</code> 下创建配置文件，剩下的就交给 K8s 或者 containerd 了，我们不关心也不了解其实现。</p>
+
+<p>CNI 全称为 Container Network Interface，是用来定义容器网络的一个 <a href="https://github.com/containernetworking/cni/blob/master/SPEC.md">规范</a>。<a href="https://github.com/containernetworking/cni">containernetworking/cni</a> 是一个 CNCF 的 CNI 实现项目，包括基本额 bridge,macvlan等基本网络插件。</p>
+
+<p>这里我们以此为例来简单了解下 CNI 是如何工作的。</p>
+
+<h2>安装 CNI 插件</h2>
+
+<p>我们采取自己下载编译的方式来安装 CNI 插件。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">cd</span> <span class="nv">$GOPATH</span>/src/github.com/containernetworking/plugins
+</span><span class='line'><span class="nv">$ </span>./build_linux.sh
+</span><span class='line'>ls bin/
+</span><span class='line'>bandwidth  dhcp      flannel      host-local  loopback  portmap  sbr     tuning  vrf
+</span><span class='line'>bridge     firewall  host-device  ipvlan      macvlan   ptp      static  vlan
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>bin/</code>下面的内容就是编译好的各 CNI 插件。我们也可以放到标准的 <code>/opt/cni/bin</code> 下面。</p>
+
+<h2>配置文件</h2>
+
+<p>我们的示例配置文件为 <code>/etc/cni/net.d/10-mynet.conf</code>，内容如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;cniVersion&quot;</span><span class="p">:</span> <span class="s2">&quot;0.4.0&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;mynet&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;bridge&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;bridge&quot;</span><span class="p">:</span> <span class="s2">&quot;cni0&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;isGateway&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;ipMasq&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;ipam&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;host-local&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;subnet&quot;</span><span class="p">:</span> <span class="s2">&quot;172.19.0.0/24&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;routes&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span class='line'>      <span class="p">{</span> <span class="nt">&quot;dst&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span> <span class="p">}</span>
+</span><span class='line'>    <span class="p">]</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>不难看出，我们的网络名为 mynet，网络类型为 bridge，这个 bridge 既是网络类型名称，也是网络插件可执行文件的名称。ipam 这里使用了 host-local ，也在上面我们编译后的 bin/ 目录下能找到。</p>
+
+<h2>CNI 插件调用规则</h2>
+
+<p>CNI 插件都是直接通过 exec 的方式调用，而不是通过 socket 这样 C/S 方式，所有参数都是通过环境变量、标准输入输出来实现的，具体来说调用规则如下：</p>
+
+<ul>
+<li>输入：
+
+<ul>
+<li>运行参数：环境变量</li>
+<li>网络配置：stdin</li>
+</ul>
+</li>
+<li>输出：
+
+<ul>
+<li>正常退出： stdout</li>
+<li>异常退出： stderr</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>运行参数</h3>
+
+<p>传递给 CNI 插件的参数都通过 CNI_ 开头的环境变量来实现。</p>
+
+<ul>
+<li><code>CNI_COMMAND</code>: 要执行的操作，包括 <code>ADD</code>, <code>DEL</code>, <code>CHECK</code>, 或 <code>VERSION</code>。</li>
+<li><code>CNI_CONTAINERID</code>: 唯一的容器 ID。</li>
+<li><code>CNI_NETNS</code>: 网络命名空间。</li>
+<li><code>CNI_IFNAME</code>: 在容器内创建的网络接口名称。</li>
+<li><code>CNI_ARGS</code>: 传递给插件本身的额外参数，以 &ldquo;FOO=BAR;ABC=123&rdquo; 的格式设置。</li>
+<li><code>CNI_PATH</code>: 查找 CNI 插件的路径，格式如同 PATH 环境变量，即 Linux 使用 <code>:</code> 分割多个路径，Windows 使用 <code>;</code> 分割。</li>
+</ul>
+
+
+<h3>CNI operations</h3>
+
+<p>CNI defines 4 operations: <code>ADD</code>, <code>DEL</code>, <code>CHECK</code>, and <code>VERSION</code>. These are passed to the plugin via the <code>CNI_COMMAND</code> environment variable.</p>
+
+<h3>返回值</h3>
+
+<p>按一般 Linux 程序惯例，成功返回 0 ，失败返回非 0，且错误消息为指定格式，示例如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;cniVersion&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;code&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;msg&quot;</span><span class="p">:</span> <span class="s2">&quot;Invalid Configuration&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;details&quot;</span><span class="p">:</span> <span class="s2">&quot;Network 192.168.0.0/31 too small to allocate from.&quot;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>示例</h2>
+
+<p>这里我们来手工创建和删除一些网络接口，来看一下 CNI 是如何工作的。</p>
+
+<h3>添加网络接口</h3>
+
+<p>创建一个新的网络命名空间，这里我们以 <code>ctr-1</code> 为网络命名空间的名字。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ contid</span><span class="o">=</span>ctr-1
+</span><span class='line'><span class="nv">$ netnspath</span><span class="o">=</span>/var/run/netns/<span class="nv">$contid</span>
+</span><span class='line'><span class="nv">$ </span>ip netns add <span class="nv">$contid</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>设置一些共通的环境变量，这样添加和删除网络设备的时候就不必再设置一遍了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">CNI_PATH</span><span class="o">=</span><span class="nv">$GOPATH</span>/src/github.com/containernetworking/plugins/bin
+</span><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$CNI_PATH</span>:<span class="nv">$PATH</span>
+</span><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">CNI_CONTAINERID</span><span class="o">=</span><span class="nv">$contid</span>
+</span><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">CNI_NETNS</span><span class="o">=</span><span class="nv">$netnspath</span>
+</span><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">CNI_IFNAME</span><span class="o">=</span>eth0
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>下面就可以在指定的命名空间中添加网络设备了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">CNI_COMMAND</span><span class="o">=</span>ADD
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>jq -r <span class="s1">&#39;.type&#39;</span> /etc/cni/net.d/10-mynet.conf
+</span><span class='line'>bridge
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>bridge &lt; /etc/cni/net.d/10-mynet.conf
+</span><span class='line'><span class="o">{</span>
+</span><span class='line'>    <span class="s2">&quot;cniVersion&quot;</span>: <span class="s2">&quot;0.4.0&quot;</span>,
+</span><span class='line'>    <span class="s2">&quot;interfaces&quot;</span>: <span class="o">[</span>
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="s2">&quot;name&quot;</span>: <span class="s2">&quot;cni0&quot;</span>,
+</span><span class='line'>            <span class="s2">&quot;mac&quot;</span>: <span class="s2">&quot;e6:4b:0e:c8:52:d0&quot;</span>
+</span><span class='line'>        <span class="o">}</span>,
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="s2">&quot;name&quot;</span>: <span class="s2">&quot;vethb56e47e8&quot;</span>,
+</span><span class='line'>            <span class="s2">&quot;mac&quot;</span>: <span class="s2">&quot;de:aa:02:3b:58:a3&quot;</span>
+</span><span class='line'>        <span class="o">}</span>,
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="s2">&quot;name&quot;</span>: <span class="s2">&quot;eth0&quot;</span>,
+</span><span class='line'>            <span class="s2">&quot;mac&quot;</span>: <span class="s2">&quot;36:a4:28:8a:da:e0&quot;</span>,
+</span><span class='line'>            <span class="s2">&quot;sandbox&quot;</span>: <span class="s2">&quot;/var/run/netns/ctr-1&quot;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>,
+</span><span class='line'>    <span class="s2">&quot;ips&quot;</span>: <span class="o">[</span>
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="s2">&quot;version&quot;</span>: <span class="s2">&quot;4&quot;</span>,
+</span><span class='line'>            <span class="s2">&quot;interface&quot;</span>: 2,
+</span><span class='line'>            <span class="s2">&quot;address&quot;</span>: <span class="s2">&quot;172.19.0.12/24&quot;</span>,
+</span><span class='line'>            <span class="s2">&quot;gateway&quot;</span>: <span class="s2">&quot;172.19.0.1&quot;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>,
+</span><span class='line'>    <span class="s2">&quot;routes&quot;</span>: <span class="o">[</span>
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="s2">&quot;dst&quot;</span>: <span class="s2">&quot;0.0.0.0/0&quot;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>,
+</span><span class='line'>    <span class="s2">&quot;dns&quot;</span>: <span class="o">{}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里我们的网络类型为 <code>bridge</code> ，所以调用的二进制文件也是 <code>bridge</code>。从 <code>bridge</code> 命令的标准输出，我们也可以看到新创建的接口信息，<code>bridge/host-local</code> 插件为其分配的 IP 地址是 <code>172.19.0.12</code>。</p>
+
+<p>我们也像下面这样验证一下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ip netns <span class="nb">exec</span> <span class="nv">$contid</span> ip addr show
+</span><span class='line'>1: lo: &lt;LOOPBACK&gt; mtu <span class="m">65536</span> qdisc noop state DOWN group default qlen 1000
+</span><span class='line'>    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span><span class='line'>2: eth0@if6: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span class="m">1500</span> qdisc noqueue state UP group default
+</span><span class='line'>    link/ether 36:a4:28:8a:da:e0 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+</span><span class='line'>    inet 172.19.0.12/24 brd 172.19.0.255 scope global eth0
+</span><span class='line'>       valid_lft forever preferred_lft forever
+</span><span class='line'>    inet6 fe80::34a4:28ff:fe8a:dae0/64 scope link
+</span><span class='line'>       valid_lft forever preferred_lft forever
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>删除网络接口</h3>
+
+<p>接着上面的操作，继续来看一下如何删除刚才创建的网络接口。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">export </span><span class="nv">CNI_COMMAND</span><span class="o">=</span>DEL
+</span><span class='line'><span class="nv">$ </span>bridge &lt; /etc/cni/net.d/10-mynet.conf
+</span><span class='line'><span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$?</span>
+</span><span class='line'>0
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>删除成功的话，标准输出将不会有任何内容，我们可以从返回的状态码来判断是否成功。</p>
+
+<p>再来验证一下指定的网络命名空间中该接口是否已经被成功删除：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ip netns <span class="nb">exec</span> <span class="nv">$contid</span> ip addr show
+</span><span class='line'>1: lo: &lt;LOOPBACK&gt; mtu <span class="m">65536</span> qdisc noop state DOWN group default qlen 1000
+</span><span class='line'>    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后测试完了别忘了删除刚才创建的网络命名空间：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ip netns delete <span class="nv">$contid</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2021-12-31 14:32:52 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2021/12/31/first-cni/"
+	 data-via="liubuneng"
+	 data-counturl="http://liubin.org/blog/2021/12/31/first-cni/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2021 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
