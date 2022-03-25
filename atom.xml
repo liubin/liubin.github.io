@@ -4,7 +4,7 @@
   <title><![CDATA[人间指南]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2021-12-31T15:19:09+08:00</updated>
+  <updated>2022-03-25T11:01:53+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,51 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[创建支持 SAN 扩展的 x509 证书]]></title>
+    <link href="http://liubin.org/blog/2022/03/25/create-san-cert/"/>
+    <updated>2022-03-25T10:53:22+08:00</updated>
+    <id>http://liubin.org/blog/2022/03/25/create-san-cert</id>
+    <content type="html"><![CDATA[<p>测试一个 webhook，最简单的方式就是在 host 上启动 webhook 进程，然后创建一个 webhook 配置只是使用 <code>url</code> 来设置 <code>clientConfig</code>，但是现在 <code>url</code> 只支持 <code>https</code> 了，不得已还得自建证书。</p>
+
+<p>按之前方式部署后，发现通信失败：</p>
+
+<blockquote><p>Error from server (InternalError): error when creating &ldquo;pod.yaml&rdquo;: Internal error occurred: failed calling webhook &ldquo;webhook.foo.dev&rdquo;: failed to call webhook: Post &ldquo;<a href="https://webhook.default.svc:443/mutate?timeout=10s">https://webhook.default.svc:443/mutate?timeout=10s</a>&rdquo;: x509: certificate relies on legacy Common Name field, use SANs instead</p></blockquote>
+
+<p>总之 go 1.15 抛弃了传统的 CN 方式，需要使用 SAN 扩展。只需要在原来的命令加上相关选项即可。</p>
+
+<p>修改前：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>openssl req -new -key ./webhookCA.key <span class="se">\</span>
+</span><span class='line'>    -subj <span class="s2">&quot;/CN=${HOST}&quot;</span> <span class="se">\</span>
+</span><span class='line'>    -out ./webhookCA.csr
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>修改后：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>openssl req -new -key ./webhookCA.key <span class="se">\</span>
+</span><span class='line'>    -subj <span class="s2">&quot;/CN=${HOST}&quot;</span> <span class="se">\</span>
+</span><span class='line'>    -out ./webhookCA.csr <span class="se">\</span>
+</span><span class='line'>    -reqexts SAN <span class="se">\</span>
+</span><span class='line'>    -config &lt;<span class="o">(</span>cat /etc/ssl/openssl.cnf <span class="se">\</span>
+</span><span class='line'>        &lt;<span class="o">(</span><span class="nb">printf</span> <span class="s2">&quot;\n[SAN]\nsubjectAltName=DNS:$HOST&quot;</span><span class="o">))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后两行 <code>SAN</code> 即为添加的内容。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[CNI 手工验证]]></title>
@@ -5285,97 +5330,6 @@
 <p>这就是 Waren Long 原文里的几个重要结论，如果你对原始数据和算法感兴趣，可以直接 <a href="https://blog.sourced.tech/post/language_migrations/">阅读原文</a>  。</p>
 
 <p><em>注意： 由于 JavaScript 的特殊性（前后通吃、受众广等，不适用于统计模型），Waren Long 的文章中并没有将 JavaScript 作为评价对象。</em></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[沟通的原则]]></title>
-    <link href="http://liubin.org/blog/2017/06/16/rules-for-communication/"/>
-    <updated>2017-06-16T07:40:16+08:00</updated>
-    <id>http://liubin.org/blog/2017/06/16/rules-for-communication</id>
-    <content type="html"><![CDATA[<p>沟通是工作中第一要义。</p>
-
-<p>有效地沟通，能使工作更高效、提高大家的满意度；相反，错误的沟通方式除了降低工作的效率，还会制造出各种部门隔阂、人之矛盾，影响公司士气。因此高效的沟通不仅能更好地完成工作，还有助于提高公司的凝聚力，创造良好的公司文化。</p>
-
-<h2>信息共享范围</h2>
-
-<p>信息应该让谁知道，不该让谁知道？</p>
-
-<p>在程序实现里我们爱用白名单，宁可错杀一千，不可放过一个；而在沟通中，则适用黑名单。如果某一信息确实不想让某些人知道，别让他知道就行了，否则就让所有人都知道，至于这些信息是否有用，是否需要处理，留给接收方决定即可。</p>
-
-<p>常见的例子是功能需求讨论。一个功能，到底会不会影响其他功能，或者说是否有其他功能对该功能有兴趣，这个不是新功能的产品经理能掌握的，这时候最好的方式是全员周知，其他功能的负责人自然会判断这条信息是否跟自己有关，自己是否应该站出来参与到讨论当中。</p>
-
-<p>是否会造成信息泛滥？有可能，不过我能接受这一点问题，相对来说，信息丢失更可怕。</p>
-
-<h2>让信息共享成为常态</h2>
-
-<p>最好的方式就是定期的会议，比如周会。这是员工了解公司、组织最常见的方式，也是效果比较好的方式。公司最近的变动，业务发展情况，都可以由中层领导传递给下属员工。除了让员工能了解公司的详细信息，还能鼓动员工干劲，提高员工对公司的信任程度。信任是双方向的，你若信任对方，对方也会 120% 的信任你。</p>
-
-<p>欺瞒甚至扭曲事实最终都会偿还回来的，这个不会有例外。即使赢了世界，也会输掉人心。</p>
-
-<p>领导不应该吝惜自己所掌握的信息，也不要以为这些信息对员工并无卵用。事实上多后进的员工，都会或多或少关心公司的某些方面。</p>
-
-<p>更不要担心流言蜚语，空气太纯净，细菌滋生危害才会越大，正因为你不说，流言蜚语才会起来。</p>
-
-<h2>以吼为荣</h2>
-
-<p>原始社会，通讯基本靠吼；原始的才是最纯粹的，因为原始，效率最高。</p>
-
-<p>文字的表达效率低于直接语言沟通，相信很多人有过通过 IM 一个字一个字的进行远程交流那种心急如焚、坐立不安的感觉。这时候只要条件允许，就应该换电话或者实时语音来进行交流，这才是效率最高、成本最低的方式。</p>
-
-<p>同一个办公室，离着 5 米都不到，用 IM 你不怕费你的 HHKB Pro 么？</p>
-
-<h2>要 <code>ack</code></h2>
-
-<p>重要信息，需要得到对方的反馈，哪怕只有一句“好”、“明白了”也可以，确保对方收到了你的信息，而不是对方因为心不在焉而丢失了你要传达的消息。</p>
-
-<p>交流要采用 TCP 的机制，需要对请求回应进行确认，不要像使用 UDP 那样，把消息放出去就不管了。</p>
-
-<h2>以诚为本</h2>
-
-<p>对事不对人是重要的原则，可以对人的做法、成果进行指责，但是不应该直接对人本身，尤其是人品进行评判。首先要尊重沟通的各方，换位思考，以同理心来进行交流，把自己摆在对方的角度进行假设，全面思考，在提出问题的时候，同时考虑是否可以提出一些解决方案，带着答案问问题，除了能更高效的解决问题，也能获得对方的信赖和感情分。</p>
-
-<h2>会话的 Context 很重要</h2>
-
-<p>你有多少次莫名其妙的被人拉进到一个群里被莫名其妙的问你各种问题的、一脸懵逼的经历么？</p>
-
-<p>Context ，即背景，在向别人传达指令，或者寻求帮助的时候，需要让对方对整个事情的背景、详细情况或者来龙去脉有所了解，也就是提供对方能理解你所描述问题的所有线索。</p>
-
-<p>比如 Bug 或故障，第一件事就是现象，哪里出了问题，怎么不正常，应该是什么样的。其次，要提供详细的操作说明，最好精确到每一个输入、每一次点击，以及有哪些预置条件。最重要的，还需要提供全面的日志，对开发人员来说，日志是解决问题的关键所在，程序的运行时异常、服务的逻辑异常，都能通过日志找到问题所在并提供解决问题的线索。</p>
-
-<p>十几年前流传很广的一篇文章叫《提问的技巧》，那你是否掌握了《提 Bug 的技巧》或者《说明问题的技巧》？</p>
-
-<h2>金字塔原理</h2>
-
-<p>看似和上一条矛盾，根据情况，有时候信息接收者的关注点只是你的结论，而不关心过程，所以很多时候我们在表达的时候一定要先说结论和重点。</p>
-
-<p>比如领导问你这个功能什么时候完成，你怎么回答？</p>
-
-<p>最好的回答就是一个具体的时间点，就这么一句话，比如“本周末”、“6/20”等等。</p>
-
-<p>如果这个时间点比计划的时间要晚，当然你要补充说明延迟的理由；如果并没有规定时间点或者说早于计划时间，那么别人问你什么时候完成的时候，你回答“我现在在做 xxx，出了点问题，需要谁谁谁来帮我解决一下；之后还要做 yyy，在 zzz 之后才能开始，预计 6/20 能完成”，说那么多废话有用么？我相信多数时候领导在问你进度的时候，最关心的是否有延期，是否能按时完成，没有问题就不要给领导添堵。</p>
-
-<p>这是另一个例子，一段真实的对话。</p>
-
-<p>A： “你几点回家？”</p>
-
-<p>B： “我今天来的比较晚。”</p>
-
-<p>A： “那是几点？”</p>
-
-<p>B： “还有点活，干完就走”</p>
-
-<p>A： “你就告诉是 7 点还是 8 点行么？”</p>
-
-<p>B： “ 7 点”</p>
-
-<p>推荐一本同名的书，大家可以找来读读。</p>
-
-<hr />
-
-<p>7 年前参加过拍马屁（PMP）的培训和考试，很多都忘了，只对沟通部分的原则和案例有些记忆，毕竟大多数时候，我们不是一个人在战斗。</p>
-
-<p>所以，请重视沟通的方式、技巧和效果。</p>
 ]]></content>
   </entry>
   
