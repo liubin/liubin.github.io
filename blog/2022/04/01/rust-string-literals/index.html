@@ -1,0 +1,432 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>关于 Rust 字符串字面值的一些总结 - 人间指南</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="关于 Rust 字符串字面值的一些总结 Rust 中有两种字符串，String 和 &amp;str，其中 String 可动态分配、修改，内部实现可以理解为 Vec&lt;u8&gt;，而 &amp;str 是一个类型为 &amp;[u8] 的切片。这两种字符串都只能保存合法的 UTF-8 &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2022/04/01/rust-string-literals">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="人间指南"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">人间指南</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/liubuneng">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">关于 Rust 字符串字面值的一些总结</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>Rust 中有两种字符串，String 和 &amp;str，其中 String 可动态分配、修改，内部实现可以理解为 <code>Vec&lt;u8&gt;</code>，而 <code>&amp;str</code> 是一个类型为 <code>&amp;[u8]</code> 的切片。这两种字符串都只能保存合法的 UTF-8 字符。</p>
+
+<p>而对于非肉眼可辨识的 UTF-8 字符，则可以考虑使用如下类型：</p>
+
+<ul>
+<li>文件路径有专用的 Path 和 PathBuf 类可用。</li>
+<li>使用 <code>Vec&lt;u8&gt;</code> 和 <code>&amp;[u8]</code></li>
+<li>使用 <code>OSString</code> 和 <code>&amp;OSStr</code> 和操作系统交互</li>
+<li>使用 <code>CString</code> 和 <code>&amp;CStr</code> 和 C 库交互</li>
+</ul>
+
+
+<p>上面的第二种方法，就是常用的处理非 UTF-8 字节流的方式，也就是使用 <code>Vec&lt;u8&gt;</code> 和 <code>&amp;[u8]</code> ，其中我们也可以使用字面值来处理这两种类型的数据，我们称之为字节字符串字面值（byte string literals），其类型为 <code>&amp;[u8]</code>。</p>
+
+<h2>字符串字面值（String literals）</h2>
+
+<p>先来看一下字符串字面值。</p>
+
+<p>和其他语言一样，用双引号括起来就是一个字符串，不过 Rust 的一个特点是字符串可以跨行，即中间有回车也不会引起编译或运行错误，在输出的时候也会带着里面的换行符。</p>
+
+<p>同样，字符串字面值里面支持转义，比如想在里面使用双引号，该转义也会对换行符进行转义，比如下面这样，在换行符前面使用 <code>\</code> ，则该转义符、换行符以及下一行开头的所有空格都将会被忽略：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="s">&quot;foobar&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">b</span> <span class="o">=</span> <span class="s">&quot;foo\</span>
+</span><span class='line'><span class="s">         bar&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>字符串字面值除了支持常见的 <code>\</code> 对字节（字符）进行转义，还支持对 Unicode 进行转义：</p>
+
+<ul>
+<li><code>\xHH</code>： + 2位的十六进制7位宽度字节码，这相当于等值的 ASCII 字符。</li>
+<li><code>\u{xxxx}</code>：24位长的16进制，表示等值的 Unicode 字符。</li>
+<li><code>\n</code>/<code>\r</code>/<code>\t</code> 表示 U+000A (LF), U+000D (CR) 和 U+0009 (HT)</li>
+<li><code>\\</code> 用来对 <code>\</code> 本身进行转义</li>
+<li><code>\0</code> 表示 Unicode U+0000 (NUL)</li>
+</ul>
+
+
+<p>Raw 类型的字符串字面值表示进行转义，也就是说字面值写的是什么内容，字符串的值就是什么。这种类型的字面值使用 <code>r</code> 以及若干 <code>#</code> 开头进行定义，结尾需要相等数量的 <code>#</code>。</p>
+
+<p>如下所示：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="s">&quot;foo&quot;</span><span class="p">;</span> <span class="s-Raw">r&quot;foo&quot;</span><span class="p">;</span>                     <span class="c1">// foo</span>
+</span><span class='line'><span class="s">&quot;</span><span class="se">\&quot;</span><span class="s">foo</span><span class="se">\&quot;</span><span class="s">&quot;</span><span class="p">;</span> <span class="s-Raw">r#&quot;&quot;foo&quot;&quot;#</span><span class="p">;</span>             <span class="c1">// &quot;foo&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="s">&quot;foo #</span><span class="se">\&quot;</span><span class="s"># bar&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="s-Raw">r##&quot;foo #&quot;# bar&quot;##</span><span class="p">;</span>                <span class="c1">// foo #&quot;# bar</span>
+</span><span class='line'>
+</span><span class='line'><span class="s">&quot;</span><span class="se">\x52</span><span class="s">&quot;</span><span class="p">;</span> <span class="s">&quot;R&quot;</span><span class="p">;</span> <span class="s-Raw">r&quot;R&quot;</span><span class="p">;</span>                 <span class="c1">// R</span>
+</span><span class='line'><span class="s">&quot;</span><span class="se">\\</span><span class="s">x52&quot;</span><span class="p">;</span> <span class="s-Raw">r&quot;\x52&quot;</span><span class="p">;</span>                  <span class="c1">// \x52</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果字符串中有双引号怎么办？因为 raw string 里不能使用转义，所以 <code>\"</code> 是肯定不行的。Rust 实际支持使用 <code>r#</code> 的方式来指定字符串边界。这个 <code>#</code> 就是转义的另一种实现方式，比如字符串里面有 4 个 <code>#</code>，那么该字符串可以用 <code>r#####"abc####def"#####</code> 来包围起来，也就是比里面的 <code>#</code> 多即可。</p>
+
+<h2>Byte string literals</h2>
+
+<p>Byte string 字面值使用 <code>b"..."</code> 以及衍生语法定义，其类型为 <code>&amp;[u8]</code>，这个和 <code>&amp;str</code> 是完全不一样的类型，所以有些在 <code>&amp;str</code> 上能用的方法，在 <code>&amp;[u8]</code> 上是用不了的。</p>
+
+<p>比如：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// &amp;[u8; 5]: [119, 111, 114, 108, 100]!</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">world</span> <span class="o">=</span> <span class="n">b</span><span class="s">&quot;world&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Hello, {}!&quot;</span><span class="p">,</span> <span class="n">world</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>编译会报错，因为 <code>&amp;[u8]</code> 没有实现 <code>std::fmt::Display</code>：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">29</span> <span class="o">|</span>     <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Hello, {}!&quot;</span><span class="p">,</span> <span class="n">world</span><span class="p">);</span>
+</span><span class='line'>   <span class="o">|</span>                            <span class="o">^^^^^</span> <span class="err">`</span><span class="p">[</span><span class="kt">u8</span><span class="p">;</span> <span class="mi">5</span><span class="p">]</span><span class="err">`</span> <span class="n">cannot</span> <span class="kr">be</span> <span class="n">formatted</span> <span class="n">with</span> <span class="n">the</span> <span class="n">default</span> <span class="n">formatter</span>
+</span><span class='line'>   <span class="o">|</span>
+</span><span class='line'>
+</span><span class='line'>   <span class="o">=</span> <span class="n">help</span><span class="o">:</span> <span class="n">the</span> <span class="k">trait</span> <span class="err">`</span><span class="n">std</span><span class="o">::</span><span class="n">fmt</span><span class="o">::</span><span class="n">Display</span><span class="err">`</span> <span class="n">is</span> <span class="n">not</span> <span class="n">implemented</span> <span class="k">for</span> <span class="err">`</span><span class="p">[</span><span class="kt">u8</span><span class="p">;</span> <span class="mi">5</span><span class="p">]</span><span class="err">`</span>
+</span><span class='line'>   <span class="o">=</span> <span class="n">note</span><span class="o">:</span> <span class="k">in</span> <span class="n">format</span> <span class="n">strings</span> <span class="n">you</span> <span class="n">may</span> <span class="kr">be</span> <span class="n">able</span> <span class="n">to</span> <span class="kn">use</span> <span class="err">`</span><span class="p">{</span><span class="o">:?</span><span class="p">}</span><span class="err">`</span> <span class="p">(</span><span class="n">or</span> <span class="p">{</span><span class="o">:</span><span class="err">#</span><span class="o">?</span><span class="p">}</span> <span class="k">for</span> <span class="n">pretty</span><span class="o">-</span><span class="nb">print</span><span class="p">)</span> <span class="n">instead</span>
+</span><span class='line'>   <span class="o">=</span> <span class="n">note</span><span class="o">:</span> <span class="n">this</span> <span class="n">error</span> <span class="n">originates</span> <span class="k">in</span> <span class="n">the</span> <span class="n">macro</span> <span class="err">`$</span><span class="n">crate</span><span class="o">::</span><span class="n">format_args_nl</span><span class="err">`</span> <span class="p">(</span><span class="k">in</span> <span class="n">Nightly</span> <span class="n">builds</span><span class="p">,</span> <span class="n">run</span> <span class="n">with</span> <span class="o">-</span><span class="n">Z</span> <span class="n">macro</span><span class="o">-</span><span class="n">backtrace</span> <span class="k">for</span> <span class="n">more</span> <span class="n">info</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Byte string 字面值也支持转义，但是需要注意它只支持字节转义，不支持 Unicode 转义。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// 支持字符转义，输出：Hello, Rust!</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">escaped</span> <span class="o">=</span> <span class="n">b</span><span class="s">&quot;</span><span class="se">\x52\x75\x73\x74</span><span class="s"> as bytes&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// 不支持 Unicode 转义，编译错误：</span>
+</span><span class='line'><span class="c1">// = help: unicode escape sequences cannot be used as a byte or in a byte string</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">escaped</span> <span class="o">=</span> <span class="n">b</span><span class="s">&quot;\u{211D} is not allowed&quot;</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// Raw byte strings work just like raw strings</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">raw_bytestring</span> <span class="o">=</span> <span class="n">br</span><span class="s">&quot;\u{211D} is not escaped here&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;{:?}&quot;</span><span class="p">,</span> <span class="n">raw_bytestring</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Converting a byte array to `str` can fail</span>
+</span><span class='line'><span class="k">if</span> <span class="kd">let</span> <span class="nb">Ok</span><span class="p">(</span><span class="n">my_str</span><span class="p">)</span> <span class="o">=</span> <span class="kt">str</span><span class="o">::</span><span class="n">from_utf8</span><span class="p">(</span><span class="n">raw_bytestring</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;And the same as text: &#39;{}&#39;&quot;</span><span class="p">,</span> <span class="n">my_str</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>字节字符串也支持 raw 定义，和标准字符串类型类似，使用 <code>r</code> 前缀定义 raw byte string 字面值变量。</p>
+
+<p>例如下面的例子中普通的字节字符串需要转义，raw 字节字符串就不需要使用 <code>\</code> 进行转义了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">b</span><span class="s">&quot;foo&quot;</span><span class="p">;</span> <span class="n">br</span><span class="s">&quot;foo&quot;</span><span class="p">;</span>                     <span class="c1">// foo</span>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;</span><span class="se">\&quot;</span><span class="s">foo</span><span class="se">\&quot;</span><span class="s">&quot;</span><span class="p">;</span> <span class="n">br</span><span class="err">#</span><span class="s">&quot;&quot;</span><span class="n">foo</span><span class="s">&quot;&quot;</span><span class="err">#</span><span class="p">;</span>             <span class="c1">// &quot;foo&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;foo #</span><span class="se">\&quot;</span><span class="s"># bar&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="n">br</span><span class="err">##</span><span class="s">&quot;foo #&quot;</span><span class="err">#</span> <span class="n">bar</span><span class="s">&quot;##;                 // foo #&quot;</span><span class="err">#</span> <span class="n">bar</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;</span><span class="se">\x52</span><span class="s">&quot;</span><span class="p">;</span> <span class="n">b</span><span class="s">&quot;R&quot;</span><span class="p">;</span> <span class="n">br</span><span class="s">&quot;R&quot;</span><span class="p">;</span>                <span class="c1">// R</span>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;</span><span class="se">\\</span><span class="s">x52&quot;</span><span class="p">;</span> <span class="n">br</span><span class="s">&quot;</span><span class="se">\x52</span><span class="s">&quot;</span><span class="p">;</span>                  <span class="c1">// \x52</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>总结</h2>
+
+<p>下面是刚才介绍的这几种字符串字面值定义的一个总结，列出了不同的定义方式和其含义。</p>
+
+<table>
+<thead>
+<tr>
+<th>符合 </th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&ldquo;&hellip;&rdquo;  </td>
+<td>字符串字面值</td>
+</tr>
+<tr>
+<td>r"&hellip;&ldquo;, r#&rdquo;&hellip;&ldquo;#, r##&rdquo;&hellip;&ldquo;##, etc. </td>
+<td>Raw 字符串字面值，禁止转义</td>
+</tr>
+<tr>
+<td>b"&hellip;&ldquo; </td>
+<td>字节字符串字面值，类型为 <code>&amp;[u8]</code></td>
+</tr>
+<tr>
+<td>br"&hellip;&ldquo;, br#&rdquo;&hellip;&ldquo;#, br##&rdquo;&hellip;&ldquo;##, etc.  </td>
+<td>Raw 字节字符串字面值</td>
+</tr>
+<tr>
+<td>&lsquo;&hellip;&rsquo;  </td>
+<td>字符字面值</td>
+</tr>
+<tr>
+<td>b'&hellip;&lsquo; </td>
+<td>ASCII字节字面值</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>参考资料</h2>
+
+<ul>
+<li><a href="https://doc.rust-lang.org/reference/tokens.html#character-and-string-literals">Rust reference: Character and string literals</a></li>
+<li><a href="https://doc.rust-lang.org/rust-by-example/std/str.html">Rust By Example: Strings</a></li>
+<li><a href="https://doc.rust-lang.org/book/appendix-02-operators.html#non-operator-symbols">TRPL: Non-operator Symbols</a></li>
+</ul>
+
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2022-04-01 21:15:43 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2022/04/01/rust-string-literals/"
+	 data-via="liubuneng"
+	 data-counturl="http://liubin.org/blog/2022/04/01/rust-string-literals/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2022 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>

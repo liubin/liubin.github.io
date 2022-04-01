@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
+<loc>http://liubin.org/blog/2022/04/01/rust-string-literals/</loc>
+<lastmod>2022-04-01T21:15:43+08:00</lastmod>
+</url>
+<url>
 <loc>http://liubin.org/blog/2022/03/25/create-san-cert/</loc>
 <lastmod>2022-03-25T10:53:22+08:00</lastmod>
 </url>
@@ -196,17 +200,5 @@
 </url>
 <url>
 <loc>http://liubin.org/about/</loc>
-</url>
-<url>
-<loc>http://liubin.org/posts/2/</loc>
-</url>
-<url>
-<loc>http://liubin.org/posts/3/</loc>
-</url>
-<url>
-<loc>http://liubin.org/posts/4/</loc>
-</url>
-<url>
-<loc>http://liubin.org/posts/5/</loc>
 </url>
 </urlset>

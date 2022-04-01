@@ -4,7 +4,7 @@
   <title><![CDATA[人间指南]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2022-03-25T11:01:53+08:00</updated>
+  <updated>2022-04-01T18:18:50+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,228 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[关于 Rust 字符串字面值的一些总结]]></title>
+    <link href="http://liubin.org/blog/2022/04/01/rust-string-literals/"/>
+    <updated>2022-04-01T21:15:43+08:00</updated>
+    <id>http://liubin.org/blog/2022/04/01/rust-string-literals</id>
+    <content type="html"><![CDATA[<p>Rust 中有两种字符串，String 和 &amp;str，其中 String 可动态分配、修改，内部实现可以理解为 <code>Vec&lt;u8&gt;</code>，而 <code>&amp;str</code> 是一个类型为 <code>&amp;[u8]</code> 的切片。这两种字符串都只能保存合法的 UTF-8 字符。</p>
+
+<p>而对于非肉眼可辨识的 UTF-8 字符，则可以考虑使用如下类型：</p>
+
+<ul>
+<li>文件路径有专用的 Path 和 PathBuf 类可用。</li>
+<li>使用 <code>Vec&lt;u8&gt;</code> 和 <code>&amp;[u8]</code></li>
+<li>使用 <code>OSString</code> 和 <code>&amp;OSStr</code> 和操作系统交互</li>
+<li>使用 <code>CString</code> 和 <code>&amp;CStr</code> 和 C 库交互</li>
+</ul>
+
+
+<p>上面的第二种方法，就是常用的处理非 UTF-8 字节流的方式，也就是使用 <code>Vec&lt;u8&gt;</code> 和 <code>&amp;[u8]</code> ，其中我们也可以使用字面值来处理这两种类型的数据，我们称之为字节字符串字面值（byte string literals），其类型为 <code>&amp;[u8]</code>。</p>
+
+<h2>字符串字面值（String literals）</h2>
+
+<p>先来看一下字符串字面值。</p>
+
+<p>和其他语言一样，用双引号括起来就是一个字符串，不过 Rust 的一个特点是字符串可以跨行，即中间有回车也不会引起编译或运行错误，在输出的时候也会带着里面的换行符。</p>
+
+<p>同样，字符串字面值里面支持转义，比如想在里面使用双引号，该转义也会对换行符进行转义，比如下面这样，在换行符前面使用 <code>\</code> ，则该转义符、换行符以及下一行开头的所有空格都将会被忽略：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="kd">let</span> <span class="n">a</span> <span class="o">=</span> <span class="s">&quot;foobar&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">b</span> <span class="o">=</span> <span class="s">&quot;foo\</span>
+</span><span class='line'><span class="s">         bar&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">assert_eq</span><span class="o">!</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>字符串字面值除了支持常见的 <code>\</code> 对字节（字符）进行转义，还支持对 Unicode 进行转义：</p>
+
+<ul>
+<li><code>\xHH</code>： + 2位的十六进制7位宽度字节码，这相当于等值的 ASCII 字符。</li>
+<li><code>\u{xxxx}</code>：24位长的16进制，表示等值的 Unicode 字符。</li>
+<li><code>\n</code>/<code>\r</code>/<code>\t</code> 表示 U+000A (LF), U+000D (CR) 和 U+0009 (HT)</li>
+<li><code>\\</code> 用来对 <code>\</code> 本身进行转义</li>
+<li><code>\0</code> 表示 Unicode U+0000 (NUL)</li>
+</ul>
+
+
+<p>Raw 类型的字符串字面值表示进行转义，也就是说字面值写的是什么内容，字符串的值就是什么。这种类型的字面值使用 <code>r</code> 以及若干 <code>#</code> 开头进行定义，结尾需要相等数量的 <code>#</code>。</p>
+
+<p>如下所示：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="s">&quot;foo&quot;</span><span class="p">;</span> <span class="s-Raw">r&quot;foo&quot;</span><span class="p">;</span>                     <span class="c1">// foo</span>
+</span><span class='line'><span class="s">&quot;</span><span class="se">\&quot;</span><span class="s">foo</span><span class="se">\&quot;</span><span class="s">&quot;</span><span class="p">;</span> <span class="s-Raw">r#&quot;&quot;foo&quot;&quot;#</span><span class="p">;</span>             <span class="c1">// &quot;foo&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="s">&quot;foo #</span><span class="se">\&quot;</span><span class="s"># bar&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="s-Raw">r##&quot;foo #&quot;# bar&quot;##</span><span class="p">;</span>                <span class="c1">// foo #&quot;# bar</span>
+</span><span class='line'>
+</span><span class='line'><span class="s">&quot;</span><span class="se">\x52</span><span class="s">&quot;</span><span class="p">;</span> <span class="s">&quot;R&quot;</span><span class="p">;</span> <span class="s-Raw">r&quot;R&quot;</span><span class="p">;</span>                 <span class="c1">// R</span>
+</span><span class='line'><span class="s">&quot;</span><span class="se">\\</span><span class="s">x52&quot;</span><span class="p">;</span> <span class="s-Raw">r&quot;\x52&quot;</span><span class="p">;</span>                  <span class="c1">// \x52</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果字符串中有双引号怎么办？因为 raw string 里不能使用转义，所以 <code>\"</code> 是肯定不行的。Rust 实际支持使用 <code>r#</code> 的方式来指定字符串边界。这个 <code>#</code> 就是转义的另一种实现方式，比如字符串里面有 4 个 <code>#</code>，那么该字符串可以用 <code>r#####"abc####def"#####</code> 来包围起来，也就是比里面的 <code>#</code> 多即可。</p>
+
+<h2>Byte string literals</h2>
+
+<p>Byte string 字面值使用 <code>b"..."</code> 以及衍生语法定义，其类型为 <code>&amp;[u8]</code>，这个和 <code>&amp;str</code> 是完全不一样的类型，所以有些在 <code>&amp;str</code> 上能用的方法，在 <code>&amp;[u8]</code> 上是用不了的。</p>
+
+<p>比如：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// &amp;[u8; 5]: [119, 111, 114, 108, 100]!</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">world</span> <span class="o">=</span> <span class="n">b</span><span class="s">&quot;world&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Hello, {}!&quot;</span><span class="p">,</span> <span class="n">world</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>编译会报错，因为 <code>&amp;[u8]</code> 没有实现 <code>std::fmt::Display</code>：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">29</span> <span class="o">|</span>     <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Hello, {}!&quot;</span><span class="p">,</span> <span class="n">world</span><span class="p">);</span>
+</span><span class='line'>   <span class="o">|</span>                            <span class="o">^^^^^</span> <span class="err">`</span><span class="p">[</span><span class="kt">u8</span><span class="p">;</span> <span class="mi">5</span><span class="p">]</span><span class="err">`</span> <span class="n">cannot</span> <span class="kr">be</span> <span class="n">formatted</span> <span class="n">with</span> <span class="n">the</span> <span class="n">default</span> <span class="n">formatter</span>
+</span><span class='line'>   <span class="o">|</span>
+</span><span class='line'>
+</span><span class='line'>   <span class="o">=</span> <span class="n">help</span><span class="o">:</span> <span class="n">the</span> <span class="k">trait</span> <span class="err">`</span><span class="n">std</span><span class="o">::</span><span class="n">fmt</span><span class="o">::</span><span class="n">Display</span><span class="err">`</span> <span class="n">is</span> <span class="n">not</span> <span class="n">implemented</span> <span class="k">for</span> <span class="err">`</span><span class="p">[</span><span class="kt">u8</span><span class="p">;</span> <span class="mi">5</span><span class="p">]</span><span class="err">`</span>
+</span><span class='line'>   <span class="o">=</span> <span class="n">note</span><span class="o">:</span> <span class="k">in</span> <span class="n">format</span> <span class="n">strings</span> <span class="n">you</span> <span class="n">may</span> <span class="kr">be</span> <span class="n">able</span> <span class="n">to</span> <span class="kn">use</span> <span class="err">`</span><span class="p">{</span><span class="o">:?</span><span class="p">}</span><span class="err">`</span> <span class="p">(</span><span class="n">or</span> <span class="p">{</span><span class="o">:</span><span class="err">#</span><span class="o">?</span><span class="p">}</span> <span class="k">for</span> <span class="n">pretty</span><span class="o">-</span><span class="nb">print</span><span class="p">)</span> <span class="n">instead</span>
+</span><span class='line'>   <span class="o">=</span> <span class="n">note</span><span class="o">:</span> <span class="n">this</span> <span class="n">error</span> <span class="n">originates</span> <span class="k">in</span> <span class="n">the</span> <span class="n">macro</span> <span class="err">`$</span><span class="n">crate</span><span class="o">::</span><span class="n">format_args_nl</span><span class="err">`</span> <span class="p">(</span><span class="k">in</span> <span class="n">Nightly</span> <span class="n">builds</span><span class="p">,</span> <span class="n">run</span> <span class="n">with</span> <span class="o">-</span><span class="n">Z</span> <span class="n">macro</span><span class="o">-</span><span class="n">backtrace</span> <span class="k">for</span> <span class="n">more</span> <span class="n">info</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Byte string 字面值也支持转义，但是需要注意它只支持字节转义，不支持 Unicode 转义。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// 支持字符转义，输出：Hello, Rust!</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">escaped</span> <span class="o">=</span> <span class="n">b</span><span class="s">&quot;</span><span class="se">\x52\x75\x73\x74</span><span class="s"> as bytes&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// 不支持 Unicode 转义，编译错误：</span>
+</span><span class='line'><span class="c1">// = help: unicode escape sequences cannot be used as a byte or in a byte string</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">escaped</span> <span class="o">=</span> <span class="n">b</span><span class="s">&quot;\u{211D} is not allowed&quot;</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// Raw byte strings work just like raw strings</span>
+</span><span class='line'><span class="kd">let</span> <span class="n">raw_bytestring</span> <span class="o">=</span> <span class="n">br</span><span class="s">&quot;\u{211D} is not escaped here&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;{:?}&quot;</span><span class="p">,</span> <span class="n">raw_bytestring</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Converting a byte array to `str` can fail</span>
+</span><span class='line'><span class="k">if</span> <span class="kd">let</span> <span class="nb">Ok</span><span class="p">(</span><span class="n">my_str</span><span class="p">)</span> <span class="o">=</span> <span class="kt">str</span><span class="o">::</span><span class="n">from_utf8</span><span class="p">(</span><span class="n">raw_bytestring</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nb">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;And the same as text: &#39;{}&#39;&quot;</span><span class="p">,</span> <span class="n">my_str</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>字节字符串也支持 raw 定义，和标准字符串类型类似，使用 <code>r</code> 前缀定义 raw byte string 字面值变量。</p>
+
+<p>例如下面的例子中普通的字节字符串需要转义，raw 字节字符串就不需要使用 <code>\</code> 进行转义了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">b</span><span class="s">&quot;foo&quot;</span><span class="p">;</span> <span class="n">br</span><span class="s">&quot;foo&quot;</span><span class="p">;</span>                     <span class="c1">// foo</span>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;</span><span class="se">\&quot;</span><span class="s">foo</span><span class="se">\&quot;</span><span class="s">&quot;</span><span class="p">;</span> <span class="n">br</span><span class="err">#</span><span class="s">&quot;&quot;</span><span class="n">foo</span><span class="s">&quot;&quot;</span><span class="err">#</span><span class="p">;</span>             <span class="c1">// &quot;foo&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;foo #</span><span class="se">\&quot;</span><span class="s"># bar&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="n">br</span><span class="err">##</span><span class="s">&quot;foo #&quot;</span><span class="err">#</span> <span class="n">bar</span><span class="s">&quot;##;                 // foo #&quot;</span><span class="err">#</span> <span class="n">bar</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;</span><span class="se">\x52</span><span class="s">&quot;</span><span class="p">;</span> <span class="n">b</span><span class="s">&quot;R&quot;</span><span class="p">;</span> <span class="n">br</span><span class="s">&quot;R&quot;</span><span class="p">;</span>                <span class="c1">// R</span>
+</span><span class='line'><span class="n">b</span><span class="s">&quot;</span><span class="se">\\</span><span class="s">x52&quot;</span><span class="p">;</span> <span class="n">br</span><span class="s">&quot;</span><span class="se">\x52</span><span class="s">&quot;</span><span class="p">;</span>                  <span class="c1">// \x52</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>总结</h2>
+
+<p>下面是刚才介绍的这几种字符串字面值定义的一个总结，列出了不同的定义方式和其含义。</p>
+
+<table>
+<thead>
+<tr>
+<th>符合 </th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&ldquo;&hellip;&rdquo;  </td>
+<td>字符串字面值</td>
+</tr>
+<tr>
+<td>r"&hellip;&ldquo;, r#&rdquo;&hellip;&ldquo;#, r##&rdquo;&hellip;&ldquo;##, etc. </td>
+<td>Raw 字符串字面值，禁止转义</td>
+</tr>
+<tr>
+<td>b"&hellip;&ldquo; </td>
+<td>字节字符串字面值，类型为 <code>&amp;[u8]</code></td>
+</tr>
+<tr>
+<td>br"&hellip;&ldquo;, br#&rdquo;&hellip;&ldquo;#, br##&rdquo;&hellip;&ldquo;##, etc.  </td>
+<td>Raw 字节字符串字面值</td>
+</tr>
+<tr>
+<td>&lsquo;&hellip;&rsquo;  </td>
+<td>字符字面值</td>
+</tr>
+<tr>
+<td>b'&hellip;&lsquo; </td>
+<td>ASCII字节字面值</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>参考资料</h2>
+
+<ul>
+<li><a href="https://doc.rust-lang.org/reference/tokens.html#character-and-string-literals">Rust reference: Character and string literals</a></li>
+<li><a href="https://doc.rust-lang.org/rust-by-example/std/str.html">Rust By Example: Strings</a></li>
+<li><a href="https://doc.rust-lang.org/book/appendix-02-operators.html#non-operator-symbols">TRPL: Non-operator Symbols</a></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[创建支持 SAN 扩展的 x509 证书]]></title>
@@ -5271,65 +5493,6 @@
 <p><a href="https://github.com/kubernetes/kubernetes/blob/release-1.10/staging/src/k8s.io/apimachinery/pkg/util/wait/wait.go#L289"><code>PollUntil</code></a> 方法和上面的类似，但是没有 <code>timeout</code> 参数，多了一个 <code>stopCh</code> 参数。</p>
 
 <p>此外，这个包里还有一个公开方法 <a href="https://github.com/kubernetes/kubernetes/blob/release-1.10/staging/src/k8s.io/apimachinery/pkg/util/wait/wait.go#L307"><code>WaitFor</code></a> ，好像并没有直接被外部调用，而是在 <code>PollUtil</code> 中被使用，这个方法需要自己编写 <code>WaitFunc</code> 类型的方法作为第一个参数，具体可以参考 <code>PollUntil</code> 的实现。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Python/Java 才是王道，PHP 还得靠边站]]></title>
-    <link href="http://liubin.org/blog/2017/07/18/python-and-java-main-stream/"/>
-    <updated>2017-07-18T15:01:02+08:00</updated>
-    <id>http://liubin.org/blog/2017/07/18/python-and-java-main-stream</id>
-    <content type="html"><![CDATA[<p>3 月份 Erik Bernhardsson 发表了一篇文章 <a href="https://erikbern.com/2017/03/15/the-eigenvector-of-why-we-moved-from-language-x-to-language-y.html">The eigenvector of &ldquo;Why we moved from language X to language Y”</a> ，作者根据 Google 里面搜索 <code>move from &lt;language 1&gt; to &lt;language 2&gt;</code> 或 <code>switch to &lt;language 2&gt; from &lt;language 1&gt;</code> 等的结果数量，做了一个编程语言之间的转移矩阵（Stochastic matrix），采用马可夫链的平稳分布，得到了一些关于未来什么语言最流行的结论，文中也多次提到，那就是 go 语言，很多人搜索了从 xx 到 go ，go 语言才是未来的语言。此外，作者认为 Perl 已死，Java 正当年，Rust 也很有希望。</p>
-
-<p>当然，在 Google 搜一下从 xx 到 yy ，并不代表真的开发者就要移情别恋，只有真的写了 yy 的代码，新的恋情才算开始。</p>
-
-<p>所以，上周 Waren Long 基于 GitHub 数据的统计结果，发表了一篇文章 <a href="https://blog.sourced.tech/post/language_migrations/">Analyzing GitHub, how developers change programming languages over time</a> ，该文章统计了包含GitHub 中 450 万用户，以及10 TB 的源代码，分析了 393 种语言的变化趋势，最后得出的结论就是：Python 和 Java 才是王道。</p>
-
-<p>这是 Waren Long 总结出来的流行语言的 Top 10 ：</p>
-
-<p><img src="http://liubin.org/images/2017/07/language_top_10.png" alt="" /></p>
-
-<p>从上图可以看到 Python (16.1 %) 才是最流行的编程语言，紧随其后的是 Java (15.3 %) 。而且前五名中，Python 代码量也比其他语言所占的比例要低（只有 11.3 %，我们可以理解为投入产出比、效益率，投入越少，产出越大，当然语言就比较流行），PHP 代码量最大，达到了 24.4 %，但是其流行程度只有 Python 的一半而已。</p>
-
-<p>在这个排名中，go 排名第 9 ，但是相对于其 0.9 % 的代码量占比，这个位置还是很牛的了，效益率也是最高的。考虑到这个数据的时效性，相信 go 语言肯定还会进一步扩大受众。</p>
-
-<p>下图是各语言之间的转换矩阵，左面是 From ，右面是 To ：</p>
-
-<p><img src="http://liubin.org/images/2017/07/sum_matrix_22lang_eig.svg" alt="" /></p>
-
-<p>在排名前 5 的语言中（Java、 C、 C++、 PHP、 Ruby，除去 Python ），有平均近 22% 的概率，会转移到 Python，不过大叔不理解的是为啥 Ruby 还会转移到 Python ？</p>
-
-<p>而作为统计学领域中的 Fortran (36 %)、 Matlab (33 %) 和 R (40 %) ，转移到 Python 的概率都是非常高的，可见，在数学计算、机器学习等领域，Python 的地位似乎越来越稳固了。</p>
-
-<p>从上面的转移矩阵，我们还可以发现一些有意思的规律，比如：</p>
-
-<ul>
-<li>Pascal 程序员最喜欢学习 Java</li>
-<li>Visual Basic 程序员学习 C# 顺理成章，C# 程序员爱转 Python</li>
-<li>Scala/Clojure 程序员最喜欢 Java，但是反过来不是，Java 程序员爱转 Python</li>
-<li>Object C 和 Swift 互转说明这个统计结果还是挺靠谱的</li>
-<li>转 go 最多的竟然不是 PHP 这样的脚本语言，而是 Rust，难道是 Rust 的学习曲线太陡了？</li>
-</ul>
-
-
-<p>下面的图是 16 年来各语言的平稳分布图：</p>
-
-<p><img src="http://liubin.org/images/2017/07/eigenvect_stack_22lang.png" alt="" /></p>
-
-<p>不过大叔不知道这16年的数据是怎么来的，如果我没记错的话，那时候应该还没有 GitHub 。</p>
-
-<p>前两名 Python 和 Java 的趋势基本一样，都是稳中有升的形状。这两个语言已经取代了 C 语言的霸主地位，如果把这 3 种语言合起来看，则它们的总量几乎没什么变化。</p>
-
-<p>Perl 基本死了，PHP 的扩张趋势也没那么明显，Ruby 粗了几年又细了，应该是和 Python 份额的扩大和 go 等的日渐流行有关。</p>
-
-<p>如果让我总结一下，那么 Java、Python 和 go 值得关注、持续学习。</p>
-
-<hr>
-
-
-<p>这就是 Waren Long 原文里的几个重要结论，如果你对原始数据和算法感兴趣，可以直接 <a href="https://blog.sourced.tech/post/language_migrations/">阅读原文</a>  。</p>
-
-<p><em>注意： 由于 JavaScript 的特殊性（前后通吃、受众广等，不适用于统计模型），Waren Long 的文章中并没有将 JavaScript 作为评价对象。</em></p>
 ]]></content>
   </entry>
   
