@@ -1,0 +1,898 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <!-- include head -->
+    
+
+<meta charset="utf-8">
+<title>Nydus bootstrap 文件解析 - 人间指南</title>
+<meta name="author" content="bin liu">
+<meta name="description"
+      content="Nydus bootstrap 文件解析 这是零零散散的关于 Nydus 学习笔记中的一段，主要是了解下 bootstrap 文件的存储格式。我们知道 nydus 会创建两种类型的文件： bootstrap： 存储文件系统的元数据
+blob： 存储数据内容 这里我们以一个很简单的例子，来看一下 &hellip;">
+
+
+<!-- http://t.co/dKP3o1e -->
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="canonical" href="http://liubin.org/blog/2022/04/27/nydus-bootstrap-layout">
+<link href="/favicon.ico" rel="icon">
+<link href="/stylesheets/screen.css"
+      media="screen, projection"
+      rel="stylesheet"
+      type="text/css">
+<link href="/atom.xml"
+      rel="alternate"
+      title="人间指南"
+      type="application/atom+xml">
+
+
+
+
+<script src="/javascripts/modernizr-2.0.js" type="text/javascript"></script>
+<script src="/javascripts/ender.js" type="text/javascript"></script>
+<script src="/javascripts/octopress.js" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-5658682']);
+  _gaq.push(['_trackPageview']);  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+      '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?3ff1a0a2cfe6655d0058381167b966a9";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+    <!-- /include -->
+  </head>
+  <body>
+    <div id="wrapper">
+
+      <header role="banner" class="site_metas">
+	<!-- include header -->
+	
+<hgroup>
+  <h1><a href="/">人间指南</a></h1>
+  
+  <h2>一个软件工程师的自言自语</h2>
+  
+</hgroup>
+
+	<!-- /include -->
+        <!-- include social_service_links -->
+	
+<div id="social-links">
+  <ul>
+    
+    <li id="social-links-github">
+      <a title="GitHub" href="https://github.com/liubin">github</a>
+    </li>
+    
+    
+    <li id="social-links-twitter">
+      <a title="twitter" href="http://twitter.com/liubuneng">twitter</a>
+    </li>
+    
+    
+    <li id="social-links-feed">
+      <a title="feed" href="http://liubin.org/atom.xml">feed</a>
+    </li>
+  </ul>
+</div>
+
+
+        <!-- /include -->
+      </header>
+
+      <div id="content">
+	<!-- content -->
+	
+
+  
+
+
+<article class="entry" role="article">
+
+  <header>
+    <h2 class="entry_title">Nydus bootstrap 文件解析</h2>
+    
+  </header>
+
+  <div class="entry_content"><p>这是零零散散的关于 Nydus 学习笔记中的一段，主要是了解下 bootstrap 文件的存储格式。我们知道 nydus 会创建两种类型的文件：</p>
+
+<ul>
+<li>bootstrap： 存储文件系统的元数据</li>
+<li>blob： 存储数据内容</li>
+</ul>
+
+
+<p>这里我们以一个很简单的例子，来看一下 bootstrap 都保存了哪些文件系统的信息。</p>
+
+<h2>环境准备</h2>
+
+<p>我们使用的测试例子很简单，通过 nydus-image create 创建一个 bootstrap，这个 bootstrap 的输入文件夹内容也很少。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>mkdir fs
+</span><span class='line'><span class="nv">$ </span>touch fs/aaa
+</span><span class='line'><span class="nv">$ </span>date &gt; fs/bbb
+</span><span class='line'><span class="nv">$ </span>nydus-image create --fs-version <span class="m">5</span> --bootstrap output/bootstrap --blob-dir output fs
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，该文件系统一共有两个文件：一个空文件，一个很简单的文本文件。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ls -l output/bootstrap
+</span><span class='line'>-rw-r--r-- <span class="m">1</span> vagrant vagrant <span class="m">8832</span> Apr <span class="m">26</span> 06:55 output/bootstrap
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>bootstrap 文件解析</h2>
+
+<p>我们使用 <code>xxd</code> 命令来输出 bootstrap 文件的 16 进制内容，具体命令如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>xxd -a -e output/bootstrap
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>xxd</code> 比 <code>hexdump</code> 的优点是可以非常简单的输出 <code>little-endian</code> 的内容，即其 <code>-e</code> 选项，rafs super block 存储的时候使用的就是 little-endian 的字节顺序。<code>-a</code> 选项用于去除空行（全 0x00 的行）。<code>-g 1</code> 选项设置一个字节单独一个字段，可以帮助我们计数，默认的话一个字段 4 个字节，即一个 u32 。</p>
+
+<p>而且 <code>xxd</code> 输出默认就是 32 位一个字段，正好是一个 u32 ，而 <code>RafsV5SuperBlock</code> 中很多数据就是 u32 类型的。该命令输出结果一行对应 16 个字节，也就是 4 个 u32 。每列宽度可以通过 <code>-g</code> 选项控制，默认为 2，即 4 个字节。</p>
+
+<p>下面输出结果中第一列为地址，后 4 列为二进制数据，之后部分，比如 <code>SFAR...</code> 为 ASCII 显示字符，在这里没有意义，可以忽略。</p>
+
+<h3>RafsV5SuperBlock</h3>
+
+<p>先来看看 <code>RafsV5SuperBlock</code> 对应的数据。</p>
+
+<h4>第一个 16 字节</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>00000000: <span class="m">52414653</span> <span class="m">00000500</span> <span class="m">00002000</span> <span class="m">00100000</span>  SFAR..... ......
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>前 16 个字节，对应 RafsV5SuperBlock 的以下属性：</p>
+
+<ul>
+<li><code>s_magic: u32</code>： v5 magic number 是 <code>0x5241_4653</code>。</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/layout/v5.rs</span>
+</span><span class='line'><span class="kr">const</span> <span class="n">RAFSV5_SUPER_MAGIC</span><span class="o">:</span> <span class="kt">u32</span> <span class="o">=</span> <span class="mh">0x5241_4653</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li><code>s_fs_version: u32</code>： 文件系统版本，即 <code>500</code>。</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/layout/mod.rs</span>
+</span><span class='line'><span class="k">pub</span> <span class="kr">const</span> <span class="n">RAFS_SUPER_VERSION_V5</span><span class="o">:</span> <span class="kt">u32</span> <span class="o">=</span> <span class="mh">0x500</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li><code>s_sb_size: u32</code>： super block 大小 0x2000，即 8192 字节。</li>
+<li><code>s_block_size: u32</code>： 块大小，0x00100000 == 1048576 == 1024 * 1024。</li>
+</ul>
+
+
+<h4>第二个 16 字节</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00000010</span><span class="o">:</span> <span class="mi">00000016</span> <span class="mi">00000000</span> <span class="mi">00000003</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>对应两个属性：</p>
+
+<ul>
+<li><code>s_flags: u64</code>： 来自 RafsSuperFlags ，这里值为 16，具体内容为 <code>COMPRESS_LZ4_BLOCK | DIGESTER_BLAKE3 | EXPLICIT_UID_GID</code>，如何算出来的如下所示：</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/mod.rs</span>
+</span><span class='line'><span class="kr">const</span> <span class="n">COMPRESS_LZ4_BLOCK</span> <span class="o">=</span> <span class="mh">0x0000_0002</span><span class="p">;</span>
+</span><span class='line'><span class="kr">const</span> <span class="n">DIGESTER_BLAKE3</span> <span class="o">=</span> <span class="mh">0x0000_0004</span><span class="p">;</span>
+</span><span class='line'><span class="kr">const</span> <span class="n">EXPLICIT_UID_GID</span> <span class="o">=</span> <span class="mh">0x0000_0010</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li><code>s_inodes_count: u64</code>： 这里值为3，即只有3个inode，一个根文件，还有两个普通文件。</li>
+</ul>
+
+
+<h4>第三个 16 字节</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00000020</span><span class="o">:</span> <span class="mi">00002000</span> <span class="mi">00000000</span> <span class="mi">00002010</span> <span class="mi">00000000</span>  <span class="p">.</span> <span class="p">.......</span> <span class="p">......</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>对应两个属性：</p>
+
+<ul>
+<li><code>s_inode_table_offset: u64</code>： inode table 所在位置的位移，这里为 0x2000 = 8192。注意这里虽然是 u64 ，但是好像 <code>00002000 00000000</code> 的顺序还是需要以 4 字节为单位，从右往左读，而每个 4 字节则是从左往右读。</li>
+<li><code>s_prefetch_table_offset: u64</code>： prefetch table 的位移，从相对值来说，比上面的 inode table 的位置 多了 0x10，即 16 个字节。</li>
+</ul>
+
+
+<h4>第四个 16 字节</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00000030</span><span class="o">:</span> <span class="mi">00002010</span> <span class="mi">00000000</span> <span class="mi">00000003</span> <span class="mi">00000000</span>  <span class="p">.</span> <span class="p">..............</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>对应三个属性：</p>
+
+<ul>
+<li><code>s_blob_table_offset: u64</code>： blob table 对应的值为 0x2010 ，和 prefetch table 的 offset 值一样。大概是因为该 bootstrap 没有使用 prefetch 吧。</li>
+<li><code>s_inode_table_entries: u32</code>： 3 个 entries 对应上面说的 3 个 inode 。</li>
+<li><code>s_prefetch_table_entries: u32</code>： prefetch entries 数量为 0 。</li>
+</ul>
+
+
+<h4>第5个 16 字节</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00000040</span><span class="o">:</span> <span class="mi">00000048</span> <span class="mi">00000001</span> <span class="mi">00002058</span> <span class="mi">00000000</span>  <span class="n">H</span><span class="p">.......</span><span class="n">X</span> <span class="p">......</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>对应三个属性：</p>
+
+<ul>
+<li><code>s_blob_table_size: u32</code>： 0x48 == 72。</li>
+<li><code>s_extended_blob_table_entries: u32</code>： 有 1 个条目，因为我们这个测试中只生成一个 blob 文件。</li>
+<li><code>s_extended_blob_table_offset: u64</code>： 位移位置在 0x2058。</li>
+</ul>
+
+
+<h4>第5个 16 字节及以后</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00000050</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>RafsV5SuperBlock</code> 结构体的最后一个属性如下：</p>
+
+<ul>
+<li><code>s_reserved: [u8; RAFSV5_SUPERBLOCK_RESERVED_SIZE]</code></li>
+</ul>
+
+
+<p>我们从这个常量的定义可以看到：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/layout/v5.rs</span>
+</span><span class='line'><span class="k">pub</span><span class="p">(</span><span class="n">crate</span><span class="p">)</span> <span class="kr">const</span> <span class="n">RAFSV5_SUPERBLOCK_SIZE</span><span class="o">:</span> <span class="n">usize</span> <span class="o">=</span> <span class="mi">8192</span><span class="p">;</span>
+</span><span class='line'><span class="kr">const</span> <span class="n">RAFSV5_SUPERBLOCK_RESERVED_SIZE</span><span class="o">:</span> <span class="n">usize</span> <span class="o">=</span> <span class="n">RAFSV5_SUPERBLOCK_SIZE</span> <span class="o">-</span> <span class="mi">80</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>Inode Table</h3>
+
+<p>整个 super block 占用 8192 字节，其中前面我们看到的几个属性，占用 80 个字节，其余部分为保留区域，以供扩展时使用。</p>
+
+<p><code>RafsV5SuperBlock</code> 中大部分都是预留的空位置，从下面一行可以看到，地址跳到了 0x2000，也是我们前面看到的 <code>s_inode_table_offset</code> 的值，这也意味着，这行开始的内容是 inode table 的内容。</p>
+
+<p>在看上面的内容之前，我们先看看 inode table 的结构：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/layout/v5.rs</span>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">RafsV5InodeTable</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// Inode offset array.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">data</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="kt">u32</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意这里 inode table 是一个 vector，里面存的不是 inode 对象，而是 inode 对应的 offset，而 vector 的索引就是 inode 对应的数值，每个 offset 都是 32 位类型，占用 4 个字节。而且索引的值为 inode -1 ，这样 root inode 就保存在 0 的位置上，一点都不浪费。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00002000</span><span class="o">:</span> <span class="mi">00000413</span> <span class="mi">00000424</span> <span class="mi">00000435</span> <span class="mi">00000000</span>  <span class="p">....</span><span class="err">$</span><span class="p">...</span><span class="mf">5.</span><span class="p">......</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们看到了 3 个 offset，分别为 413、424 和 432，每个 offset 之间间隔 11 。这个 offset 是 inode table 元素对应在 bootstrap 文件中的绝对位置的偏移量，比如 0x413 = 1043，而这个数据结构保存的位置都是 8 字节对齐的，所以这个值在保存的时候，是右位移 3 位的，取出来的时候再左位移 3 位，所以真正的位移值为 1043 * 8 = 8344，也就是 16 进制的 0x2098，在下面的分析中我们还会看到 inode table 的具体内容。</p>
+
+<p>同理 0x424 对应的偏移为 0x2120，0x432 对应的偏移量是 0x2190。</p>
+
+<p><strong>注意</strong>： rafs v5 存储都有对齐，为 8 字节。由于在这里的测试中只有 3 个文件，所以存储需要 3 个 u32，但是由于存在 8 字节对齐的需求，这里 3 个 u32 是 12 个字节，所以需要补齐 4 个字节，所以我们看到 0x2000 那一行最后补齐的全零的 u32。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">pub</span><span class="p">(</span><span class="n">crate</span><span class="p">)</span> <span class="kr">const</span> <span class="n">RAFSV5_ALIGNMENT</span><span class="o">:</span> <span class="n">usize</span> <span class="o">=</span> <span class="mi">8</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>Blob table</h3>
+
+<p>从 0x2010 开始存储的是 blob table 内容。还是先来看看 blob table 的定义：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/layout/v5.rs</span>
+</span><span class='line'><span class="cp">#[derive(Clone, Debug, Default)]</span>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">RafsV5BlobTable</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// Base blob information array.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">entries</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="n">Arc</span><span class="o">&lt;</span><span class="n">BlobInfo</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// Extended blob information array.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">extended</span><span class="o">:</span> <span class="n">RafsV5ExtBlobTable</span><span class="p">,</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意，BlobInfo 结构是在 storage crate 中定义的。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// storage/src/device.rs</span>
+</span><span class='line'>
+</span><span class='line'><span class="c-Doc">/// Configuration information for a metadata/data blob object.</span>
+</span><span class='line'><span class="c-Doc">///</span>
+</span><span class='line'><span class="c-Doc">/// The `BlobInfo` structure provides information for the storage subsystem to manage a blob file</span>
+</span><span class='line'><span class="c-Doc">/// and serve blob IO requests for clients.</span>
+</span><span class='line'><span class="cp">#[derive(Clone, Debug, Default)]</span>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">BlobInfo</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// The index of blob in RAFS blob table.</span>
+</span><span class='line'>    <span class="n">blob_index</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// A sha256 hex string generally.</span>
+</span><span class='line'>    <span class="n">blob_id</span><span class="o">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c-Doc">/// 此处省略其余属性</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>前面我们已经看到，s_blob_table_offset 对应的值为 0x2010 ，s_blob_table_size 的值为 0x48 = 72 字节，也就是存储位置在 [2010 - 2058)，2058 也正是 s_extended_blob_table_offset 的值。这部分数据如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00002010</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">31343261</span> <span class="mi">65373762</span>  <span class="p">........</span><span class="n">a241b77e</span>
+</span><span class='line'><span class="mi">00002020</span><span class="o">:</span> <span class="mi">38333362</span> <span class="mi">32373532</span> <span class="mi">63623763</span> <span class="mi">38336231</span>  <span class="n">b3382572c7bc1b38</span>
+</span><span class='line'><span class="mi">00002030</span><span class="o">:</span> <span class="mi">38623561</span> <span class="mi">36393139</span> <span class="mi">36326366</span> <span class="mi">62343062</span>  <span class="n">a5b89196fc26b04b</span>
+</span><span class='line'><span class="mi">00002040</span><span class="o">:</span> <span class="mi">37363666</span> <span class="mi">34313962</span> <span class="mi">63653062</span> <span class="mi">33313137</span>  <span class="n">f667b914b0ec7113</span>
+</span><span class='line'><span class="mi">00002050</span><span class="o">:</span> <span class="mi">37343061</span> <span class="mi">32623835</span> <span class="mi">00000001</span> <span class="mi">00000000</span>  <span class="n">a04758b2</span><span class="p">........</span>
+</span><span class='line'><span class="mi">00002050</span><span class="o">:</span> <span class="mi">37343061</span> <span class="mi">32623835</span>   <span class="mi">00000001</span> <span class="mi">00000000</span>  <span class="n">a04758b2</span><span class="p">........</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意上面 2050 这一行我又拷贝了一遍，并在 2058 前添加了 2 个空格来方便识别位置。</p>
+
+<p>这里我们 blob 的 id 是 <code>a241b77eb3382572c7bc1b38a5b89196fc26b04bf667b914b0ec7113a04758b2</code>，可以和上面输出最右侧 ASCII 部分内容对照。</p>
+
+<p>而且要注意的是上面的输出左右对照稍微不太直观，虽然列是从左到右，但是一列之中是从右到左的顺序。比如 <code>31343261</code> ，对应的内容实际是 <code>61323431</code>，即 <code>a241</code>。</p>
+
+<p>虽然上面看到的 blob table 的定义很复杂、属性很多，但是我们的测试足够简单。RafsV5BlobTable 存储到磁盘后，最开始的内容就是 BlobInfo 结构体。</p>
+
+<p>但是在 RafsV5BlobTable 的 store 方法（用于序列化到磁盘的 RafsStore trait 所需）中，我们可以看到，对于每一个 blob info 对象，都会在前面写两个 readahead 属性，这两个属性供占用 8 个字节，然后才是 blob id 。所以我们可以在上面 bootstrap 内容中，在 8 个自己的全零（默认值即是 0 ）后面，才是 blob id。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="kt">u32</span><span class="o">::</span><span class="n">to_le_bytes</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">readahead_offset</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="kt">u32</span><span class="o">::</span><span class="n">to_le_bytes</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">readahead_size</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">blob_id</span><span class="p">().</span><span class="n">as_bytes</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>尽管 BlobInfo 对象属性很多，但是持久化到磁盘的内容却不多，主要就上面这 3 个，外加一些对齐的字节。</p>
+
+<p>下面从 0x2058 开始是 RafsV5ExtBlobTable 的内容。其定义如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c-Doc">/// Rafs v5 on disk extended blob information table.</span>
+</span><span class='line'><span class="cp">#[derive(Clone, Debug, Default)]</span>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">RafsV5ExtBlobTable</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// The vector index means blob index, every entry represents</span>
+</span><span class='line'>    <span class="c-Doc">/// extended information of a blob.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">entries</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="n">Arc</span><span class="o">&lt;</span><span class="n">RafsV5ExtBlobEntry</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c-Doc">/// Rafs v5 extended blob information on disk metadata.</span>
+</span><span class='line'><span class="c-Doc">///</span>
+</span><span class='line'><span class="c-Doc">/// RafsV5ExtDBlobEntry is appended to the tail of bootstrap,</span>
+</span><span class='line'><span class="c-Doc">/// can be used as an extended table for the original blob table.</span>
+</span><span class='line'><span class="c1">// This disk structure is well defined and rafs aligned.</span>
+</span><span class='line'><span class="cp">#[repr(C)]</span>
+</span><span class='line'><span class="cp">#[derive(Clone)]</span>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">RafsV5ExtBlobEntry</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// Number of chunks in a blob file.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">chunk_count</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">reserved1</span><span class="o">:</span> <span class="p">[</span><span class="kt">u8</span><span class="p">;</span> <span class="mi">4</span><span class="p">],</span>     <span class="c1">//   --  8 Bytes</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">uncompressed_size</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span> <span class="c1">// -- 16 Bytes</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">compressed_size</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span>   <span class="c1">// -- 24 Bytes</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">reserved2</span><span class="o">:</span> <span class="p">[</span><span class="kt">u8</span><span class="p">;</span> <span class="n">RAFSV5_EXT_BLOB_RESERVED_SIZE</span><span class="p">],</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中 <code>RAFSV5_EXT_BLOB_RESERVED_SIZE</code> 的值为 40。</p>
+
+<p>对齐进行持久化的方法如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="kt">u32</span><span class="o">::</span><span class="n">to_le_bytes</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">chunk_count</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="n">entry</span><span class="p">.</span><span class="n">reserved1</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="kt">u64</span><span class="o">::</span><span class="n">to_le_bytes</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">uncompressed_size</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="kt">u64</span><span class="o">::</span><span class="n">to_le_bytes</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">compressed_size</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'><span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="n">entry</span><span class="p">.</span><span class="n">reserved2</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>看完代码再来看一下存储的数据内容。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00002050</span><span class="o">:</span> <span class="mi">37343061</span> <span class="mi">32623835</span> <span class="mi">00000001</span> <span class="mi">00000000</span>  <span class="n">a04758b2</span><span class="p">........</span>
+</span><span class='line'><span class="mi">00002060</span><span class="o">:</span> <span class="mi">00000040</span> <span class="mi">00000000</span> <span class="mi">00000035</span> <span class="mi">00000000</span>  <span class="o">@</span><span class="p">.......</span><span class="mf">5.</span><span class="p">......</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意 0x2058 是从上面第 9 个字节开始的，这里 chunk_count 的值为 0x00000001，即只有一个 chunk。然后 uncompressed_size 属性占用 8 个字节，在上面两行中实际是跨行了，包括第一行的后四个和第二行的前四个字节。其值为 0x40，即 64 字节。同理，compressed_size 的值为 0x35，即 53 字节。这也和我们在文件系统上看到的是一样的：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>-rw-r--r-- <span class="m">1</span> vagrant vagrant   <span class="m">53</span> Apr <span class="m">26</span> 06:55 a241b77eb3382572c7bc1b38a5b89196fc26b04bf667b914b0ec7113a04758b2
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>0x2060 行最后的 4 个字节为保留字节。</p>
+
+<p>Blob table 之后写入是 inode 信息，这些信息是通过 RafsV5InodeWrapper 结构表示的。Inode 信息由 3 部分组成：</p>
+
+<ul>
+<li>Inode 结构体的数据</li>
+<li>xattrs</li>
+<li>Chunk info</li>
+</ul>
+
+
+<p>我们还是先来看看一些关键数据结构的定义。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/layout/v5.rs</span>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">RafsV5InodeWrapper</span><span class="o">&lt;</span><span class="nl">&#39;a</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">name</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">&#39;a</span> <span class="n">OsStr</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">symlink</span><span class="o">:</span> <span class="nb">Option</span><span class="o">&lt;&amp;</span><span class="n">&#39;a</span> <span class="n">OsStr</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">inode</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">&#39;a</span> <span class="n">RafsV5Inode</span><span class="p">,</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// 删除了该方法的一些内容，主要保留了核心写入到磁盘的数据</span>
+</span><span class='line'><span class="k">impl</span><span class="o">&lt;</span><span class="nl">&#39;a</span><span class="o">&gt;</span> <span class="n">RafsStore</span> <span class="k">for</span> <span class="n">RafsV5InodeWrapper</span><span class="o">&lt;</span><span class="nl">&#39;a</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">fn</span> <span class="n">store</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">dyn</span> <span class="n">RafsIoWrite</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">Result</span><span class="o">&lt;</span><span class="n">usize</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="k">mut</span> <span class="n">size</span><span class="o">:</span> <span class="n">usize</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 1. 写入 RafsV5Inode 内容，128 字节</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">inode_data</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">as_ref</span><span class="p">();</span>
+</span><span class='line'>        <span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="n">inode_data</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 2. 写入文件名，可变长度</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">name</span><span class="p">.</span><span class="n">as_bytes</span><span class="p">();</span>
+</span><span class='line'>        <span class="n">w</span><span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">RafsV5Inode</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// sha256(sha256(chunk) + ...), [char; RAFS_SHA256_LENGTH]</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_digest</span><span class="o">:</span> <span class="n">RafsDigest</span><span class="p">,</span> <span class="c1">// 32</span>
+</span><span class='line'>    <span class="c-Doc">/// parent inode number</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_parent</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// from fs stat()</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_ino</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_uid</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_gid</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_projid</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_mode</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span> <span class="c1">// 64</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_size</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_blocks</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_flags</span><span class="o">:</span> <span class="n">RafsV5InodeFlags</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_nlink</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// for dir, child start index</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_child_index</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span> <span class="c1">// 96</span>
+</span><span class='line'>    <span class="c-Doc">/// for dir, means child count.</span>
+</span><span class='line'>    <span class="c-Doc">/// for regular file, means chunk info count.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_child_count</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// file name size, [char; i_name_size]</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_name_size</span><span class="o">:</span> <span class="kt">u16</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// symlink path size, [char; i_symlink_size]</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_symlink_size</span><span class="o">:</span> <span class="kt">u16</span><span class="p">,</span> <span class="c1">// 104</span>
+</span><span class='line'>    <span class="c1">// inode device block number, ignored for non-special files</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_rdev</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="c1">// for alignment reason, we put nsec first</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_mtime_nsec</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_mtime</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span>        <span class="c1">// 120</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">i_reserved</span><span class="o">:</span> <span class="p">[</span><span class="kt">u8</span><span class="p">;</span> <span class="mi">8</span><span class="p">],</span> <span class="c1">// 128</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们继续对照 dump 出来的 bootstrap 数据来看一下写入的具体内容。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00002070</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002080</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002090</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="n">afbe1b2a</span> <span class="mi">8</span><span class="n">b68b09e</span>  <span class="p">........</span><span class="o">*</span><span class="p">.....</span><span class="n">h</span><span class="p">.</span>
+</span><span class='line'><span class="mi">000020</span><span class="n">a0</span><span class="o">:</span> <span class="n">ac7a3553</span> <span class="n">ec9df26a</span> <span class="mi">5</span><span class="n">d07bafa</span> <span class="mi">02097</span><span class="n">de0</span>  <span class="n">S5z</span><span class="p">.</span><span class="n">j</span><span class="p">......].}..</span>
+</span><span class='line'><span class="mi">000020</span><span class="n">b0</span><span class="o">:</span> <span class="mi">4</span><span class="n">c85264b</span> <span class="mi">5749</span><span class="n">c4a7</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="n">K</span><span class="o">&amp;</span><span class="p">.</span><span class="n">L</span><span class="p">..</span><span class="n">IW</span><span class="p">........</span>
+</span><span class='line'><span class="mi">000020</span><span class="n">c0</span><span class="o">:</span> <span class="mi">00000001</span> <span class="mi">00000000</span> <span class="mf">000003e8</span> <span class="mf">000003e8</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">000020</span><span class="n">d0</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">000041</span><span class="n">ed</span> <span class="mi">00000080</span> <span class="mi">00000000</span>  <span class="p">.....</span><span class="n">A</span><span class="p">..........</span>
+</span><span class='line'><span class="mf">000020e0</span><span class="o">:</span> <span class="mi">00000001</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">000020</span><span class="k">f</span><span class="mi">0</span><span class="o">:</span> <span class="mi">00000002</span> <span class="mi">00000002</span> <span class="mi">00000002</span> <span class="mi">00000001</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002100</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002110</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">0000002</span><span class="k">f</span> <span class="mi">00000000</span>  <span class="p">........</span><span class="o">/</span><span class="p">.......</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>首先我们肉眼可见的 128 长度的 sha256 摘要，所以很容易定位到 RafsV5Inode 结构的内容。之后的 8 字节表示 parent inode，这里为 0。</p>
+
+<p>然后到着看找到 2110 行的 <code>2f</code>，这就是 ASCII 的 / ，也就是根目录。再倒着往回数 26 个字节，到了 i_name_size 属性，这里值为 1，即 <code>/</code> 长度为 1，再往上一个属性，即 i_child_count ，这里值为 2。其余属性这里就不再详细介绍。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00002120</span><span class="o">:</span> <span class="n">b94913af</span> <span class="n">a6a1f9f5</span> <span class="n">ea4d40a0</span> <span class="mi">49</span><span class="n">c9dc36</span>  <span class="p">..</span><span class="n">I</span><span class="p">......</span><span class="o">@</span><span class="n">M</span><span class="p">.</span><span class="mf">6.</span><span class="p">.</span><span class="n">I</span>
+</span><span class='line'><span class="mi">00002130</span><span class="o">:</span> <span class="n">c925cb9b</span> <span class="n">b712c1ad</span> <span class="n">ca939acc</span> <span class="mi">62321</span><span class="k">f</span><span class="n">e4</span>  <span class="p">..</span><span class="o">%</span><span class="p">...........</span><span class="mi">2</span><span class="n">b</span>
+</span><span class='line'><span class="mi">00002140</span><span class="o">:</span> <span class="mi">00000001</span> <span class="mi">00000000</span> <span class="mi">00000002</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002150</span><span class="o">:</span> <span class="mf">000003e8</span> <span class="mf">000003e8</span> <span class="mi">00000000</span> <span class="mi">000081</span><span class="n">a4</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002160</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002170</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000001</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002180</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000003</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002190</span><span class="o">:</span> <span class="mi">626767</span><span class="n">b2</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">.</span><span class="n">ggb</span><span class="p">............</span>
+</span><span class='line'><span class="mi">000021</span><span class="n">a0</span><span class="o">:</span> <span class="mi">00616161</span> <span class="mi">00000000</span> <span class="n">b232f6e2</span> <span class="n">e21610c0</span>  <span class="n">aaa</span><span class="p">.......</span><span class="mf">2.</span><span class="p">....</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>同样下一个文件名为 <code>aaa</code>，也可以从 <code>00616161</code> 看到。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">000021</span><span class="n">a0</span><span class="o">:</span> <span class="mi">00616161</span> <span class="mi">00000000</span> <span class="n">b232f6e2</span> <span class="n">e21610c0</span>  <span class="n">aaa</span><span class="p">.......</span><span class="mf">2.</span><span class="p">....</span>
+</span><span class='line'><span class="mi">000021</span><span class="n">b0</span><span class="o">:</span> <span class="n">efe31e11</span> <span class="mi">2532</span><span class="n">c9d6</span> <span class="mi">2</span><span class="k">f</span><span class="mf">8e943</span><span class="n">d</span> <span class="n">e7082bfe</span>  <span class="p">......</span><span class="mi">2</span><span class="o">%=</span><span class="p">..</span><span class="o">/</span><span class="p">.</span><span class="o">+</span><span class="p">..</span>
+</span><span class='line'><span class="mi">000021</span><span class="n">c0</span><span class="o">:</span> <span class="mi">81</span><span class="n">da0118</span> <span class="n">d1192211</span> <span class="mi">00000001</span> <span class="mi">00000000</span>  <span class="p">.....</span><span class="s">&quot;..........</span>
+</span><span class='line'><span class="s">000021d0: 00000003 00000000 000003e8 000003e8  ................</span>
+</span><span class='line'><span class="s">000021e0: 00000000 000081a4 00000040 00000000  ........@.......</span>
+</span><span class='line'><span class="s">000021f0: 00000001 00000000 00000000 00000000  ................</span>
+</span><span class='line'><span class="s">00002200: 00000001 00000000 00000001 00000003  ................</span>
+</span><span class='line'><span class="s">00002210: 00000000 00000000 62679767 00000000  ........g.gb....</span>
+</span><span class='line'><span class="s">00002220: 00000000 00000000 00626262 00000000  ........bbb.....</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后是最后一个文件 <code>bbb</code>，也可以从 <code>00626262</code> 看到。它的父文件夹为 1，文件大小为 0x40，这里应该是压缩后的文件大小了。</p>
+
+<p>最后是 chunk 信息。我们来看看它的结构：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="c1">// rafs/src/metadata/layout/v5.rs</span>
+</span><span class='line'><span class="k">pub</span> <span class="k">struct</span> <span class="n">RafsV5ChunkInfo</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// sha256(chunk), [char; RAFS_SHA256_LENGTH]</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">block_id</span><span class="o">:</span> <span class="n">RafsDigest</span><span class="p">,</span> <span class="c1">// 32</span>
+</span><span class='line'>    <span class="c-Doc">/// blob index.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">blob_index</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// chunk flags</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">flags</span><span class="o">:</span> <span class="n">BlobChunkFlags</span><span class="p">,</span> <span class="c1">// 40</span>
+</span><span class='line'>    <span class="c-Doc">/// compressed size in blob</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">compress_size</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// uncompressed size in blob</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">uncompress_size</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span> <span class="c1">// 48</span>
+</span><span class='line'>    <span class="c-Doc">/// compressed offset in blob</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">compress_offset</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span> <span class="c1">// 56</span>
+</span><span class='line'>    <span class="c-Doc">/// uncompressed offset in blob</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">uncompress_offset</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span> <span class="c1">// 64</span>
+</span><span class='line'>    <span class="c-Doc">/// offset in file</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">file_offset</span><span class="o">:</span> <span class="kt">u64</span><span class="p">,</span> <span class="c1">// 72</span>
+</span><span class='line'>    <span class="c-Doc">/// chunk index, it&#39;s allocated sequentially and starting from 0 for one blob.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">index</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// reserved</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">reserved</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span> <span class="c1">//80</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，它的长度是 80 个字节，对应文件的最后这部分：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="mi">00002230</span><span class="o">:</span> <span class="n">ec5944de</span> <span class="mi">690964</span><span class="n">ef</span> <span class="mi">8274</span><span class="k">f</span><span class="mi">1</span><span class="n">bf</span> <span class="mi">7</span><span class="n">cf30f7c</span>  <span class="p">.</span><span class="n">DY</span><span class="p">..</span><span class="n">d</span><span class="p">.</span><span class="n">i</span><span class="p">..</span><span class="n">t</span><span class="p">.</span><span class="o">|</span><span class="p">..</span><span class="o">|</span>
+</span><span class='line'><span class="mi">00002240</span><span class="o">:</span> <span class="mi">62</span><span class="k">f</span><span class="n">c5b93</span> <span class="n">d8d8c7a0</span> <span class="mi">3272</span><span class="k">f</span><span class="mi">74</span><span class="n">b</span> <span class="n">b91db007</span>  <span class="p">.[.</span><span class="n">b</span><span class="p">....</span><span class="n">K</span><span class="p">.</span><span class="n">r2</span><span class="p">....</span>
+</span><span class='line'><span class="mi">00002250</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000001</span> <span class="mi">00000035</span> <span class="mi">00000040</span>  <span class="p">........</span><span class="mf">5.</span><span class="p">..</span><span class="o">@</span><span class="p">...</span>
+</span><span class='line'><span class="mi">00002260</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span><span class='line'><span class="mi">00002270</span><span class="o">:</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span> <span class="mi">00000000</span>  <span class="p">................</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面只是简单分析了下 bootstrap 文件的内容，至于 blob 数据文件，则留待以后有时间再看了。</p>
+</div>
+
+  <footer>
+    <p class="meta">
+
+      
+
+      
+      <time datetime="2022-04-27 10:54:21 +0800" pubdate></time>
+      
+
+      
+      <span class="categories">
+	
+      </span>
+      
+
+    </p>
+
+    
+    <div class="sharing">
+
+      
+      <a href="http://twitter.com/share"
+	 class="twitter-share-button"
+	 data-url="http://liubin.org/blog/2022/04/27/nydus-bootstrap-layout/"
+	 data-via="liubuneng"
+	 data-counturl="http://liubin.org/blog/2022/04/27/nydus-bootstrap-layout/" >Tweet</a>
+      
+
+      
+
+      
+      <div class="fb-like"
+	   data-send="true"
+	   data-width="450"
+	   data-show-faces="false"></div>
+      
+    </div>
+    
+
+    
+
+  </footer>
+  
+</div>
+
+	<!-- /content -->
+      </div>
+
+      <footer role="contentinfo">
+	<!-- include footer -->
+	<p>
+  Copyright &copy; 2022 - bin liu -
+  <span>
+    <a title="About" href="/about">About me</a>
+  </span>
+  -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span> 
+</p>
+
+	<!-- /include -->
+      </footer>
+      
+      <!-- include after_footer -->
+      
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+      <!-- /include -->
+
+    </div>
+  </body>
+</html>
