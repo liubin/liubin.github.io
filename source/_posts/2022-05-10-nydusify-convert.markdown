@@ -575,3 +575,8 @@ config：
 
 到这里，只是梳理了 nydusify convert 命令的处理流程，下一步，计划再进入到 nydus-image create 命令，看看它是如何将指定的一个层（文件夹）转换为 blob 和 bootstrap 的。
 
+## 结束
+
+这里只是看了大致的流程，相对 nydus-image 来说，nydusify 代码还是相对简单写。
+
+关于 nydus-image 的源码分析，可以参考 [这篇文章](/2022-05-11-nydus-image-create.markdown)。
