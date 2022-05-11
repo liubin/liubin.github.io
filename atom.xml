@@ -4,7 +4,7 @@
   <title><![CDATA[人间指南]]></title>
   <link href="http://liubin.org/atom.xml" rel="self"/>
   <link href="http://liubin.org/"/>
-  <updated>2022-05-10T21:29:56+08:00</updated>
+  <updated>2022-05-11T15:45:16+08:00</updated>
   <id>http://liubin.org/</id>
   <author>
     <name><![CDATA[bin liu]]></name>
@@ -12,6 +12,1121 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Nydus 源码解读：nydus-image create]]></title>
+    <link href="http://liubin.org/blog/2022/05/11/nydus-image-create/"/>
+    <updated>2022-05-11T08:31:47+08:00</updated>
+    <id>http://liubin.org/blog/2022/05/11/nydus-image-create</id>
+    <content type="html"><![CDATA[<p>上一篇 <a href="http://liubin.org/blog/2022/05/10/nydusify-convert/">Nydus 源码解读：nydusify convert</a> 介绍了 <code>nydusify convert</code> 命令的大致流程，我们在那一片已经看到，每一层镜像都是通过 <code>nydus-image</code> 命令来转换的。</p>
+
+<p>这一篇我们就来以 <code>v2.0.0-rc.5</code> 的代码为基础，分析一下 <code>nydus-iamge create</code> 命令的代码。<code>nydus-image</code> 的代码主要在 <code>src/bin/nydus-image</code> 文件夹下。</p>
+
+<h2>测试环境</h2>
+
+<p>我们准备一个简单的文件夹 <code>fs</code>，然后将该文件夹转换为 nydus 镜像。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>mkdir -p fs/dir1
+</span><span class='line'><span class="nv">$ </span>mkdir -p fs/dir2
+</span><span class='line'><span class="nv">$ </span>touch fs/foo.txt
+</span><span class='line'><span class="nv">$ </span><span class="nb">echo </span>abcde &gt; fs/dir1/bar.txt
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>mkdir -p fs/dir1/dir1-1
+</span><span class='line'><span class="nv">$ </span>touch fs/dir1/dir1-1/foo
+</span><span class='line'><span class="nv">$ </span><span class="nb">echo </span>abc &gt; fs/dir1/dir1-1/hello
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>tree fs/
+</span><span class='line'>fs/
+</span><span class='line'>├── dir1
+</span><span class='line'>│   ├── bar.txt
+</span><span class='line'>│   └── dir1-1
+</span><span class='line'>│       ├── foo
+</span><span class='line'>│       └── hello
+</span><span class='line'>├── dir2
+</span><span class='line'>└── foo.txt
+</span><span class='line'>
+</span><span class='line'><span class="m">3</span> directories, <span class="m">4</span> files
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>注意</strong>：这里我们都是使用了常规的文件，没有软硬链接、设备文件等特殊类型的文件。</p>
+
+<p>然后我们使用如下命令来创建 nydus 镜像：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>mkdir output
+</span><span class='line'><span class="nv">$ </span>nydus-image create <span class="se">\</span>
+</span><span class='line'>    --fs-version <span class="m">5</span> <span class="se">\</span>
+</span><span class='line'>    --bootstrap output/bootstrap <span class="se">\</span>
+</span><span class='line'>    --blob-dir output <span class="se">\</span>
+</span><span class='line'>    fs
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面参数的意思分别为：</p>
+
+<ul>
+<li><code>--fs-version 5</code>：使用 Rafs 版本 5，目前支持 5/6，但是 6 应该还没有完全开发完成。</li>
+<li><code>--bootstrap output/bootstrap</code>：bootstrap 文件的保存位置。</li>
+<li><code>--blob-dir output</code>：blob 的保存位置</li>
+<li><code>fs</code>：输入文件夹</li>
+</ul>
+
+
+<p>实际上 nydus 支持从 3 种类型的输入源来创建 nydus 镜像：</p>
+
+<ul>
+<li>directory</li>
+<li>diff</li>
+<li>stargz_index</li>
+</ul>
+
+
+<p>其中 stargz 也是一种镜像延迟加载技术。在本例中，我们使用了默认的 directory 方式。这个值可以通过命令行参数 <code>source-type</code> 来控制。</p>
+
+<h2>代码解析</h2>
+
+<p>下面我们就来看一下 nydus-image 的源代码。</p>
+
+<h3>主函数</h3>
+
+<p>nydus-image create 命令的入口在 <a href="https://github.com/dragonflyoss/image-service/blob/v2.0.0-rc.5/src/bin/nydus-image/main.rs#L571-L702"><code>src/bin/nydus-image/main.rs</code></a> 里，这里我们不贴代码了，只简单说一下里面干了什么。</p>
+
+<p>这个函数主要创建了几个数据结构：</p>
+
+<ul>
+<li>build_ctx（类型：BuildContext）：主要在各函数调用中传递一些变量</li>
+<li>blob_mgr（类型：BlobManager）：管理 blob</li>
+<li>bootstrap_mgr（类型： BootstrapManager）：管理 bootstrap</li>
+<li>builder（类型：Box<dyn Builder>）：执行 build 过程</li>
+</ul>
+
+
+<p>我们看到 builder 是一个接口，它会根据输入源类型的不同而初始化为不同的具体实现。在这个例子中，我们基于文件夹构建 Nydus 镜像，所以这里 builder 的实际类型行为：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">builder</span> <span class="o">=</span> <span class="n">Box</span><span class="o">::</span><span class="n">new</span><span class="p">(</span><span class="n">DirectoryBuilder</span><span class="o">::</span><span class="n">new</span><span class="p">())</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后，该函数会调用</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="n">builder</span><span class="p">.</span><span class="n">build</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">build_ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_mgr</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">blob_mgr</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>来实现 build。</p>
+
+<h3>builder.build() 函数</h3>
+
+<p><a href="https://github.com/dragonflyoss/image-service/blob/v2.0.0-rc.5/src/bin/nydus-image/builder/directory.rs#L117-L196">builder.build() 函数</a> 内容如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">build</span><span class="p">(</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="k">mut</span> <span class="bp">self</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BuildContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">bootstrap_mgr</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BootstrapManager</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">blob_mgr</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BlobManager</span><span class="p">,</span>
+</span><span class='line'><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">Result</span><span class="o">&lt;</span><span class="n">BuildOutput</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">// 创建一个 BootstrapContext，在构建中将 bootstrap 数据保存在内存中</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">bootstrap_ctx</span> <span class="o">=</span> <span class="n">bootstrap_mgr</span><span class="p">.</span><span class="n">create_ctx</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">inline_bootstrap</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 基于输入源文件夹在内存中构建文件树结构</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">tree</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">build_tree_from_fs</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">bootstrap</span> <span class="o">=</span> <span class="n">Bootstrap</span><span class="o">::</span><span class="n">new</span><span class="p">()</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 如果是多层构建，当层数据需要依赖父层进行计算</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">layered</span> <span class="p">{</span>
+</span><span class='line'>        <span class="c1">// Merge with lower layer if there&#39;s one, do not prepare `prefetch` list during merging.</span>
+</span><span class='line'>        <span class="n">bootstrap</span><span class="p">.</span><span class="n">build</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">tree</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>        <span class="c1">// 本例中不会走入这个分支，这里我们就不介绍 apply 方法了。</span>
+</span><span class='line'>        <span class="n">tree</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="n">bootstrap_mgr</span><span class="p">,</span> <span class="n">blob_mgr</span><span class="p">,</span> <span class="nb">None</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 将树状结构转换为一个平铺的数组</span>
+</span><span class='line'>    <span class="c1">// 保存到 `bootstrap_ctx.nodes` 中</span>
+</span><span class='line'>    <span class="n">timing_tracer</span><span class="o">!</span><span class="p">(</span>
+</span><span class='line'>        <span class="p">{</span> <span class="n">bootstrap</span><span class="p">.</span><span class="n">build</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">tree</span><span class="p">)</span> <span class="p">},</span>
+</span><span class='line'>        <span class="s">&quot;build_bootstrap&quot;</span>
+</span><span class='line'>    <span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Dump blob file</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">blob_ctx</span> <span class="o">=</span> <span class="n">BlobContext</span><span class="o">::</span><span class="n">new</span><span class="p">()</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">blob_index</span> <span class="o">=</span> <span class="n">blob_mgr</span><span class="p">.</span><span class="n">alloc_index</span><span class="p">()</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">blob</span> <span class="o">=</span> <span class="n">Blob</span><span class="o">::</span><span class="n">new</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// blob.dump 将内存的数据写入磁盘 blob 文件</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">blob_exists</span> <span class="o">=</span> <span class="n">timing_tracer</span><span class="o">!</span><span class="p">(</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">blob</span><span class="p">.</span><span class="n">dump</span><span class="p">(</span>
+</span><span class='line'>                <span class="n">ctx</span><span class="p">,</span>
+</span><span class='line'>                <span class="o">&amp;</span><span class="k">mut</span> <span class="n">blob_ctx</span><span class="p">,</span>
+</span><span class='line'>                <span class="n">blob_index</span><span class="p">,</span>
+</span><span class='line'>                <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">nodes</span><span class="p">,</span>
+</span><span class='line'>                <span class="o">&amp;</span><span class="k">mut</span> <span class="n">blob_mgr</span><span class="p">.</span><span class="n">chunk_dict_cache</span><span class="p">,</span>
+</span><span class='line'>            <span class="p">)</span>
+</span><span class='line'>        <span class="p">},</span>
+</span><span class='line'>        <span class="s">&quot;dump_blob&quot;</span>
+</span><span class='line'>    <span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">blob_writer</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">writer</span><span class="p">.</span><span class="n">take</span><span class="p">().</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">blob_id</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">blob_id</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 这里的 blob_exists 表示 compressed_blob_size  &gt; 0，即 blob 文件大小大于 0 </span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">blob_exists</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">blob_writer</span><span class="p">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">blob_id</span><span class="p">.</span><span class="n">clone</span><span class="p">())</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>        <span class="c1">// Add new blob to blob table.</span>
+</span><span class='line'>        <span class="n">blob_mgr</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">blob_ctx</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 将 bootstrap 写入文件</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">blob_table</span> <span class="o">=</span> <span class="n">blob_mgr</span><span class="p">.</span><span class="n">to_blob_table</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">bootstrap</span><span class="p">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">blob_table</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">bootstrap_mgr</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">bootstrap_ctx</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>build_tree_from_fs</code> 函数也比较简单，就是构建文件夹结构，最后保存到 Tree 里：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">pub</span><span class="p">(</span><span class="n">crate</span><span class="p">)</span> <span class="k">struct</span> <span class="n">Tree</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c-Doc">/// Filesystem node.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">node</span><span class="o">:</span> <span class="n">Node</span><span class="p">,</span>
+</span><span class='line'>    <span class="c-Doc">/// Children tree nodes.</span>
+</span><span class='line'>    <span class="k">pub</span> <span class="n">children</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="n">Tree</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中一个 node 表示一个文件/文件夹，而 children 则表示该文件夹下的子文件夹或者文件。</p>
+
+<p>有了文件夹的树状结构，bootstrap 就可以开始 build 了。</p>
+
+<h3>Bootstrap build() 和 build_rafs 函数</h3>
+
+<p><a href="https://github.com/dragonflyoss/image-service/blob/v2.0.0-rc.5/src/bin/nydus-image/core/bootstrap.rs#L57-L86">build()</a> 函数时构建 bootstrap 的入口：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">pub</span> <span class="k">fn</span> <span class="n">build</span><span class="p">(</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="k">mut</span> <span class="bp">self</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BuildContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">bootstrap_ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BootstrapContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">tree</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Tree</span><span class="p">,</span>
+</span><span class='line'><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">// 设置为 root 节点</span>
+</span><span class='line'>    <span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">RAFS_ROOT_INODE</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">set_ino</span><span class="p">(</span><span class="n">RAFS_ROOT_INODE</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">inode_map</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span>
+</span><span class='line'>        <span class="p">(</span><span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">layer_idx</span><span class="p">,</span> <span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">src_ino</span><span class="p">,</span> <span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">src_dev</span><span class="p">),</span>
+</span><span class='line'>        <span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">index</span><span class="p">],</span>
+</span><span class='line'>    <span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">nodes</span> <span class="o">=</span> <span class="n">Vec</span><span class="o">::</span><span class="n">with_capacity</span><span class="p">(</span><span class="mh">0x10000</span><span class="p">);</span>
+</span><span class='line'>    <span class="c1">// 将根节点 push 进去</span>
+</span><span class='line'>    <span class="n">nodes</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">clone</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 调用 build_rafs 构建子节点</span>
+</span><span class='line'>    <span class="bp">self</span><span class="p">.</span><span class="n">build_rafs</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">nodes</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 将结果保存到 bootstrap_ctx.nodes 中</span>
+</span><span class='line'>    <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nb">Ok</span><span class="p">(())</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><a href="https://github.com/dragonflyoss/image-service/blob/v2.0.0-rc.5/src/bin/nydus-image/core/bootstrap.rs#L126-L252"><code>build_rafs</code></a> 函数会遍历前面生成的节点列表，为各节点设置 inode 属性，包括 index，ino，子节点数量等。</p>
+
+<p>这个函数会递归的进行构建，所以有一个参数 tree 表示当前节点，对于子节点，如果是文件夹的话，还会继续调用 build_rafs 函数，构建子节点的数据结构。</p>
+
+<p><code>nodes</code> 参数是一个全局的 Node 列表，这是一个将树状结构转换为一维数组的结构。</p>
+
+<p>函数内容如下。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">build_rafs</span><span class="p">(</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="k">mut</span> <span class="bp">self</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BuildContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">bootstrap_ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BootstrapContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">tree</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Tree</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">nodes</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span class='line'><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">// 分配 index，新的值为 nodes 数组长度 + 1</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">index</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">.</span><span class="n">len</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u32</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'>    <span class="c1">// 每个 node 都会有这个 index 属性，方便从 nodes 数组获取该节点</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">parent</span> <span class="o">=</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">nodes</span><span class="p">[</span><span class="n">tree</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">index</span> <span class="k">as</span> <span class="n">usize</span> <span class="o">-</span> <span class="mi">1</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Maybe the parent is not a directory in multi-layers build scenario, so we check here.</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">parent</span><span class="p">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">parent</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">set_child_index</span><span class="p">(</span><span class="n">index</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">parent</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">set_child_count</span><span class="p">(</span><span class="n">tree</span><span class="p">.</span><span class="n">children</span><span class="p">.</span><span class="n">len</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">dirs</span><span class="o">:</span> <span class="n">Vec</span><span class="o">&lt;&amp;</span><span class="k">mut</span> <span class="n">Tree</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Vec</span><span class="o">::</span><span class="n">new</span><span class="p">();</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">parent_ino</span> <span class="o">=</span> <span class="n">parent</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">ino</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">for</span> <span class="n">child</span> <span class="k">in</span> <span class="n">tree</span><span class="p">.</span><span class="n">children</span><span class="p">.</span><span class="n">iter_mut</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">index</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">.</span><span class="n">len</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u64</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">set_parent</span><span class="p">(</span><span class="n">parent_ino</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 这里删除了 hardlink 处理的代码</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">!</span><span class="n">hardlink</span> <span class="p">{</span>
+</span><span class='line'>            <span class="c1">// 分配 ino，也就是数组索引</span>
+</span><span class='line'>            <span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">set_ino</span><span class="p">(</span><span class="n">index</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">set_nlink</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 这里处理 whiteout 类型</span>
+</span><span class='line'>        <span class="k">match</span> <span class="p">(</span>
+</span><span class='line'>            <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">layered</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">whiteout_type</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">whiteout_spec</span><span class="p">),</span>
+</span><span class='line'>        <span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="p">(</span><span class="k">true</span><span class="p">,</span> <span class="nb">Some</span><span class="p">(</span><span class="n">whiteout_type</span><span class="p">))</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>                <span class="c1">// 这里省略 layered 的处理</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="p">(</span><span class="kc">false</span><span class="p">,</span> <span class="nb">Some</span><span class="p">(</span><span class="n">whiteout_type</span><span class="p">))</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>                <span class="c1">// Remove overlayfs opaque xattr for single layer build</span>
+</span><span class='line'>                <span class="k">if</span> <span class="n">whiteout_type</span> <span class="o">==</span> <span class="n">WhiteoutType</span><span class="o">::</span><span class="n">OverlayFsOpaque</span> <span class="p">{</span>
+</span><span class='line'>                    <span class="n">child</span>
+</span><span class='line'>                        <span class="p">.</span><span class="n">node</span>
+</span><span class='line'>                        <span class="p">.</span><span class="n">remove_xattr</span><span class="p">(</span><span class="o">&amp;</span><span class="n">OsString</span><span class="o">::</span><span class="n">from</span><span class="p">(</span><span class="n">OVERLAYFS_WHITEOUT_OPAQUE</span><span class="p">));</span>
+</span><span class='line'>                <span class="p">}</span>
+</span><span class='line'>                <span class="n">nodes</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">clone</span><span class="p">());</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="n">_</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>                <span class="c1">// 这个例子中走默认分支，</span>
+</span><span class='line'>                <span class="c1">// 将 child.node 添加到 nodes 数组</span>
+</span><span class='line'>                <span class="n">nodes</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">clone</span><span class="p">());</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 如果当前 child 是文件夹，还需要再次递归处理</span>
+</span><span class='line'>        <span class="c1">// 所以将该文件夹保存到 dirs 数组</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">child</span><span class="p">.</span><span class="n">node</span><span class="p">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">dirs</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">child</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 循环完当前节点的 children 之后</span>
+</span><span class='line'>    <span class="c1">// 还需要再次递归处理子文件夹</span>
+</span><span class='line'>    <span class="k">for</span> <span class="n">dir</span> <span class="k">in</span> <span class="n">dirs</span> <span class="p">{</span>
+</span><span class='line'>        <span class="bp">self</span><span class="p">.</span><span class="n">build_rafs</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="n">dir</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>经过上面的两个函数的处理，就将所有节点的数据保存到了 bootstrap_ctx.nodes 中，接着就可以生成 bootstrap 和 blob 文件了。</p>
+
+<h3>blob.dump</h3>
+
+<p>blob 的 <a href="https://github.com/dragonflyoss/image-service/blob/v2.0.0-rc.5/src/bin/nydus-image/core/blob.rs#L26-L82">dump()</a> 方法位于 <code>src/bin/nydus-image/core/blob.rs</code> 文件中。</p>
+
+<p>其内容如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">pub</span> <span class="k">fn</span> <span class="n">dump</span><span class="o">&lt;</span><span class="nl">&#39;a</span><span class="p">,</span> <span class="n">T</span><span class="o">:</span> <span class="n">ChunkDict</span><span class="o">&gt;</span><span class="p">(</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="k">mut</span> <span class="bp">self</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">BuildContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">blob_ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">&#39;a</span> <span class="k">mut</span> <span class="n">BlobContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">blob_index</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">nodes</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Vec</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">chunk_dict</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">T</span><span class="p">,</span>
+</span><span class='line'><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">Result</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">ctx</span><span class="p">.</span><span class="n">source_type</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">SourceType</span><span class="o">::</span><span class="n">Directory</span> <span class="o">|</span> <span class="n">SourceType</span><span class="o">::</span><span class="n">Diff</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>            <span class="c1">// layout_blob_simple 函数用于从 Vec&lt;Node&gt; 类型的 nodes</span>
+</span><span class='line'>            <span class="c1">// 返回 Vec&lt;usize&gt; 类型的 inodes</span>
+</span><span class='line'>            <span class="c1">// prefetch 相关的变量和预拉取有关，这里我们暂时忽略</span>
+</span><span class='line'>            <span class="kd">let</span> <span class="p">(</span><span class="n">inodes</span><span class="p">,</span> <span class="n">prefetch_entries</span><span class="p">)</span> <span class="o">=</span> <span class="n">blob_ctx</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">blob_layout</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">layout_blob_simple</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ctx</span><span class="p">.</span><span class="n">prefetch</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="c1">// inodes 类型为 Vec&lt;usize&gt; ，inode 即 usize，</span>
+</span><span class='line'>            <span class="c1">// 用这个 inode 作为数组索引，从 nodes 数组获取 node 元素</span>
+</span><span class='line'>            <span class="c1">// 然后再调用 node 的 dump_blob 将 node 的信息写到磁盘</span>
+</span><span class='line'>            <span class="k">for</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">inode</span><span class="p">)</span> <span class="k">in</span> <span class="n">inodes</span><span class="p">.</span><span class="n">iter</span><span class="p">().</span><span class="n">enumerate</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>                <span class="kd">let</span> <span class="n">node</span> <span class="o">=</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">nodes</span><span class="p">[</span><span class="o">*</span><span class="n">inode</span><span class="p">];</span>
+</span><span class='line'>                <span class="kd">let</span> <span class="n">size</span> <span class="o">=</span> <span class="n">node</span>
+</span><span class='line'>                    <span class="p">.</span><span class="n">dump_blob</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">blob_ctx</span><span class="p">,</span> <span class="n">blob_index</span><span class="p">,</span> <span class="n">chunk_dict</span><span class="p">)</span>
+</span><span class='line'>                    <span class="p">.</span><span class="n">context</span><span class="p">(</span><span class="s">&quot;failed to dump blob chunks&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="n">SourceType</span><span class="o">::</span><span class="n">StargzIndex</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>            <span class="c1">// 省略 stargz 处理的 case</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 如果没有指定 blob_id，则自动从 blob_hash 创建 ID</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">blob_id</span><span class="p">.</span><span class="n">is_empty</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">blob_ctx</span><span class="p">.</span><span class="n">blob_id</span> <span class="o">=</span> <span class="n">format</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;{:x}&quot;</span><span class="p">,</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">blob_hash</span><span class="p">.</span><span class="n">clone</span><span class="p">().</span><span class="n">finalize</span><span class="p">());</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// compressed_blob_size &gt; 0 才需要写到磁盘，</span>
+</span><span class='line'>    <span class="c1">// 这里返回的 blob_exists 即是该标志</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">blob_exists</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">compressed_blob_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nb">Ok</span><span class="p">(</span><span class="n">blob_exists</span><span class="p">)</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>node.dump_blob</h3>
+
+<p>接着我们来看一下真正的写 blob 的函数，该函数位于 <a href="https://github.com/dragonflyoss/image-service/blob/v2.0.0-rc.5/src/bin/nydus-image/core/node.rs#L316-L470">src/bin/nydus-image/core/node.rs</a> 文件中。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">pub</span> <span class="k">fn</span> <span class="n">dump_blob</span><span class="o">&lt;</span><span class="n">T</span><span class="o">:</span> <span class="n">ChunkDict</span><span class="o">&gt;</span><span class="p">(</span>
+</span><span class='line'>    <span class="bp">self</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Node</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">BuildContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">blob_ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BlobContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">blob_index</span><span class="o">:</span> <span class="kt">u32</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">chunk_dict</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">T</span><span class="p">,</span>
+</span><span class='line'><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">Result</span><span class="o">&lt;</span><span class="kt">u64</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nb">Ok</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">is_symlink</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>      <span class="c1">// 针对 symlink 的特殊处理</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nb">Ok</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">is_special</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>      <span class="c1">// 针对 special 文件的特殊处理</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nb">Ok</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">file</span> <span class="o">=</span> <span class="n">File</span><span class="o">::</span><span class="n">open</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">.</span><span class="n">path</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">with_context</span><span class="p">(</span><span class="o">||</span> <span class="n">format</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;failed to open node file {:?}&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">path</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">inode_hasher</span> <span class="o">=</span> <span class="n">RafsDigest</span><span class="o">::</span><span class="n">hasher</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">digester</span><span class="p">);</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">blob_size</span> <span class="o">=</span> <span class="mi">0</span><span class="k">u64</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// `child_count` of regular file is reused as `chunk_count`.</span>
+</span><span class='line'>    <span class="c1">// 一个文件过大的话，大于 chunk size，就要被拆分为多个 chunk 存储。</span>
+</span><span class='line'>    <span class="k">for</span> <span class="n">i</span> <span class="k">in</span> <span class="mf">0.</span><span class="p">.</span><span class="bp">self</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">child_count</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">chunk_size</span><span class="p">;</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">file_offset</span> <span class="o">=</span> <span class="n">i</span> <span class="k">as</span> <span class="kt">u64</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">;</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">chunk_size</span> <span class="o">=</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="bp">self</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">child_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">{</span>
+</span><span class='line'>          <span class="c1">// 最后一个 chunk，可能实际的 chunk size 小于 blob_ctx.chunk_size</span>
+</span><span class='line'>          <span class="c1">// 这里检查下是否 chunk size 不足</span>
+</span><span class='line'>            <span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">)</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">checked_sub</span><span class="p">((</span><span class="n">chunk_size</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">)</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">ok_or_else</span><span class="p">(</span><span class="o">||</span> <span class="p">{</span>
+</span><span class='line'>                    <span class="n">anyhow</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;the rest chunk size of inode is bigger than chunk_size&quot;</span><span class="p">)</span>
+</span><span class='line'>                <span class="p">})</span><span class="o">?</span> <span class="k">as</span> <span class="kt">u32</span>
+</span><span class='line'>        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">chunk_size</span>
+</span><span class='line'>        <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 使用 read_exact 读取一个 chunk 的数据到 chunk_data</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="k">mut</span> <span class="n">chunk_data</span> <span class="o">=</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">chunk_data_buf</span><span class="p">[</span><span class="mf">0.</span><span class="p">.</span><span class="n">chunk_size</span> <span class="k">as</span> <span class="n">usize</span><span class="p">];</span>
+</span><span class='line'>        <span class="n">file</span><span class="p">.</span><span class="n">read_exact</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">chunk_data</span><span class="p">)</span>
+</span><span class='line'>            <span class="p">.</span><span class="n">with_context</span><span class="p">(</span><span class="o">||</span> <span class="n">format</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;failed to read node file {:?}&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">path</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 生成 chunk_id</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">chunk_id</span> <span class="o">=</span> <span class="n">RafsDigest</span><span class="o">::</span><span class="n">from_buf</span><span class="p">(</span><span class="n">chunk_data</span><span class="p">,</span> <span class="n">ctx</span><span class="p">.</span><span class="n">digester</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">inode_hasher</span><span class="p">.</span><span class="n">digest_update</span><span class="p">(</span><span class="n">chunk_id</span><span class="p">.</span><span class="n">as_ref</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 生成 chunk 对象，对本例来说这是一个 RafsV5ChunkInfo 类型的数据结构</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="k">mut</span> <span class="n">chunk</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">create_chunk</span><span class="p">();</span>
+</span><span class='line'>        <span class="n">chunk</span><span class="p">.</span><span class="n">set_id</span><span class="p">(</span><span class="n">chunk_id</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 通过对比 chunk digest 来判断是否该 chunk 已经存在</span>
+</span><span class='line'>        <span class="c1">// 注意这里从两个缓存的地方获取，</span>
+</span><span class='line'>        <span class="c1">// 一个是 blob_ctx.chunk_dict，</span>
+</span><span class='line'>        <span class="c1">// 一个是输入参数的 chunk_dict</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">exist_chunk</span> <span class="o">=</span> <span class="k">match</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">chunk_dict</span><span class="p">.</span><span class="n">get_chunk</span><span class="p">(</span><span class="o">&amp;</span><span class="n">chunk_id</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="nb">Some</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nb">Some</span><span class="p">((</span><span class="n">v</span><span class="p">,</span> <span class="k">true</span><span class="p">)),</span>
+</span><span class='line'>            <span class="nb">None</span> <span class="o">=&gt;</span> <span class="n">chunk_dict</span><span class="p">.</span><span class="n">get_chunk</span><span class="p">(</span><span class="o">&amp;</span><span class="n">chunk_id</span><span class="p">).</span><span class="n">map</span><span class="p">(</span><span class="o">|</span><span class="n">v</span><span class="o">|</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="kc">false</span><span class="p">)),</span>
+</span><span class='line'>        <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="kd">let</span> <span class="nb">Some</span><span class="p">((</span><span class="n">cached_chunk</span><span class="p">,</span> <span class="n">from_dict</span><span class="p">))</span> <span class="o">=</span> <span class="n">exist_chunk</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">cached_chunk</span><span class="p">.</span><span class="n">uncompressed_size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+</span><span class='line'>                <span class="o">||</span> <span class="n">cached_chunk</span><span class="p">.</span><span class="n">uncompressed_size</span><span class="p">()</span> <span class="o">==</span> <span class="n">chunk_size</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>              <span class="c1">// 从 cached_chunk 拷贝数据</span>
+</span><span class='line'>                <span class="n">chunk</span><span class="p">.</span><span class="n">copy_from</span><span class="p">(</span><span class="n">cached_chunk</span><span class="p">);</span>
+</span><span class='line'>                <span class="n">chunk</span><span class="p">.</span><span class="n">set_file_offset</span><span class="p">(</span><span class="n">file_offset</span><span class="p">);</span>
+</span><span class='line'>                <span class="k">if</span> <span class="n">from_dict</span> <span class="p">{</span>
+</span><span class='line'>                  <span class="c1">// 如果是 blob_ctx.chunk_dict 里已存在该 chunk，</span>
+</span><span class='line'>                  <span class="c1">// 则设置 blob index 为该 chunk 的 blob id</span>
+</span><span class='line'>                    <span class="kd">let</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">chunk_dict</span><span class="p">.</span><span class="n">get_real_blob_idx</span><span class="p">(</span><span class="n">chunk</span><span class="p">.</span><span class="n">blob_index</span><span class="p">());</span>
+</span><span class='line'>                    <span class="n">chunk</span><span class="p">.</span><span class="n">set_blob_index</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+</span><span class='line'>                <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="kd">let</span> <span class="n">source</span> <span class="o">=</span> <span class="k">if</span> <span class="n">from_dict</span> <span class="p">{</span>
+</span><span class='line'>                    <span class="n">ChunkSource</span><span class="o">::</span><span class="n">Dict</span>
+</span><span class='line'>                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>                    <span class="n">ChunkSource</span><span class="o">::</span><span class="n">Build</span>
+</span><span class='line'>                <span class="p">};</span>
+</span><span class='line'>                <span class="bp">self</span><span class="p">.</span><span class="n">chunks</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">NodeChunk</span> <span class="p">{</span>
+</span><span class='line'>                    <span class="n">source</span><span class="p">,</span>
+</span><span class='line'>                    <span class="n">inner</span><span class="o">:</span> <span class="n">chunk</span><span class="p">,</span>
+</span><span class='line'>                <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">continue</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 没有从任何缓存中获得该 chunk，则创建该 chunk</span>
+</span><span class='line'>        <span class="c1">// 首先先对数据进行压缩处理</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="p">(</span><span class="n">compressed</span><span class="p">,</span> <span class="n">is_compressed</span><span class="p">)</span> <span class="o">=</span> <span class="n">compress</span><span class="o">::</span><span class="n">compress</span><span class="p">(</span><span class="o">&amp;</span><span class="n">chunk_data</span><span class="p">,</span> <span class="n">ctx</span><span class="p">.</span><span class="n">compressor</span><span class="p">)</span>
+</span><span class='line'>            <span class="p">.</span><span class="n">with_context</span><span class="p">(</span><span class="o">||</span> <span class="n">format</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;failed to compress node file {:?}&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">path</span><span class="p">))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">compressed_size</span> <span class="o">=</span> <span class="n">compressed</span><span class="p">.</span><span class="n">len</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 4k 对齐</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">aligned_chunk_size</span> <span class="o">=</span> <span class="k">if</span> <span class="n">ctx</span><span class="p">.</span><span class="n">aligned_chunk</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">try_round_up_4k</span><span class="p">(</span><span class="n">chunk_size</span><span class="p">).</span><span class="n">unwrap</span><span class="p">()</span>
+</span><span class='line'>        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">chunk_size</span>
+</span><span class='line'>        <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 更新 blob_ctx 中的一些信息</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">pre_decompress_offset</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">decompress_offset</span><span class="p">;</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">pre_compress_offset</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">compress_offset</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">blob_ctx</span><span class="p">.</span><span class="n">compress_offset</span> <span class="o">+=</span> <span class="n">compressed_size</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">blob_ctx</span><span class="p">.</span><span class="n">decompressed_blob_size</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">blob_ctx</span><span class="p">.</span><span class="n">decompress_offset</span> <span class="o">+</span> <span class="n">aligned_chunk_size</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">blob_ctx</span><span class="p">.</span><span class="n">compressed_blob_size</span> <span class="o">+=</span> <span class="n">compressed_size</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">blob_ctx</span><span class="p">.</span><span class="n">decompress_offset</span> <span class="o">+=</span> <span class="n">aligned_chunk_size</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">blob_ctx</span><span class="p">.</span><span class="n">blob_hash</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="o">&amp;</span><span class="n">compressed</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 将压缩后的 chunk 数据写入到 blob 文件</span>
+</span><span class='line'>        <span class="k">if</span> <span class="kd">let</span> <span class="nb">Some</span><span class="p">(</span><span class="n">writer</span><span class="p">)</span> <span class="o">=</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">writer</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">writer</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">write_all</span><span class="p">(</span><span class="o">&amp;</span><span class="n">compressed</span><span class="p">)</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">context</span><span class="p">(</span><span class="s">&quot;failed to write blob&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 更新 chunk 对象的一些属性</span>
+</span><span class='line'>        <span class="kd">let</span> <span class="n">chunk_index</span> <span class="o">=</span> <span class="n">blob_ctx</span><span class="p">.</span><span class="n">alloc_index</span><span class="p">()</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">chunk</span><span class="p">.</span><span class="n">set_chunk_info</span><span class="p">(</span>
+</span><span class='line'>            <span class="n">blob_index</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">chunk_index</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">file_offset</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">pre_decompress_offset</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">pre_compress_offset</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">compressed_size</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">chunk_size</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">is_compressed</span><span class="p">,</span>
+</span><span class='line'>        <span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">blob_ctx</span><span class="p">.</span><span class="n">add_chunk_meta_info</span><span class="p">(</span><span class="o">&amp;</span><span class="n">chunk</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// 将 chunk 对象加入到 chunk_dict，即该方法的输入参数</span>
+</span><span class='line'>        <span class="n">chunk_dict</span><span class="p">.</span><span class="n">add_chunk</span><span class="p">(</span><span class="n">chunk</span><span class="p">.</span><span class="n">clone</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="c1">// 将 chunk 对象添加到 self.chunks</span>
+</span><span class='line'>        <span class="bp">self</span><span class="p">.</span><span class="n">chunks</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">NodeChunk</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">source</span><span class="o">:</span> <span class="n">ChunkSource</span><span class="o">::</span><span class="n">Build</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">inner</span><span class="o">:</span> <span class="n">chunk</span><span class="p">,</span>
+</span><span class='line'>        <span class="p">});</span>
+</span><span class='line'>        <span class="n">blob_size</span> <span class="o">+=</span> <span class="n">compressed_size</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nb">Ok</span><span class="p">(</span><span class="n">blob_size</span><span class="p">)</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>以上就是 dump blob 的大致流程。</p>
+
+<h3>bootstrap.dump</h3>
+
+<p>Bootstrap 的 dump 会根据 rafs 版本来调用不同的实现函数，这里我们用的是 v5 的版本，所以实现函数在 <a href="https://github.com/dragonflyoss/image-service/blob/v2.0.0-rc.5/src/bin/nydus-image/core/bootstrap.rs#L373-L502">dump_rafsv5</a> 中。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+</pre></td><td class='code'><pre><code class='rust'><span class='line'><span class="k">fn</span> <span class="n">dump_rafsv5</span><span class="p">(</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="k">mut</span> <span class="bp">self</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BuildContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">bootstrap_ctx</span><span class="o">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">BootstrapContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">blob_table</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">RafsV5BlobTable</span><span class="p">,</span>
+</span><span class='line'><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">// 计算文件夹 inode 的 digest</span>
+</span><span class='line'>    <span class="k">for</span> <span class="n">idx</span> <span class="k">in</span> <span class="p">(</span><span class="mf">0.</span><span class="p">.</span><span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">nodes</span><span class="p">.</span><span class="n">len</span><span class="p">()).</span><span class="n">rev</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="bp">self</span><span class="p">.</span><span class="n">digest_node</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">bootstrap_ctx</span><span class="p">,</span> <span class="n">idx</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Set inode table</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">super_block_size</span> <span class="o">=</span> <span class="n">size_of</span><span class="o">::&lt;</span><span class="n">RafsV5SuperBlock</span><span class="o">&gt;</span><span class="p">();</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">inode_table_entries</span> <span class="o">=</span> <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">nodes</span><span class="p">.</span><span class="n">len</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">;</span>
+</span><span class='line'>    <span class="c1">// 创建 inode table</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">inode_table</span> <span class="o">=</span> <span class="n">RafsV5InodeTable</span><span class="o">::</span><span class="n">new</span><span class="p">(</span><span class="n">inode_table_entries</span> <span class="k">as</span> <span class="n">usize</span><span class="p">);</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">inode_table_size</span> <span class="o">=</span> <span class="n">inode_table</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Set blob table, use sha256 string (length 64) as blob id if not specified</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">prefetch_table_offset</span> <span class="o">=</span> <span class="n">super_block_size</span> <span class="o">+</span> <span class="n">inode_table_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">blob_table_offset</span> <span class="o">=</span> <span class="n">prefetch_table_offset</span> <span class="o">+</span> <span class="n">prefetch_table_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">blob_table_size</span> <span class="o">=</span> <span class="n">blob_table</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">extended_blob_table_offset</span> <span class="o">=</span> <span class="n">blob_table_offset</span> <span class="o">+</span> <span class="n">blob_table_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">extended_blob_table_size</span> <span class="o">=</span> <span class="n">blob_table</span><span class="p">.</span><span class="n">extended</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">extended_blob_table_entries</span> <span class="o">=</span> <span class="n">blob_table</span><span class="p">.</span><span class="n">extended</span><span class="p">.</span><span class="n">entries</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 创建 super block</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">super_block</span> <span class="o">=</span> <span class="n">RafsV5SuperBlock</span><span class="o">::</span><span class="n">new</span><span class="p">();</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="n">inodes_count</span> <span class="o">=</span> <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">inode_map</span><span class="p">.</span><span class="n">len</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_inodes_count</span><span class="p">(</span><span class="n">inodes_count</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_inode_table_offset</span><span class="p">(</span><span class="n">super_block_size</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_inode_table_entries</span><span class="p">(</span><span class="n">inode_table_entries</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_blob_table_offset</span><span class="p">(</span><span class="n">blob_table_offset</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_blob_table_size</span><span class="p">(</span><span class="n">blob_table_size</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_extended_blob_table_offset</span><span class="p">(</span><span class="n">extended_blob_table_offset</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_extended_blob_table_entries</span><span class="p">(</span><span class="kt">u32</span><span class="o">::</span><span class="n">try_from</span><span class="p">(</span><span class="n">extended_blob_table_entries</span><span class="p">)</span><span class="o">?</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_prefetch_table_offset</span><span class="p">(</span><span class="n">prefetch_table_offset</span> <span class="k">as</span> <span class="kt">u64</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_prefetch_table_entries</span><span class="p">(</span><span class="n">prefetch_table_entries</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_compressor</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">compressor</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_digester</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">digester</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">super_block</span><span class="p">.</span><span class="n">set_chunk_size</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">chunk_size</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Set inodes and chunks</span>
+</span><span class='line'>    <span class="kd">let</span> <span class="k">mut</span> <span class="n">inode_offset</span> <span class="o">=</span> <span class="p">(</span><span class="n">super_block_size</span>
+</span><span class='line'>        <span class="o">+</span> <span class="n">inode_table_size</span>
+</span><span class='line'>        <span class="o">+</span> <span class="n">prefetch_table_size</span>
+</span><span class='line'>        <span class="o">+</span> <span class="n">blob_table_size</span>
+</span><span class='line'>        <span class="o">+</span> <span class="n">extended_blob_table_size</span><span class="p">)</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">for</span> <span class="n">node</span> <span class="k">in</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">nodes</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">inode_table</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">index</span><span class="p">,</span> <span class="n">inode_offset</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>        <span class="c1">// Add inode size</span>
+</span><span class='line'>        <span class="n">inode_offset</span> <span class="o">+=</span> <span class="n">node</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">inode_size</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">;</span>
+</span><span class='line'>        <span class="c1">// Add chunks size</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">node</span><span class="p">.</span><span class="n">is_reg</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">inode_offset</span> <span class="o">+=</span> <span class="n">node</span><span class="p">.</span><span class="n">inode</span><span class="p">.</span><span class="n">child_count</span><span class="p">()</span> <span class="o">*</span> <span class="n">size_of</span><span class="o">::&lt;</span><span class="n">RafsV5ChunkInfo</span><span class="o">&gt;</span><span class="p">()</span> <span class="k">as</span> <span class="kt">u32</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Dump super block</span>
+</span><span class='line'>    <span class="n">super_block</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">writer</span><span class="p">.</span><span class="n">as_mut</span><span class="p">())</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">context</span><span class="p">(</span><span class="s">&quot;failed to store superblock&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Dump inode table</span>
+</span><span class='line'>    <span class="n">inode_table</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">writer</span><span class="p">.</span><span class="n">as_mut</span><span class="p">())</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">context</span><span class="p">(</span><span class="s">&quot;failed to store inode table&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Dump blob table</span>
+</span><span class='line'>    <span class="n">blob_table</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">writer</span><span class="p">.</span><span class="n">as_mut</span><span class="p">())</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">context</span><span class="p">(</span><span class="s">&quot;failed to store blob table&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Dump extended blob table</span>
+</span><span class='line'>    <span class="n">blob_table</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">store_extended</span><span class="p">(</span><span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">writer</span><span class="p">.</span><span class="n">as_mut</span><span class="p">())</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">context</span><span class="p">(</span><span class="s">&quot;failed to store extended blob table&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Dump inodes and chunks</span>
+</span><span class='line'>    <span class="n">timing_tracer</span><span class="o">!</span><span class="p">(</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="k">for</span> <span class="n">node</span> <span class="k">in</span> <span class="o">&amp;</span><span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">nodes</span> <span class="p">{</span>
+</span><span class='line'>                <span class="n">node</span><span class="p">.</span><span class="n">dump_bootstrap_v5</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ctx</span><span class="p">,</span> <span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">writer</span><span class="p">.</span><span class="n">as_mut</span><span class="p">())</span>
+</span><span class='line'>                    <span class="p">.</span><span class="n">context</span><span class="p">(</span><span class="s">&quot;failed to dump bootstrap&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="nb">Ok</span><span class="p">(())</span>
+</span><span class='line'>        <span class="p">},</span>
+</span><span class='line'>        <span class="s">&quot;dump_bootstrap&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span>
+</span><span class='line'>    <span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">bootstrap_ctx</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">writer</span>
+</span><span class='line'>        <span class="p">.</span><span class="n">finalize</span><span class="p">(</span><span class="nb">Some</span><span class="p">(</span><span class="n">bootstrap_ctx</span><span class="p">.</span><span class="n">name</span><span class="p">.</span><span class="n">to_string</span><span class="p">()))</span><span class="o">?</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nb">Ok</span><span class="p">(())</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>关于 bootstrap 数据中存储的内容，可以参考前几天的 <a href="http://liubin.org/blog/2022/04/27/nydus-bootstrap-layout/">这篇文章</a>。</p>
+
+<h2>结束</h2>
+
+<p>Nydus 的代码量还是挺大，上面只是分析了大致的流程，至于具体到其中的每一个函数调用，可能还涉及到很多不同的执行路径，不同的标志值，肯定要比上面的复杂的多，到时候还得根据实际情况，进一步的细读。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Nydus 源码解读：nydusify convert]]></title>
@@ -985,6 +2100,12 @@
 
 
 <p>到这里，只是梳理了 nydusify convert 命令的处理流程，下一步，计划再进入到 nydus-image create 命令，看看它是如何将指定的一个层（文件夹）转换为 blob 和 bootstrap 的。</p>
+
+<h2>结束</h2>
+
+<p>这里只是看了大致的流程，相对 nydus-image 来说，nydusify 代码还是相对简单写。</p>
+
+<p>关于 nydus-image 的源码分析，可以参考 <a href="http://liubin.org/2022-05-11-nydus-image-create.markdown">这篇文章</a>。</p>
 ]]></content>
   </entry>
   
@@ -6443,85 +7564,6 @@
 <p>IaaS 的出现，让我们丢弃了各种 provision 工具，同时，各种 configuration management 工具如雨后春笋般的出现和普及；容器的出现，又让我们扔掉了刚买还没看几页的各种 Chef/Puppet 入门/圣经，匆忙学起 Kubernetes；有了 Serverless infrastructure，也差不多可以和各种编排工具说拜拜了。</p>
 
 <p>不管你们是在单体转微服务，还是在传统上云、转容器，估计大家都会喜欢上 fully managed 的服务，人人都做 Ops，很多运维工作都可以共同分担。当然，也会有一部分运维工程师掩面而逃。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Google 发布 gVisor - 容器沙箱运行时（sandboxed container runtime）]]></title>
-    <link href="http://liubin.org/blog/2018/05/02/gvisor/"/>
-    <updated>2018-05-02T07:53:41+08:00</updated>
-    <id>http://liubin.org/blog/2018/05/02/gvisor</id>
-    <content type="html"><![CDATA[<p>这是来自官方博客 <a href="https://cloudplatform.googleblog.com/2018/05/Open-sourcing-gVisor-a-sandboxed-container-runtime.html">Open-sourcing gVisor, a sandboxed container runtime</a> 的摘要及翻译。</p>
-
-<p>自 Docker 的普及开始，我们开发、打包和部署应用的方式发生了根本性的变化，但是由于容器的隔离技术所限，并不是所有的人都推崇使用容器技术，因为其共享内核机制，系统还存在很大的攻击面，这就会存在恶意应用程序侵入系统的威胁。</p>
-
-<p>为了运行那些不可信以及存在潜在威胁的容器，人们开始更加重视沙箱容器：一种能在宿主机和应用程序之间提供更安全的隔离机制。</p>
-
-<p>Google 发布的 gVisor ，就是这样一种新型的沙箱容器技术，它能为容器提供更安全的隔离，同时比虚拟机（VM）更轻量。 而且，gVisor 还能和 Docker 以及 Kubernetes 集成在一起，使得在生产环境中运行沙箱容器更简单。</p>
-
-<h2>传统的 Linux 容器并非沙箱</h2>
-
-<p>传统 Linux 容器中运行的应用程序与常规（非容器化）应用程序以相同的方式访问系统资源：直接对主机内核进行系统调用。内核以特权模式运行，允许它与必要的硬件交互并将结果返回给应用程序。</p>
-
-<p><img src="http://ourcolorfuldays.com/wp-content/uploads/2018/04/traditional-linux-containers-gvisor.png" alt="" /></p>
-
-<p>在传统的容器技术中，内核会对应用程序需要访问的资源施加一些限制。这些限制通过使用 Linux 的 cgroups 和命名空间技术来实现，然而并非所有的资源都可以通过这些机制来进行控制。此外，即使使用这些限制，内核仍然面向恶意程序暴露出过多的攻击面。</p>
-
-<p>像 seccomp 这样的技术可以在应用程序和主机内核之间提供更好的隔离，但是它们要求用户创建预定义的系统调用白名单。在实际中，很难事先罗列出应用程序所需要的所有系统调用。如果你需要调用的系统调用存在漏洞，那么这类过滤器也很难发挥作用。</p>
-
-<h2>已有基于 VM 的容器技术</h2>
-
-<p>提高容器隔离性的一种方法是将容器运行在其自己的虚拟机（VM）之内。也就是为每个容器提供自己专用的“机器”，包括内核和虚拟化设备，并与主机完全分离。即使 guest 虚拟机存在漏洞，管理程序（ hypervisor ）仍会隔离主机以及主机上运行的其他应用程序/容器。</p>
-
-<p><img src="http://ourcolorfuldays.com/wp-content/uploads/2018/04/vm-based-container-technology-gvisor-300x272.png" alt="" /></p>
-
-<p>在不同的 VM 中运行容器提供了很好的隔离性、兼容性和性能，但也可能需要更大的资源占用。</p>
-
-<p>Kata containers 是一个开源项目，它使用精简的虚拟机来尽量减少资源的占用，并最大限度地提高隔离容器的性能。与 gVisor 一样，Kata 也包含与 Docker 和 Kubernetes 兼容的 OCI （Open Container Initiative ）运行时。</p>
-
-<h2>基于 gVisor 的沙箱容器（ Sandboxed containers ）</h2>
-
-<p>gVisor 比 VM 更轻量，同时具备相同的隔离级别。 gVisor 的核心是一个以普通非特权进程方式运行的内核，它支持大多数 Linux 系统调用。这个内核是用 Go 编写的，选择 Go 语言是由于其较小的内存占用以及类型安全等特性。和虚拟机一样，在 gVisor 沙箱中运行的应用程序也可以拥有独立于主机和其他沙箱、自己独自的内核和一组虚拟设备。</p>
-
-<p><img src="http://ourcolorfuldays.com/wp-content/uploads/2018/04/gvisor-sandbox-containers-300x184.png" alt="" /></p>
-
-<p>gVisor 通过拦截应用程序的系统调用，并充当 guest 内核，提供了非常强的隔离性，而所有的这些都运行在用户空间。和虚拟机在创建时需要一定的资源不同，gVisor 可以像普通 Linux 进程一样，随时调整自己的资源使用。可以将 gVisor 看做是一个完全虚拟化的操作系统，但是与完整的虚拟机相比，它具有灵活的资源占用和更低的固定成本。</p>
-
-<p>但是，这种灵活性的代价是单个系统调用的消耗、应用程序的兼容性（和系统调用相关）以及其他问题。</p>
-
-<p>“安全工作负载（workloads）是业界的首要任务，我们很高兴看到像 gVisor 这样的创新，并期待在规范方面进行合作，并对相关技术组件进行改进，从而为生态系统带来更大的安全性。”</p>
-
-<ul>
-<li>Samuel Ortiz，Kata 技术指导委员会成员，英特尔公司首席工程师</li>
-</ul>
-
-
-<p>“Hyper 非常高兴看到 gVisor 这样全新的提高容器隔离性的方法。行业需要一个强大的安全容器技术生态系统，我们期待通过与 gVisor 的合作让安全容器成为主流。“</p>
-
-<ul>
-<li>Xu Wang，Kata 技术指导委员会成员，Hyper.sh CTO</li>
-</ul>
-
-
-<h2>和 Docker、Kubernetes 集成</h2>
-
-<p>gVisor 运行时可以通过 <code>runsc</code>（run Sandboxed Container） 和 Docker 以及 Kubernetes 进行无缝集成。</p>
-
-<p>runsc 运行时与 Docker 的默认容器运行时 runc 可以互换。runsc 的安装很简单，一旦安装完成，只需要在运行 docker 的时候增加一个参数就可以使用沙箱容器：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ docker run --runtime=runsc hello-world
-</span><span class='line'>$ docker run --runtime=runsc -p 3306:3306 mysql</span></code></pre></td></tr></table></div></figure>
-
-
-<p>在 Kubernetes 中，大多数资源隔离都以 Pod 为单位，因此 Pod 也自然成为了 gVisor 沙箱的边界（boundary）。Kubernetes 社区目前正在致力于实现沙箱 Pod API，但是今天 gVisor 沙箱已经可以在实验版中（experimental support）可用。</p>
-
-<p>runsc 运行时可以通过 cri-o 或 cri-containerd 等项目来在 Kubernetes 群集中使用沙箱技术，这些项目会将 Kubelet 中的消息转换为 OCI 运行时命令。</p>
-
-<p>gVisor 实现了大部分 Linux 系统 API （ 200 个系统调用，并且还在增加中），但并不是所有的系统调用。目前有一些系统调用和参数还没有支持，以及 /proc 和 /sys 文件系统的一些部分内容。因此，并不是说所有的应用程序都可以在 gVisor 中正常运行，但大部分应用程序应该都可以正常运行，包括 Node.js、Java 8、MySQL、Jenkins、Apache、Redis 和 MongoDB 等等。</p>
-
-<p>gVisor 已经开源，可以在 <a href="https://github.com/google/gvisor">https://github.com/google/gvisor</a> 查看到其内容，相信这里将会是大家了解 gVisor 最好的开始。</p>
 ]]></content>
   </entry>
   
