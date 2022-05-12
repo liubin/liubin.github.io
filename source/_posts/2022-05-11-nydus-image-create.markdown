@@ -135,6 +135,9 @@ fn build(
     let blob_index = blob_mgr.alloc_index()?;
     let mut blob = Blob::new();
 
+    // 加载 builder 启动时指定的 chunk-dict 中的内容
+    blob_mgr.extend_blob_table_from_chunk_dict()?;
+
     // blob.dump 将内存的数据写入磁盘 blob 文件
     let blob_exists = timing_tracer!(
         {
@@ -368,10 +371,10 @@ pub fn dump_blob<T: ChunkDict>(
     if self.is_dir() {
         return Ok(0);
     } else if self.is_symlink() {
-    	// 针对 symlink 的特殊处理
+        // 针对 symlink 的特殊处理
         return Ok(0);
     } else if self.is_special() {
-    	// 针对 special 文件的特殊处理
+        // 针对 special 文件的特殊处理
         return Ok(0);
     }
 
@@ -386,8 +389,8 @@ pub fn dump_blob<T: ChunkDict>(
         let chunk_size = blob_ctx.chunk_size;
         let file_offset = i as u64 * chunk_size as u64;
         let chunk_size = if i == self.inode.child_count() - 1 {
-        	// 最后一个 chunk，可能实际的 chunk size 小于 blob_ctx.chunk_size
-        	// 这里检查下是否 chunk size 不足
+            // 最后一个 chunk，可能实际的 chunk size 小于 blob_ctx.chunk_size
+            // 这里检查下是否 chunk size 不足
             (self.inode.size() as u64)
                 .checked_sub((chunk_size * i) as u64)
                 .ok_or_else(|| {
@@ -423,12 +426,12 @@ pub fn dump_blob<T: ChunkDict>(
             if cached_chunk.uncompressed_size() == 0
                 || cached_chunk.uncompressed_size() == chunk_size
             {
-            	// 从 cached_chunk 拷贝数据
+                // 从 cached_chunk 拷贝数据
                 chunk.copy_from(cached_chunk);
                 chunk.set_file_offset(file_offset);
                 if from_dict {
-                	// 如果是 blob_ctx.chunk_dict 里已存在该 chunk，
-                	// 则设置 blob index 为该 chunk 的 blob id
+                    // 如果是 blob_ctx.chunk_dict 里已存在该 chunk，
+                    // 则设置 blob index 为该 chunk 的 blob id
                     let idx = blob_ctx.chunk_dict.get_real_blob_idx(chunk.blob_index());
                     chunk.set_blob_index(idx);
                 }
@@ -496,7 +499,7 @@ pub fn dump_blob<T: ChunkDict>(
         // 将 chunk 对象加入到 chunk_dict，即该方法的输入参数
         chunk_dict.add_chunk(chunk.clone());
 
-		// 将 chunk 对象添加到 self.chunks
+        // 将 chunk 对象添加到 self.chunks
         self.chunks.push(NodeChunk {
             source: ChunkSource::Build,
             inner: chunk,
